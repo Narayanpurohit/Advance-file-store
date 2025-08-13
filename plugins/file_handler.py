@@ -1,4 +1,7 @@
 import random, string
+from bot import BOT_USERNAME
+
+await message.reply_text(f"Here is your link:\n{link}")
 from pyrogram import Client, filters
 from database import add_file
 from config import BOT_USERNAME, ADMINS
