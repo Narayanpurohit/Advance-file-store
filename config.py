@@ -1,16 +1,16 @@
 import os
 
 # Fill these values before running
-BOT_TOKEN = os.getenv("BOT_TOKEN", "")
-API_ID = int(os.getenv("API_ID", "123456"))
-API_HASH = os.getenv("API_HASH", "")
-MONGO_URI = os.getenv("MONGO_URI", "")
+BOT_TOKEN = os.getenv("BOT_TOKEN", "6677023637:AAEzYMmsN_aqsIUtMl8D8hgId74z6hUJa0Q")
+API_ID = int(os.getenv("API_ID", "15191874"))
+API_HASH = os.getenv("API_HASH", "3037d39233c6fad9b80d83bb8a339a07")
+MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
 # Admins who can manage the bot
-ADMINS = list(map(int, os.getenv("ADMINS", "123456789").split(",")))
+ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
 
 # Verification system toggle
-VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "True").lower() == "true"
+VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "False").lower() == "false"
 
 # Premium settings
 PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", "8"))
