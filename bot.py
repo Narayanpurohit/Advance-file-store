@@ -18,6 +18,7 @@ async def main():
         me = await app.get_me()
         config.BOT_USERNAME = me.username
         print(f"✅ Bot started as @{config.BOT_USERNAME}")
+        app.send_message(ADMIN_ID, "✅ Bot deployed successfully!")
         await idle()
 
 if __name__ == "__main__":
