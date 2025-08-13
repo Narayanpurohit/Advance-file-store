@@ -16,7 +16,7 @@ app = Client(
     plugins=dict(root="plugins")
 )
 
-BOT_USERNAME = None  # Will store username after startup
+ # Will store username after startup
 
 if __name__ == "__main__":
     logger.info("🚀 Starting bot...")
