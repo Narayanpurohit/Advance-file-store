@@ -1,26 +1,37 @@
-import asyncio
-from pyrogram import Client
-from config import BOT_TOKEN
-import config
+import logging
 import os
+from pyrogram import Client, filters
+from config import API_ID, API_HASH, BOT_TOKEN, ADMINS
 
-# Start Pyrogram client
+# ─── Logging Setup ───────────────────────────────────────
+logging.basicConfig(
+    level=logging.INFO,  # Change to DEBUG for more details
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+# ─── Bot Client ──────────────────────────────────────────
 app = Client(
-    "fileshare_bot",
+    "FileStoreBot",
+    api_id=API_ID,
+    api_hash=API_HASH,
     bot_token=BOT_TOKEN,
-    api_id=config.API_ID,
-    api_hash=config.API_HASH,
-    plugins={"root": "plugins"}
+    plugins=dict(root="plugins")  # Loads commands from plugins/
 )
 
-async def main():
-    async with app:
-        me = await app.get_me()
-        config.BOT_USERNAME = me.username
-        print(f"✅ Bot started as @{config.BOT_USERNAME}")
-        app.send_message(ADMIN_ID, "✅ Bot deployed successfully!")
-        await idle()
-
+# ─── Startup ─────────────────────────────────────────────
 if __name__ == "__main__":
-    from pyrogram import idle
-    asyncio.run(main())
+    logger.info("🚀 Starting bot...")
+    app.start()
+    logger.info(f"✅ Bot started as @{app.get_me().username}")
+
+    # Send startup message to admins
+    for admin_id in ADMINS:
+        try:
+            app.send_message(admin_id, "✅ Bot deployed successfully!")
+            logger.info(f"📨 Startup message sent to admin {admin_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
+
+    logger.info("📡 Bot is now running and ready for updates.")
+    app.run()
