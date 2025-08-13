@@ -1,16 +1,13 @@
 import logging
-from pyrogram import Client
-from pyrogram import idle
+from pyrogram import Client, idle
 from config import API_ID, API_HASH, BOT_TOKEN, ADMINS
 
-# ─── Logging Setup ──────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
-# ─── Bot Client ─────────────────────────────────
 app = Client(
     "FileStoreBot",
     api_id=API_ID,
@@ -19,11 +16,14 @@ app = Client(
     plugins=dict(root="plugins")
 )
 
+BOT_USERNAME = None  # Will store username after startup
+
 if __name__ == "__main__":
     logger.info("🚀 Starting bot...")
-
     app.start()
-    logger.info(f"✅ Bot started as @{app.get_me().username}")
+    me = app.get_me()
+    BOT_USERNAME = me.username
+    logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
     for admin_id in ADMINS:
         try:
@@ -33,5 +33,5 @@ if __name__ == "__main__":
             logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
 
     logger.info("📡 Bot is now running and ready for updates.")
-    idle()  # Keeps the bot running until stopped
+    idle()
     app.stop()
