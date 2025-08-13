@@ -1,12 +1,12 @@
 import string
 import random
 from pyrogram import Client, filters
-from config import MONGODB_URI
+from config import MONGO_URI
 from bot import BOT_USERNAME
 from pymongo import MongoClient
 
 # ─── MongoDB Setup ───────────────────────────────
-mongo_client = MongoClient(MONGODB_URI)
+mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["filestore"]
 files_col = db["files"]
 stats_col = db["stats"]
