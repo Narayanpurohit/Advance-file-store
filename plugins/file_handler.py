@@ -1,19 +1,62 @@
-import random, string
-from bot import BOT_USERNAME
-
-await message.reply_text(f"Here is your link:\n{link}")
+import string
+import random
 from pyrogram import Client, filters
-from database import add_file
-from config import BOT_USERNAME, ADMINS
+from config import MONGODB_URI
+from bot import BOT_USERNAME
+from pymongo import MongoClient
 
-def gen_slug(prefix):
-    return prefix + ''.join(random.choices(string.ascii_lowercase + string.digits, k=8))
+# ─── MongoDB Setup ───────────────────────────────
+mongo_client = MongoClient(MONGODB_URI)
+db = mongo_client["filestore"]
+files_col = db["files"]
+stats_col = db["stats"]
 
-@Client.on_message(filters.user(ADMINS) & (filters.video | filters.audio | filters.document))
-async def handle_file(client, message):
-    file_type = "vid" if message.video else "aud" if message.audio else "doc"
-    file_id = message.video.file_id if message.video else message.audio.file_id if message.audio else message.document.file_id
-    slug = gen_slug(file_type + "_")
-    add_file(slug, file_id, file_type)
-    link = f"https://t.me/{BOT_USERNAME}?start={slug}"
-    await message.reply_text(f"✅ File saved!\n🔗 {link}")
+# ─── Helper: Generate Slug ───────────────────────
+def generate_slug(file_type):
+    chars = string.ascii_lowercase + string.digits
+    random_part = ''.join(random.choices(chars, k=12))
+    return f"{file_type}_{random_part}"
+
+# ─── File Handler ────────────────────────────────
+@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
+async def save_file(client, message):
+    # Detect file type
+    if message.document:
+        file_type = "doc"
+        file_id = message.document.file_id
+    elif message.video:
+        file_type = "vid"
+        file_id = message.video.file_id
+    elif message.audio:
+        file_type = "aud"
+        file_id = message.audio.file_id
+    else:
+        return  # Not a supported file type
+
+    # Generate slug
+    slug = generate_slug(file_type)
+
+    # Store in MongoDB
+    files_col.insert_one({
+        "slug": slug,
+        "file_id": file_id,
+        "file_type": file_type
+    })
+
+    # Update total counter
+    stats_col.update_one(
+        {"_id": "total"},
+        {"$inc": {"sent_files": 1}},
+        upsert=True
+    )
+
+    # Create link
+    file_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
+
+    # Reply to user
+    await message.reply_text(
+        f"✅ File saved!\n\n📎 **Link:** {file_link}",
+        disable_web_page_preview=True
+    )
+
+    print(f"[File Saved] Type: {file_type}, Slug: {slug}, User: {message.from_user.id}")
