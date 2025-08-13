@@ -22,10 +22,10 @@ app = Client(
 # ─── Startup ─────────────────────────────────────────────
 if __name__ == "__main__":
     logger.info("🚀 Starting bot...")
+
     app.start()
     logger.info(f"✅ Bot started as @{app.get_me().username}")
 
-    # Send startup message to admins
     for admin_id in ADMINS:
         try:
             app.send_message(admin_id, "✅ Bot deployed successfully!")
@@ -34,4 +34,4 @@ if __name__ == "__main__":
             logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
 
     logger.info("📡 Bot is now running and ready for updates.")
-    app.run()
+    app.idle()  # instead of app.run()
