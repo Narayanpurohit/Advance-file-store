@@ -16,4 +16,4 @@ async def handle_file(client, message):
     slug = gen_slug(file_type + "_")
     add_file(slug, file_id, file_type)
     link = f"https://t.me/{BOT_USERNAME}?start={slug}"
-       await message.reply_text(f"✅ File saved!\n🔗 {link}")
+    await message.reply_text(f"✅ File saved!\n🔗 {link}")
