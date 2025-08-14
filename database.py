@@ -1,52 +1,44 @@
+# database.py
 from pymongo import MongoClient
-from config import MONGO_URI
-import datetime
+from config import MONGO_URI, DB_NAME
 
 client = MongoClient(MONGO_URI)
-db = client["fileshare_bot"]
+db = client[DB_NAME]
 
 users_col = db["users"]
 files_col = db["files"]
-stats_col = db["stats"]
-premium_col = db["premium"]
 verify_col = db["verify"]
 
-def add_user(user_id):
-    if not users_col.find_one({"_id": user_id}):
-        users_col.insert_one({"_id": user_id})
-        stats_col.update_one({"_id": "stats"}, {"$inc": {"total_users": 1}}, upsert=True)
+def user_exists(user_id: int) -> bool:
+    return users_col.find_one({"_id": user_id}) is not None
 
-def is_premium(user_id):
-    record = premium_col.find_one({"_id": user_id})
-    if not record:
+def add_user(user_id: int):
+    users_col.insert_one({"_id": user_id, "premium": False})
+
+def is_premium(user_id: int) -> bool:
+    user = users_col.find_one({"_id": user_id})
+    return user and user.get("premium", False)
+
+def set_premium(user_id: int, premium: bool):
+    users_col.update_one({"_id": user_id}, {"$set": {"premium": premium}}, upsert=True)
+
+def save_file(slug: str, file_id: str, file_type: str, caption: str = None):
+    files_col.insert_one({"slug": slug, "file_id": file_id, "file_type": file_type, "caption": caption})
+
+def get_file(slug: str):
+    return files_col.find_one({"slug": slug})
+
+def save_verification_slug(user_id: int, slug: str, expiry_hours: int):
+    from datetime import datetime, timedelta
+    verify_col.insert_one({
+        "user_id": user_id,
+        "slug": slug,
+        "expires_at": datetime.utcnow() + timedelta(hours=expiry_hours)
+    })
+
+def check_verification_slug(slug: str, user_id: int) -> bool:
+    from datetime import datetime
+    data = verify_col.find_one({"slug": slug, "user_id": user_id})
+    if not data:
         return False
-    return record["expiry"] > datetime.datetime.utcnow()
-
-def add_premium(user_id, hours):
-    expiry = datetime.datetime.utcnow() + datetime.timedelta(hours=hours)
-    premium_col.update_one({"_id": user_id}, {"$set": {"expiry": expiry}}, upsert=True)
-
-def remove_premium(user_id):
-    premium_col.delete_one({"_id": user_id})
-
-def add_file(slug, file_id, file_type):
-    files_col.insert_one({"_id": slug, "file_id": file_id, "type": file_type})
-
-def get_file(slug):
-    return files_col.find_one({"_id": slug})
-
-def inc_sent_count():
-    stats_col.update_one({"_id": "stats"}, {"$inc": {"files_sent": 1}}, upsert=True)
-
-def get_stats():
-    data = stats_col.find_one({"_id": "stats"}) or {}
-    return data.get("total_users", 0), data.get("files_sent", 0)
-
-def create_verification(slug, user_id):
-    verify_col.insert_one({"_id": slug, "user_id": user_id, "created": datetime.datetime.utcnow()})
-
-def get_verification(slug):
-    return verify_col.find_one({"_id": slug})
-
-def delete_verification(slug):
-    verify_col.delete_one({"_id": slug})
+    return data["expires_at"] > datetime.utcnow()
