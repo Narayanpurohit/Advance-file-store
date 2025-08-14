@@ -1,75 +1,106 @@
+import os
+import secrets
+import logging
+import requests
 from pyrogram import Client, filters
-from config import MONGO_URI, CAPTION, VERIFICATION_MODE
-from pymongo import MongoClient
-import datetime
+from config import (
+    VERIFICATION_MODE,
+    VERIFY_SLUG_TTL_HOURS,
+    SHORTENER_API_KEY,
+    SHORTENER_API_BASE,
+    CAPTION
+)
+from database import db  # your MongoDB helper functions
+from utils import human_readable_size
 
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client["filestore"]
-files_col = db["files"]
-stats_col = db["stats"]
-users_col = db["users"]
-verify_col = db["verify"]
+log = logging.getLogger(__name__)
 
-def human_readable_size(size_bytes):
-    for unit in ['B', 'KB', 'MB', 'GB']:
-        if size_bytes < 1024:
-            return f"{size_bytes:.2f} {unit}"
-        size_bytes /= 1024
-    return f"{size_bytes:.2f} TB"
 
-@Client.on_message(filters.private & filters.command("start"))
-async def start_command(client, message):
+def shorten_url(long_url: str) -> str:
+    """
+    Shortens a URL using the Shareus API (or similar).
+    """
+    try:
+        api_url = f"{SHORTENER_API_BASE}?key={SHORTENER_API_KEY}&link={long_url}"
+        r = requests.get(api_url, timeout=10)
+        if r.status_code == 200:
+            return r.text.strip()
+        else:
+            log.error(f"Shortener API returned status {r.status_code}: {r.text}")
+            return long_url
+    except Exception as e:
+        log.error(f"Error shortening URL: {e}")
+        return long_url
+
+
+@Client.on_message(filters.command("start") & filters.private)
+async def start_handler(client, message):
     user_id = message.from_user.id
+    args = message.text.split()
 
-    # Add user to DB if new
-    if not users_col.find_one({"user_id": user_id}):
-        users_col.insert_one({"user_id": user_id, "premium_until": None})
+    # New user? Add to DB
+    if not db.user_exists(user_id):
+        db.add_user(user_id)
+        log.info(f"New user {user_id} added to database.")
 
-    # Check if slug provided
-    if len(message.command) > 1:
-        slug = message.command[1]
-
-        # If slug starts with verify_
-        if slug.startswith("verify_"):
-            verify_data = verify_col.find_one({"slug": slug})
-            if verify_data:
-                premium_until = datetime.datetime.utcnow() + datetime.timedelta(hours=8)
-                users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": premium_until}})
-                await message.reply_text("✅ You are now premium for 8 hours!")
-                verify_col.delete_one({"slug": slug})
-            else:
-                await message.reply_text("❌ Invalid or expired verification link.")
-            return
-
-        # Otherwise it’s a file slug
-        file_data = files_col.find_one({"slug": slug})
-        if not file_data:
-            await message.reply_text("❌ File not found or has been removed.")
-            return
-
-        # Send file with caption
-        file_id = file_data["file_id"]
-        file_type = file_data["file_type"]
-        file_name = file_data.get("file_name", "Unknown")
-        file_size = file_data.get("file_size", 0)
-        original_caption = file_data.get("caption", "")
-
-        caption_text = CAPTION.format(
-            filename=file_name,
-            filesize=human_readable_size(file_size),
-            filetype={"doc": "Document", "vid": "Video", "aud": "Audio"}.get(file_type, "Unknown"),
-            caption=original_caption
-        )
-
-        if file_type == "doc":
-            await message.reply_document(file_id, caption=caption_text)
-        elif file_type == "vid":
-            await message.reply_video(file_id, caption=caption_text)
-        elif file_type == "aud":
-            await message.reply_audio(file_id, caption=caption_text)
-
-        stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
+    # If only /start (no args)
+    if len(args) == 1:
+        await message.reply_text("👋 Welcome! Send me a file to get started.")
         return
 
-    # Default welcome
-    await message.reply_text("👋 Welcome! Send me a file and I will give you a shareable link.")
+    slug = args[1]
+
+    # Check if it's a verification slug
+    if slug.startswith("verify_"):
+        if db.is_verification_valid(user_id, slug):
+            db.upgrade_to_premium(user_id, hours=8)
+            db.remove_verification_slug(user_id, slug)
+            await message.reply_text("✅ Verified! You now have 8 hours of premium access.")
+        else:
+            await message.reply_text("❌ Verification link expired or invalid.")
+        return
+
+    # Otherwise, it's a file slug
+    file_data = db.get_file_by_slug(slug)
+    if not file_data:
+        await message.reply_text("❌ File not found or has been removed.")
+        return
+
+    # Premium check
+    if VERIFICATION_MODE and not db.is_premium(user_id):
+        # Generate verification slug
+        verify_slug = "verify_" + secrets.token_urlsafe(22)[:30]
+        db.save_verification_slug(user_id, verify_slug, expiry_hours=VERIFY_SLUG_TTL_HOURS)
+        long_url = f"https://t.me/{(await client.get_me()).username}?start={verify_slug}"
+        short_url = shorten_url(long_url)
+        await message.reply_text(
+            f"🔑 Please verify to access this file:\n{short_url}"
+        )
+        return
+
+    # Prepare caption
+    file_name = file_data.get("file_name", "")
+    file_size = file_data.get("file_size", 0)
+    orig_caption = file_data.get("caption", "")
+
+    caption_text = CAPTION.format(
+        filename=file_name,
+        filesize=human_readable_size(file_size),
+        caption=orig_caption
+    )
+
+    # Send file based on type
+    file_type = file_data.get("file_type")
+    file_id = file_data.get("file_id")
+
+    if file_type == "doc":
+        await message.reply_document(file_id, caption=caption_text)
+    elif file_type == "vid":
+        await message.reply_video(file_id, caption=caption_text)
+    elif file_type == "aud":
+        await message.reply_audio(file_id, caption=caption_text)
+    else:
+        await message.reply_text("❌ Unknown file type.")
+
+    # Update total file send counter
+    db.increment_file_send_count()
