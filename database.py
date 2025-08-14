@@ -1,10 +1,10 @@
 import time
 from typing import Optional, Dict, Any
 from pymongo import MongoClient
-from config import MONGODB_URI
+from config import MONGO_URI
 
 # ───────────────── Mongo Connection (fixed DB name) ─────────────────
-_client = MongoClient(MONGODB_URI)
+_client = MongoClient(MONGO_URI)
 _db = _client["filestore"]
 
 # Expose raw collections (some plugins import these directly)
