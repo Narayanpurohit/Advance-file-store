@@ -24,4 +24,4 @@ SHORTENER_API_BASE = os.getenv("SHORTENER_API_BASE", "")
 
 # This will be set automatically at runtime
 BOT_USERNAME = None
-CAPTION = f"""{filename}"""
+CAPTION = "📄 **{filename}**\n💾 {filesize}\n\n{caption}"
