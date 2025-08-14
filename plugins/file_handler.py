@@ -1,12 +1,11 @@
 import string
 import random
 from pyrogram import Client, filters
-from config import MONGO_URI
-from bot import BOT_USERNAME
+from config import MONGODB_URI
 from pymongo import MongoClient
 
 # ─── MongoDB Setup ───────────────────────────────
-mongo_client = MongoClient(MONGO_URI)
+mongo_client = MongoClient(MONGODB_URI)
 db = mongo_client["filestore"]
 files_col = db["files"]
 stats_col = db["stats"]
@@ -31,7 +30,7 @@ async def save_file(client, message):
         file_type = "aud"
         file_id = message.audio.file_id
     else:
-        return  # Not a supported file type
+        return  # Not supported file type
 
     # Generate slug
     slug = generate_slug(file_type)
@@ -50,8 +49,12 @@ async def save_file(client, message):
         upsert=True
     )
 
+    # Get bot username dynamically from API
+    bot_info = await client.get_me()
+    bot_username = bot_info.username
+
     # Create link
-    file_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
+    file_link = f"https://t.me/{bot_username}?start={slug}"
 
     # Reply to user
     await message.reply_text(
