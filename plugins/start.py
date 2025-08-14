@@ -1,35 +1,79 @@
+import time
 from pyrogram import Client, filters
-from database import add_user, get_file, inc_sent_count, is_premium
-from config import VERIFICATION_MODE
-from .verification import start_verification_flow
+from config import MONGODB_URI, VERIFY_SLUG_TTL_HOURS
+from pymongo import MongoClient
 
-@Client.on_message(filters.command("start"))
+# ─── MongoDB Setup ───────────────────────────────
+mongo_client = MongoClient(MONGODB_URI)
+db = mongo_client["filestore"]
+files_col = db["files"]
+stats_col = db["stats"]
+verify_col = db["verify_links"]
+premium_col = db["premium_users"]
+
+@Client.on_message(filters.private & filters.command("start"))
 async def start_command(client, message):
-    user_id = message.from_user.id
-    add_user(user_id)
+    if len(message.command) > 1:
+        arg = message.command[1]
 
-    args = message.text.split(" ", 1)
-    if len(args) == 1:
-        await message.reply_text("👋 Welcome! Send me a file to get a shareable link.")
+        # ─── Handle verification links ─────────────
+        if arg.startswith("verify_"):
+            verify_data = verify_col.find_one({"slug": arg})
+
+            if not verify_data:
+                await message.reply_text("❌ This verification link is invalid or expired.")
+                return
+
+            # Check expiry
+            now = time.time()
+            if now > verify_data["created_at"] + (VERIFY_SLUG_TTL_HOURS * 3600):
+                await message.reply_text("⌛ This verification link has expired.")
+                return
+
+            # Grant 8 hours premium
+            premium_col.update_one(
+                {"user_id": message.from_user.id},
+                {"$set": {"expires_at": now + (8 * 3600)}},
+                upsert=True
+            )
+
+            # Delete used verification link
+            verify_col.delete_one({"slug": arg})
+
+            await message.reply_text("✅ You are now a Premium user for 8 hours!")
+            return
+
+        # ─── Handle file links ─────────────────────
+        file_data = files_col.find_one({"slug": arg})
+
+        if not file_data:
+            await message.reply_text("❌ File not found or has been removed.")
+            return
+
+        file_id = file_data["file_id"]
+        file_type = file_data["file_type"]
+
+        # Send file according to type
+        if file_type == "doc":
+            await message.reply_document(file_id)
+        elif file_type == "vid":
+            await message.reply_video(file_id)
+        elif file_type == "aud":
+            await message.reply_audio(file_id)
+        else:
+            await message.reply_text("❌ Unknown file type.")
+            return
+
+        # Increment total files sent
+        stats_col.update_one(
+            {"_id": "total"},
+            {"$inc": {"sent_files": 1}},
+            upsert=True
+        )
         return
 
-    slug = args[1]
-
-    if slug.startswith("verify_"):
-        await start_verification_flow(client, message, slug)
-        return
-
-    file_data = get_file(slug)
-    if not file_data:
-        await message.reply_text("❌ File not found.")
-        return
-
-    if VERIFICATION_MODE and not is_premium(user_id):
-        await message.reply_text("⚠️ You need to verify before accessing files.")
-        return
-
-    await message.reply_document(file_data["file_id"]) if file_data["type"] == "doc" else \
-        await message.reply_audio(file_data["file_id"]) if file_data["type"] == "aud" else \
-        await message.reply_video(file_data["file_id"])
-    
-    inc_sent_count()
+    # ─── Default welcome message ──────────────────
+    await message.reply_text(
+        "👋 Welcome! Send me a file, and I'll give you a shareable link.\n"
+        "🔗 Premium users can bypass verification."
+    )
