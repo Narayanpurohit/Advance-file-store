@@ -1,168 +1,107 @@
-import time
-from typing import Optional, Dict, Any
+import os
+import random
+import string
+import datetime
 from pymongo import MongoClient
-from config import MONGO_URI
 
-# ───────────────── Mongo Connection (fixed DB name) ─────────────────
-_client = MongoClient(MONGO_URI)
-_db = _client["filestore"]
+# ─────────────────────────────────────────────
+# MongoDB Connection
+# ─────────────────────────────────────────────
+MONGO_URI = os.getenv("MONGO_URI", "")
+mongo_client = MongoClient(MONGO_URI)
 
-# Expose raw collections (some plugins import these directly)
-users_col = _db["users"]
-files_col = _db["files"]
-stats_col = _db["stats"]
-verify_col = _db["verify"]  # verification links
+db = mongo_client.get_default_database()
+users_col = db["users"]
+files_col = db["files"]
+stats_col = db["stats"]
+verify_col = db["verify_links"]
 
+# ─────────────────────────────────────────────
+# Users
+# ─────────────────────────────────────────────
+def add_user(user_id: int):
+    """Add new user if not exists."""
+    if not users_col.find_one({"user_id": user_id}):
+        users_col.insert_one({"user_id": user_id, "premium_until": None})
 
-class DB:
-    """Helper with all DB operations used across plugins."""
+def is_user(user_id: int) -> bool:
+    """Check if user exists."""
+    return users_col.find_one({"user_id": user_id}) is not None
 
-    def __init__(self):
-        self.users = users_col
-        self.files = files_col
-        self.stats = stats_col
-        self.verify = verify_col
+# ─────────────────────────────────────────────
+# Premium System
+# ─────────────────────────────────────────────
+def add_premium(user_id: int, days: int):
+    """Add premium for given number of days."""
+    expiry = datetime.datetime.utcnow() + datetime.timedelta(days=days)
+    users_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"premium_until": expiry}},
+        upsert=True
+    )
 
-    # ─────────────── Users / Premium ───────────────
-    def user_exists(self, user_id: int) -> bool:
-        return self.users.find_one({"user_id": user_id}) is not None
+def remove_premium(user_id: int):
+    """Remove premium."""
+    users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": None}})
 
-    def add_user(self, user_id: int) -> None:
-        if not self.user_exists(user_id):
-            self.users.insert_one({
-                "user_id": user_id,
-                "is_premium": False,
-                "premium_expiry": None
-            })
+def is_premium(user_id: int) -> bool:
+    """Check if user has active premium."""
+    user = users_col.find_one({"user_id": user_id})
+    if not user or not user.get("premium_until"):
+        return False
+    return datetime.datetime.utcnow() < user["premium_until"]
 
-    def is_premium(self, user_id: int) -> bool:
-        """Checks premium and auto-expires if past expiry."""
-        user = self.users.find_one({"user_id": user_id})
-        if not user:
-            return False
-        expiry = user.get("premium_expiry")
-        if expiry and time.time() > float(expiry):
-            # Premium expired → flip flag off
-            self.users.update_one(
-                {"user_id": user_id},
-                {"$set": {"is_premium": False, "premium_expiry": None}}
-            )
-            return False
-        return bool(user.get("is_premium", False))
+# ─────────────────────────────────────────────
+# Verification Links
+# ─────────────────────────────────────────────
+def create_verification_slug(ttl_hours: int) -> str:
+    """Create a random verification slug."""
+    slug = "verify_" + "".join(random.choices(string.ascii_letters + string.digits, k=30))
+    expires_at = datetime.datetime.utcnow() + datetime.timedelta(hours=ttl_hours)
+    verify_col.insert_one({"slug": slug, "expires_at": expires_at})
+    return slug
 
-    def upgrade_to_premium(self, user_id: int, hours: int) -> float:
-        """Give premium for N hours. Returns expiry timestamp."""
-        expiry_time = time.time() + (int(hours) * 3600)
-        self.users.update_one(
-            {"user_id": user_id},
-            {"$set": {"is_premium": True, "premium_expiry": expiry_time}},
-            upsert=True
-        )
-        return expiry_time
+def use_verification_slug(slug: str) -> bool:
+    """Use verification slug and give 8h premium if valid."""
+    doc = verify_col.find_one({"slug": slug})
+    if not doc:
+        return False
+    if datetime.datetime.utcnow() > doc["expires_at"]:
+        verify_col.delete_one({"slug": slug})
+        return False
+    verify_col.delete_one({"slug": slug})
+    return True
 
-    def add_premium(self, user_id: int, days: int) -> float:
-        """Give premium for N days. Returns expiry timestamp."""
-        return self.upgrade_to_premium(user_id, hours=int(days) * 24)
+# ─────────────────────────────────────────────
+# Files
+# ─────────────────────────────────────────────
+def generate_file_slug(file_type: str) -> str:
+    """Generate unique slug for file."""
+    slug = f"{file_type}_" + "".join(random.choices(string.ascii_lowercase + string.digits, k=12))
+    return slug
 
-    def remove_premium(self, user_id: int) -> None:
-        self.users.update_one(
-            {"user_id": user_id},
-            {"$set": {"is_premium": False, "premium_expiry": None}},
-            upsert=True
-        )
+def save_file(file_id: str, file_type: str, caption: str = None):
+    """Save file details in DB."""
+    slug = generate_file_slug(file_type)
+    files_col.insert_one({"slug": slug, "file_id": file_id, "type": file_type, "caption": caption})
+    return slug
 
-    # ─────────────── Files ───────────────
-    def save_file_record(
-        self,
-        slug: str,
-        file_id: str,
-        file_type: str,
-        file_name: Optional[str],
-        file_size: Optional[int],
-        caption: Optional[str]
-    ) -> None:
-        self.files.insert_one({
-            "slug": slug,
-            "file_id": file_id,
-            "file_type": file_type,      # "doc" | "vid" | "aud"
-            "file_name": file_name or "",
-            "file_size": int(file_size or 0),
-            "caption": caption or ""
-        })
+def get_file_by_slug(slug: str):
+    """Retrieve file from slug."""
+    return files_col.find_one({"slug": slug})
 
-    def get_file_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
-        return self.files.find_one({"slug": slug})
+# ─────────────────────────────────────────────
+# Stats
+# ─────────────────────────────────────────────
+def increment_file_send_count():
+    stats_col.update_one({"_id": "global"}, {"$inc": {"sent_files": 1}}, upsert=True)
 
-    # ─────────────── Stats ───────────────
-    def increment_file_send_count(self, n: int = 1) -> None:
-        """Total number of files served to users."""
-        self.stats.update_one(
-            {"_id": "total"},
-            {"$inc": {"sent_files": int(n)}},
-            upsert=True
-        )
+def get_file_send_count() -> int:
+    stats = stats_col.find_one({"_id": "global"})
+    return stats.get("sent_files", 0) if stats else 0
 
-    def get_file_send_count(self) -> int:
-        doc = self.stats.find_one({"_id": "total"}) or {}
-        return int(doc.get("sent_files", 0))
-
-    # ─────────────── Verification Links ───────────────
-    def save_verification_slug(self, user_id: int, slug: str, expiry_hours: int) -> float:
-        """Create/overwrite a verify slug for a user. Returns expires_at timestamp."""
-        now = time.time()
-        expires_at = now + (int(expiry_hours) * 3600)
-        # One slug per document (unique by slug)
-        self.verify.update_one(
-            {"slug": slug},
-            {"$set": {
-                "slug": slug,
-                "user_id": user_id,
-                "created_at": now,
-                "expires_at": expires_at
-            }},
-            upsert=True
-        )
-        return expires_at
-
-    def is_verification_valid(self, user_id: int, slug: str) -> bool:
-        """True if slug exists, belongs to user, and not expired."""
-        rec = self.verify.find_one({"slug": slug})
-        if not rec:
-            return False
-        if rec.get("user_id") != user_id:
-            return False
-        exp = rec.get("expires_at")
-        if not exp or time.time() > float(exp):
-            # Clean expired record
-            self.verify.delete_one({"slug": slug})
-            return False
-        return True
-
-    def remove_verification_slug(self, user_id: int, slug: str) -> None:
-        self.verify.delete_one({"slug": slug, "user_id": user_id})
-    
-
-
-# Instantiate a helper so `from database import db` works
-db = DB()
-
-# ─────────────── Optional module-level wrappers ───────────────
-# These let older plugins do `from database import add_premium, is_premium, ...`
-def user_exists(user_id: int) -> bool: return db.user_exists(user_id)
-def add_user(user_id: int) -> None: return db.add_user(user_id)
-def is_premium(user_id: int) -> bool: return db.is_premium(user_id)
-def add_premium(user_id: int, days: int) -> float: return db.add_premium(user_id, days)
-def remove_premium(user_id: int) -> None: return db.remove_premium(user_id)
-def save_file_record(slug: str, file_id: str, file_type: str, file_name: Optional[str], file_size: Optional[int], caption: Optional[str]) -> None:
-    return db.save_file_record(slug, file_id, file_type, file_name, file_size, caption)
-def get_file_by_slug(slug: str) -> Optional[Dict[str, Any]]: return db.get_file_by_slug(slug)
-def increment_file_send_count(n: int = 1) -> None: return db.increment_file_send_count(n)
-def get_file_send_count() -> int: return db.get_file_send_count()
-def save_verification_slug(user_id: int, slug: str, expiry_hours: int) -> float: return db.save_verification_slug(user_id, slug, expiry_hours)
-def is_verification_valid(user_id: int, slug: str) -> bool: return db.is_verification_valid(user_id, slug)
-def remove_verification_slug(user_id: int, slug: str) -> None: return db.remove_verification_slug(user_id, slug)
-    def get_stats():
-    """Backward compatibility: return a dict with current stats."""
+def get_stats():
+    """Return all stats."""
     return {
         "sent_files": get_file_send_count(),
         "total_users": users_col.count_documents({}),
