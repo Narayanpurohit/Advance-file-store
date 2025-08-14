@@ -3,7 +3,7 @@ import random
 import string
 import datetime
 from pymongo import MongoClient
-import config
+from config import MONGO_URI
 
 # ─────────────────────────────────────────────
 # MongoDB Connection
