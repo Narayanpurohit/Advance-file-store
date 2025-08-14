@@ -8,7 +8,7 @@ from config import MONGO_URI
 # ─────────────────────────────────────────────
 # MongoDB Connection
 # ─────────────────────────────────────────────
-MONGO_URI = os.getenv("MONGO_URI", "")
+#MONGO_URI = os.getenv("MONGO_URI", "")
 mongo_client = MongoClient(MONGO_URI)
 
 db = mongo_client.get_default_database()
