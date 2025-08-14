@@ -3,7 +3,7 @@ import random
 from pyrogram import Client, filters
 from config import MONGO_URI
 from pymongo import MongoClient
-
+from pyrogram.types import Message
 # ─── MongoDB Setup ───────────────────────────────
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["filestore"]
@@ -23,12 +23,18 @@ async def save_file(client, message):
     if message.document:
         file_type = "doc"
         file_id = message.document.file_id
+        file_name = message.document.file_name
+        file_size = message.document.file_size
     elif message.video:
         file_type = "vid"
         file_id = message.video.file_id
+        file_name = message.video.file_name
+        file_size = message.video.file_size
     elif message.audio:
         file_type = "aud"
         file_id = message.audio.file_id
+        file_name = message.audio.file_name
+        file_size = message.audio.file_size
     else:
         return  # Not supported file type
 
@@ -40,6 +46,8 @@ async def save_file(client, message):
         "slug": slug,
         "file_id": file_id,
         "file_type": file_type
+        "filename": file_name
+        "filesize" : file_size
     })
 
     # Update total counter
