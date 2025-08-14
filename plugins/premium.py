@@ -1,31 +1,40 @@
 from pyrogram import Client, filters
+import time
 from config import ADMINS
 from database import add_premium, remove_premium, is_premium
-import datetime
 
-@Client.on_message(filters.user(ADMINS) & filters.command("addpremium"))
+@Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
 async def add_premium_cmd(client, message):
     try:
-        user_id = int(message.command[1])
-        hours = int(message.command[2])
-    except:
-        return await message.reply_text("Usage: /addpremium user_id hours")
-    add_premium(user_id, hours)
-    await message.reply_text(f"✅ Premium given to {user_id} for {hours} hours.")
+        # Usage: /add_premium user_id days
+        parts = message.text.split()
+        if len(parts) != 3:
+            await message.reply_text("⚠️ Usage: `/add_premium user_id days`", parse_mode="markdown")
+            return
 
-@Client.on_message(filters.user(ADMINS) & filters.command("removepremium"))
+        user_id = int(parts[1])
+        days = int(parts[2])
+
+        expiry_time = add_premium(user_id, days)
+        await message.reply_text(
+            f"✅ Premium given to `{user_id}` for {days} day(s).\n"
+            f"📅 Expires: <b>{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(expiry_time))}</b>",
+            parse_mode="html"
+        )
+    except Exception as e:
+        await message.reply_text(f"❌ Error: `{str(e)}`")
+
+@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS))
 async def remove_premium_cmd(client, message):
     try:
-        user_id = int(message.command[1])
-    except:
-        return await message.reply_text("Usage: /removepremium user_id")
-    remove_premium(user_id)
-    await message.reply_text(f"❌ Premium removed from {user_id}")
+        # Usage: /remove_premium user_id
+        parts = message.text.split()
+        if len(parts) != 2:
+            await message.reply_text("⚠️ Usage: `/remove_premium user_id`", parse_mode="markdown")
+            return
 
-@Client.on_message(filters.command("mypremium"))
-async def my_premium_cmd(client, message):
-    if is_premium(message.from_user.id):
-        expiry = datetime.datetime.utcnow()  # placeholder, you can show real expiry if needed
-        await message.reply_text(f"🌟 You are premium!")
-    else:
-        await message.reply_text("❌ You are not premium.")
+        user_id = int(parts[1])
+        remove_premium(user_id)
+        await message.reply_text(f"🚫 Premium removed from `{user_id}`")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: `{str(e)}`")
