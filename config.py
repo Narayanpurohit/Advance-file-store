@@ -19,9 +19,8 @@ PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", "8"))
 VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", "48"))  # how long a slug stays valid
 
 # URL shortener service config
-SHORTENER_API_KEY = os.getenv("SHORTENER_API_KEY", "")
-SHORTENER_API_BASE = os.getenv("SHORTENER_API_BASE", "")
-
+SHORTENER_API_KEY = "zu1xmKAMdlguQSBt5c8ais2aV212"
+SHORTENER_API_BASE = "https://api.shareus.io/easy_api"
 # This will be set automatically at runtime
 BOT_USERNAME = None
 CAPTION = "📄 **{filename}**\n💾 {filesize}\n\n{caption}"
