@@ -140,6 +140,13 @@ class DB:
 
     def remove_verification_slug(self, user_id: int, slug: str) -> None:
         self.verify.delete_one({"slug": slug, "user_id": user_id})
+    def get_stats():
+    """Backward compatibility: return a dict with current stats."""
+    return {
+        "sent_files": get_file_send_count(),
+        "total_users": users_col.count_documents({}),
+        "total_files": files_col.count_documents({})
+    }
 
 
 # Instantiate a helper so `from database import db` works
