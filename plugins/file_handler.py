@@ -46,9 +46,9 @@ async def save_file(client, message):
     files_col.insert_one({
         "slug": slug,
         "file_id": file_id,
-        "file_type": file_type
-        "filename": file_name
-        "filesize" : file_size
+        "file_type": file_type,
+        "filename": file_name,
+        "filesize" : file_size,
         "caption" : caption
     })
 
