@@ -3,7 +3,7 @@ from pymongo import MongoClient
 from config import MONGO_URI
 
 client = MongoClient(MONGO_URI)
-db = client["filestore"]
+db = client[DB_NAME]
 
 users_col = db["users"]
 files_col = db["files"]
