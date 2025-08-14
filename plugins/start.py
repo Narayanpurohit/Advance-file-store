@@ -3,7 +3,7 @@ from config import MONGO_URI, CAPTION, VERIFICATION_MODE
 from pymongo import MongoClient
 import datetime
 
-mongo_client = MongoClient(MONGODB_URI)
+mongo_client = MongoClient(MONGO_URI)
 db = mongo_client["filestore"]
 files_col = db["files"]
 stats_col = db["stats"]
