@@ -1,6 +1,6 @@
 import time
 from pyrogram import Client, filters
-from config import MONGO_URI, VERIFY_SLUG_TTL_HOURS
+from config import MONGO_URI, VERIFY_SLUG_TTL_HOURS,CAPTION
 from pymongo import MongoClient
 
 # ─── MongoDB Setup ───────────────────────────────
@@ -57,7 +57,7 @@ async def start_command(client, message):
 
         # Send file according to type
         if file_type == "doc":
-            await message.reply_document(file_id)
+            await message.reply_document(file_id , caption=CAPTION )
         elif file_type == "vid":
             await message.reply_video(file_id)
         elif file_type == "aud":
