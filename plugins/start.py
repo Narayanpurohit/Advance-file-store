@@ -52,6 +52,8 @@ async def start_command(client, message):
 
         file_id = file_data["file_id"]
         file_type = file_data["file_type"]
+        filename = file_data["filename"]
+        filesize = file_data["filesize"]
 
         # Send file according to type
         if file_type == "doc":
