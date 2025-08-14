@@ -1,6 +1,6 @@
 import random, string, datetime, requests
 from config import PREMIUM_HOURS_VERIFICATION, VERIFY_SLUG_TTL_HOURS, SHORTENER_API_KEY, SHORTENER_API_BASE
-from database import create_verification, get_verification, delete_verification, add_premium
+from database import create_verification_slug, get_verification, delete_verification, add_premium
 
 def gen_verify_slug():
     return "verify_" + ''.join(random.choices(string.ascii_lowercase + string.digits, k=30))
