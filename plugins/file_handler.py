@@ -1,75 +1,60 @@
-import string
 import random
+import string
 from pyrogram import Client, filters
-from config import MONGO_URI
+from config import MONGODB_URI, CAPTION
 from pymongo import MongoClient
-from pyrogram.types import Message
-# ─── MongoDB Setup ───────────────────────────────
-mongo_client = MongoClient(MONGO_URI)
+
+mongo_client = MongoClient(MONGODB_URI)
 db = mongo_client["filestore"]
 files_col = db["files"]
 stats_col = db["stats"]
 
-# ─── Helper: Generate Slug ───────────────────────
-def generate_slug(file_type):
-    chars = string.ascii_lowercase + string.digits
-    random_part = ''.join(random.choices(chars, k=12))
-    return f"{file_type}_{random_part}"
+def random_slug(prefix):
+    return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
-# ─── File Handler ────────────────────────────────
+def human_readable_size(size_bytes):
+    for unit in ['B', 'KB', 'MB', 'GB']:
+        if size_bytes < 1024:
+            return f"{size_bytes:.2f} {unit}"
+        size_bytes /= 1024
+    return f"{size_bytes:.2f} TB"
+
 @Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
 async def save_file(client, message):
-    # Detect file type
-    caption = message.caption or ""
     if message.document:
-        file_type = "doc"
         file_id = message.document.file_id
         file_name = message.document.file_name
         file_size = message.document.file_size
+        file_type = "doc"
     elif message.video:
-        file_type = "vid"
         file_id = message.video.file_id
         file_name = message.video.file_name
         file_size = message.video.file_size
+        file_type = "vid"
     elif message.audio:
-        file_type = "aud"
         file_id = message.audio.file_id
         file_name = message.audio.file_name
         file_size = message.audio.file_size
+        file_type = "aud"
     else:
-        return  # Not supported file type
+        return
 
-    # Generate slug
-    slug = generate_slug(file_type)
+    slug = random_slug(file_type)
 
-    # Store in MongoDB
     files_col.insert_one({
         "slug": slug,
         "file_id": file_id,
         "file_type": file_type,
-        "filename": file_name,
-        "filesize" : file_size,
-        "caption" : caption
+        "file_name": file_name,
+        "file_size": file_size,
+        "caption": message.caption or ""
     })
 
-    # Update total counter
-    stats_col.update_one(
-        {"_id": "total"},
-        {"$inc": {"sent_files": 1}},
-        upsert=True
-    )
+    stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
 
-    # Get bot username dynamically from API
     bot_info = await client.get_me()
-    bot_username = bot_info.username
+    file_link = f"https://t.me/{bot_info.username}?start={slug}"
 
-    # Create link
-    file_link = f"https://t.me/{bot_username}?start={slug}"
-
-    # Reply to user
     await message.reply_text(
-        f"✅ File saved!\n\n📎 **Link:** {file_link}",
-        disable_web_page_preview=True
+        f"✅ File saved!\n\n📎 Link: {file_link}"
     )
-
-    print(f"[File Saved] Type: {file_type}, Slug: {slug}, User: {message.from_user.id}")
