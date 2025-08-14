@@ -11,7 +11,7 @@ from config import MONGO_URI
 #MONGO_URI = os.getenv("MONGO_URI", "")
 mongo_client = MongoClient(MONGO_URI)
 
-db = mongo_client.get_default_database()
+db = mongo_client["filestore"]
 users_col = db["users"]
 files_col = db["files"]
 stats_col = db["stats"]
