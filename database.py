@@ -140,13 +140,7 @@ class DB:
 
     def remove_verification_slug(self, user_id: int, slug: str) -> None:
         self.verify.delete_one({"slug": slug, "user_id": user_id})
-    def get_stats():
-    """Backward compatibility: return a dict with current stats."""
-    return {
-        "sent_files": get_file_send_count(),
-        "total_users": users_col.count_documents({}),
-        "total_files": files_col.count_documents({})
-    }
+    
 
 
 # Instantiate a helper so `from database import db` works
@@ -167,3 +161,10 @@ def get_file_send_count() -> int: return db.get_file_send_count()
 def save_verification_slug(user_id: int, slug: str, expiry_hours: int) -> float: return db.save_verification_slug(user_id, slug, expiry_hours)
 def is_verification_valid(user_id: int, slug: str) -> bool: return db.is_verification_valid(user_id, slug)
 def remove_verification_slug(user_id: int, slug: str) -> None: return db.remove_verification_slug(user_id, slug)
+    def get_stats():
+    """Backward compatibility: return a dict with current stats."""
+    return {
+        "sent_files": get_file_send_count(),
+        "total_users": users_col.count_documents({}),
+        "total_files": files_col.count_documents({})
+    }
