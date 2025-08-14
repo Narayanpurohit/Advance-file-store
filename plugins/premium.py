@@ -1,13 +1,11 @@
 import os
 import time
 from pymongo import MongoClient
+from config import MONGO_URI
 
 # Mongo connection
-MONGO_URI = os.getenv("MONGO_URI", "")
 mongo_client = MongoClient(MONGO_URI)
-
-# Collections
-db = mongo_client  # no fixed DB name
+db = mongo_client["filestore"]  # no fixed DB name
 users_col = db["users"]
 files_col = db["files"]
 stats_col = db["stats"]
