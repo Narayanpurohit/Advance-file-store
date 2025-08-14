@@ -20,6 +20,7 @@ def generate_slug(file_type):
 @Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
 async def save_file(client, message):
     # Detect file type
+    caption = message.caption or ""
     if message.document:
         file_type = "doc"
         file_id = message.document.file_id
@@ -48,6 +49,7 @@ async def save_file(client, message):
         "file_type": file_type
         "filename": file_name
         "filesize" : file_size
+        "caption" : caption
     })
 
     # Update total counter
