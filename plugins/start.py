@@ -2,7 +2,7 @@ import logging
 from pyrogram import Client, filters
 from config import VERIFICATION_MODE, CAPTION
 from database import user_exists, add_user, get_file, is_premium, increment_stat
-from verification import start_verification_flow, send_verification_link
+from .verification import start_verification_flow, send_verification_link
 from utils import human_readable_size
 
 log = logging.getLogger(__name__)
