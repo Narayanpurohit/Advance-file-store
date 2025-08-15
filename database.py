@@ -16,6 +16,9 @@ verify_col = db["verifications"]
 
 
 # ---------- USER MANAGEMENT ----------
+def user_exists(user_id: int) -> bool:
+    return users_col.find_one({"_id": user_id}) is not None
+
 def add_user(user_id: int):
     if not users_col.find_one({"_id": user_id}):
         users_col.insert_one({"_id": user_id, "premium_until": None})
