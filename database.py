@@ -116,6 +116,9 @@ def use_verification_slug(slug: str):
 def increment_stat(key: str):
     stats_col.update_one({"_id": key}, {"$inc": {"count": 1}}, upsert=True)
 
+def get_total_files_sent():
+    stat = stats_col.find_one({"_id": "global"})
+    return stat.get("files_sent", 0) if stat else 0
 
 def get_stat(key: str) -> int:
     doc = stats_col.find_one({"_id": key})
