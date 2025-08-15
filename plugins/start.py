@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from config import VERIFICATION_MODE, CAPTION
-from database import user_exists, add_user, get_file_by_slug, is_premium, increment_stat
+from database import user_exists, add_user, get_file_by_slug, is_premium, increment_file_send_count
 from .verification import start_verification_flow, send_verification_link
 from utils import human_readable_size
 
@@ -66,4 +66,4 @@ async def start_handler(client, message):
         await message.reply_text("❌ Unknown file type.")
 
     # 8. Increment file send counter
-    increment_stat(1)
+    increment_file_send_count
