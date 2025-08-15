@@ -60,10 +60,14 @@ def add_premium_days(user_id: int, days: int):
 def remove_premium(user_id: int):
     users_col.update_one({"_id": user_id}, {"$set": {"premium_until": None}})
     
-def get_premium_expiry(user_id):
+def get_premium_expiry(user_id: int):
+    """
+    Returns the datetime when the user's premium expires, or None if no premium.
+    """
     user = users_col.find_one({"user_id": user_id})
-    return user.get("premium_until") if user else None
-
+    if not user or "premium_until" not in user:
+        return None
+    return user["premium_until"]
 
 # ---------- FILE MANAGEMENT ----------
 def save_file(file_id: str, file_name: str, file_size: int, caption: str = None):
