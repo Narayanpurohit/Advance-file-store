@@ -43,9 +43,19 @@ def add_premium_hours(user_id: int, hours: int):
 
 
 def add_premium_days(user_id: int, days: int):
-    """Extend premium by given days."""
-    add_premium_hours(user_id, days * 24)
+    expiry = get_premium_expiry(user_id)
+    now = datetime.datetime.utcnow()
 
+    if expiry and expiry > now:
+        new_expiry = expiry + datetime.timedelta(days=days)
+    else:
+        new_expiry = now + datetime.timedelta(days=days)
+
+    users_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"premium_until": new_expiry}},
+        upsert=True
+    )
 
 def remove_premium(user_id: int):
     users_col.update_one({"_id": user_id}, {"$set": {"premium_until": None}})
