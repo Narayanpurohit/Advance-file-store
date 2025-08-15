@@ -39,8 +39,8 @@ async def start_handler(client, message):
     args = message.text.split()
 
     # New user? Add to DB
-    if not db.user_exists(user_id):
-        db.add_user(user_id)
+    if not user_exists(user_id):
+        add_user(user_id)
         log.info(f"New user {user_id} added to database.")
 
     # If only /start (no args)
