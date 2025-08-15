@@ -63,7 +63,9 @@ def save_file(file_id: str, file_name: str, file_size: int, caption: str = None)
 
 def get_file(file_id: str):
     return files_col.find_one({"file_id": file_id})
-
+def get_file_by_slug(slug: str) -> dict:
+    """Retrieve file document from the database by slug."""
+    return files_col.find_one({"slug": slug})
 
 # ---------- VERIFICATION ----------
 def create_verification_slug(user_id: int, ttl_hours: int) -> str:
