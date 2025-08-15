@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from config import VERIFICATION_MODE, CAPTION
-from database import user_exists, add_user, get_file_by_slug, is_premium, increment_file_send_count
+from database import user_exists, add_user, get_file, is_premium, increment_file_send_count
 from verification import start_verification_flow, send_verification_link
 from utils import human_readable_size
 
@@ -31,7 +31,7 @@ async def start_handler(client, message):
         return
 
     # 4. File slug — fetch from DB
-    file_data = get_file_by_slug(slug)
+    file_data = get_file(slug)
     if not file_data:
         await message.reply_text("❌ File not found or has been removed.")
         return
