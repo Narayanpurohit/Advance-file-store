@@ -1,70 +1,67 @@
-import os
-import time
-from pymongo import MongoClient
-from config import MONGO_URI
+from pyrogram import Client, filters
+from config import ADMINS
+from database import add_premium_days, remove_premium, get_premium_expiry
+import datetime
 
-# Mongo connection
-mongo_client = MongoClient(MONGO_URI)
-db = mongo_client["filestore"]  # no fixed DB name
-users_col = db["users"]
-files_col = db["files"]
-stats_col = db["stats"]
-premium_col = db["premium"]
 
-# ------------------- USER MANAGEMENT -------------------
-def add_user(user_id: int):
-    if not users_col.find_one({"_id": user_id}):
-        users_col.insert_one({"_id": user_id, "joined_at": time.time()})
+@Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
+async def cmd_add_premium(client, message):
+    try:
+        parts = message.text.split()
+        if len(parts) != 3:
+            await message.reply_text("Usage: `/add_premium <user_id> <days>`", quote=True)
+            return
 
-def user_exists(user_id: int) -> bool:
-    return users_col.find_one({"_id": user_id}) is not None
+        user_id = int(parts[1])
+        days = int(parts[2])
 
-def total_users() -> int:
-    return users_col.count_documents({})
+        add_premium_days(user_id, days)
+        await message.reply_text(f"✅ Added premium for {days} day(s) to user `{user_id}`.", quote=True)
 
-# ------------------- FILE MANAGEMENT -------------------
-def save_file(slug: str, file_id: str, file_type: str, caption: str = None):
-    files_col.insert_one({
-        "_id": slug,
-        "file_id": file_id,
-        "file_type": file_type,
-        "caption": caption
-    })
+    except Exception as e:
+        await message.reply_text(f"❌ Error: `{e}`", quote=True)
 
-def get_file(slug: str):
-    return files_col.find_one({"_id": slug})
 
-# ------------------- STATS -------------------
-def increment_file_sent_count():
-    stats_col.update_one({"_id": "global"}, {"$inc": {"files_sent": 1}}, upsert=True)
+@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS))
+async def cmd_remove_premium(client, message):
+    try:
+        parts = message.text.split()
+        if len(parts) != 2:
+            await message.reply_text("Usage: `/remove_premium <user_id>`", quote=True)
+            return
 
-def get_stats():
-    stats = stats_col.find_one({"_id": "global"})
-    files_sent = stats["files_sent"] if stats else 0
-    return {
-        "total_users": total_users(),
-        "files_sent": files_sent
-    }
+        user_id = int(parts[1])
+        remove_premium(user_id)
+        await message.reply_text(f"❌ Premium removed from user `{user_id}`.", quote=True)
 
-# ------------------- PREMIUM -------------------
-def add_premium(user_id: int, days: int):
-    expiry = time.time() + (days * 86400)
-    premium_col.update_one({"_id": user_id}, {"$set": {"expiry": expiry}}, upsert=True)
+    except Exception as e:
+        await message.reply_text(f"❌ Error: `{e}`", quote=True)
 
-def remove_premium(user_id: int):
-    premium_col.delete_one({"_id": user_id})
 
-def is_premium(user_id: int) -> bool:
-    record = premium_col.find_one({"_id": user_id})
-    if not record:
-        return False
-    if record["expiry"] < time.time():
-        premium_col.delete_one({"_id": user_id})
-        return False
-    return True
+@Client.on_message(filters.command("mypremium") & filters.private)
+async def cmd_my_premium(client, message):
+    try:
+        user_id = message.from_user.id
+        expiry = get_premium_expiry(user_id)
 
-def premium_expiry(user_id: int):
-    record = premium_col.find_one({"_id": user_id})
-    if record:
-        return record["expiry"]
-    return None
+        if not expiry:
+            await message.reply_text("❌ You do not have premium access.", quote=True)
+            return
+
+        now = datetime.datetime.utcnow()
+        if expiry < now:
+            await message.reply_text("❌ Your premium has expired.", quote=True)
+            return
+
+        remaining = expiry - now
+        days = remaining.days
+        hours = remaining.seconds // 3600
+        minutes = (remaining.seconds % 3600) // 60
+
+        await message.reply_text(
+            f"✅ Your premium expires in **{days} days, {hours} hours, {minutes} minutes**.",
+            quote=True
+        )
+
+    except Exception as e:
+        await message.reply_text(f"❌ Error: `{e}`", quote=True)
