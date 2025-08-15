@@ -10,7 +10,7 @@ from config import (
     SHORTENER_API_BASE,
     CAPTION
 )
-from database import db  # your MongoDB helper functions
+from database import user_exists, add_user # your MongoDB helper functions
 from utils import human_readable_size
 
 log = logging.getLogger(__name__)
