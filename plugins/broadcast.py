@@ -1,22 +1,41 @@
-from pyrogram import Client, filters
-from config import ADMINS
-from database import users_col
-import asyncio
+# plugins/broadcast.py
 
-@Client.on_message(filters.user(ADMINS) & filters.command("broadcast"))
-async def broadcast_command(client, message):
-    if len(message.command) < 2:
-        return await message.reply_text("Usage: /broadcast Your message here")
-    
-    text = message.text.split(" ", 1)[1]
-    users = users_col.find()
-    sent, failed = 0, 0
-    await message.reply_text("📢 Broadcast started...")
+from pyrogram import Client, filters
+from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
+import asyncio
+from database import get_all_users
+from config import ADMINS
+
+@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
+async def broadcast_handler(client, message):
+    if not message.reply_to_message:
+        await message.reply_text("⚠️ Reply to a message to broadcast.")
+        return
+
+    users = get_all_users()
+    total_users = len(users)
+    sent = 0
+    failed = 0
+
+    status = await message.reply_text(f"📢 Starting broadcast to {total_users} users...")
+
     for user in users:
         try:
-            await client.send_message(user["_id"], text)
+            await message.reply_to_message.copy(user["_id"])
             sent += 1
-        except:
+            await asyncio.sleep(0.05)  # avoid hitting flood limits
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            try:
+                await message.reply_to_message.copy(user["_id"])
+                sent += 1
+            except:
+                failed += 1
+        except (PeerIdInvalid, UserIsBlocked):
             failed += 1
-        await asyncio.sleep(0.05)
-    await message.reply_text(f"✅ Broadcast done.\nSent: {sent}\nFailed: {failed}")
+        except Exception:
+            failed += 1
+
+    await status.edit_text(
+        f"✅ Broadcast completed!\n\n👥 Total: {total_users}\n📨 Sent: {sent}\n❌ Failed: {failed}"
+    )
