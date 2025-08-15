@@ -34,13 +34,12 @@ def is_premium(user_id: int) -> bool:
 def add_premium_hours(user_id: int, hours: int):
     """Extend premium by given hours."""
     now = datetime.datetime.utcnow()
-    user = users_col.find_one({"_id": user_id})
+    user = users_col.find_one({"user_id": user_id})
     if user and user.get("premium_until") and user["premium_until"] > now:
         new_time = user["premium_until"] + datetime.timedelta(hours=hours)
     else:
         new_time = now + datetime.timedelta(hours=hours)
-    users_col.update_one({"_id": user_id}, {"$set": {"premium_until": new_time}}, upsert=True)
-
+    users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": new_time}}, upsert=True)
 
 def add_premium_days(user_id: int, days: int):
     expiry = get_premium_expiry(user_id)
