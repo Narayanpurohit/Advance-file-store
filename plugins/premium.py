@@ -6,6 +6,10 @@ import datetime
 
 @Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
 async def cmd_add_premium(client, message):
+    """
+    Admin: /add_premium <user_id> <days>
+    Gives premium for the specified number of days.
+    """
     try:
         parts = message.text.split()
         if len(parts) != 3:
@@ -24,6 +28,10 @@ async def cmd_add_premium(client, message):
 
 @Client.on_message(filters.command("remove_premium") & filters.user(ADMINS))
 async def cmd_remove_premium(client, message):
+    """
+    Admin: /remove_premium <user_id>
+    Removes premium from a user.
+    """
     try:
         parts = message.text.split()
         if len(parts) != 2:
@@ -40,6 +48,10 @@ async def cmd_remove_premium(client, message):
 
 @Client.on_message(filters.command("mypremium") & filters.private)
 async def cmd_my_premium(client, message):
+    """
+    User: /mypremium
+    Shows remaining premium time.
+    """
     try:
         user_id = message.from_user.id
         expiry = get_premium_expiry(user_id)
