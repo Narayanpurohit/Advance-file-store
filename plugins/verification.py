@@ -3,7 +3,7 @@ import string
 import datetime
 import requests
 from config import PREMIUM_HOURS_VERIFICATION, VERIFY_SLUG_TTL_HOURS, SHORTENER_API_KEY, SHORTENER_API_BASE
-from database import create_verification, get_verification, delete_verification, add_premium_hours
+from database import create_verification_slug, get_verification, delete_verification, add_premium_hours
 
 
 # Generate a unique verification slug
