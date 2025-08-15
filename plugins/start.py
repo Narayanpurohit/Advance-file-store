@@ -66,4 +66,4 @@ async def start_handler(client, message):
         await message.reply_text("❌ Unknown file type.")
 
     # 8. Increment file send counter
-    increment_stat()
+    increment_stat(1)
