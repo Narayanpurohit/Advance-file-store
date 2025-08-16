@@ -125,17 +125,17 @@ def use_verification_slug(slug: str):
 
 
 # ---------- STATS ----------
-def increment_stat(key: str):
-    stats_col.update_one({"_id": key}, {"$inc": {"count": 1}}, upsert=True)
 
-def get_total_files_sent():
-    stat = stats_col.find_one({"_id": "global"})
-    return stat.get("files_sent", 0) if stat else 0
+
+
+
+
 
 
 def increment_file_send_count():
-    stats_col.update_one({"_id": "global"}, {"$inc": {"files_sent": 1}}, upsert=True)
-
-def get_stat(key: str) -> int:
-    doc = stats_col.find_one({"_id": key})
-    return doc["count"] if doc else 0
+    """Increase total files sent count."""
+    stats_col.update_one(
+        {"_id": "stats"},
+        {"$inc": {"files_sent": 1}},
+        upsert=True
+    )
