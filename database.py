@@ -72,7 +72,10 @@ def add_premium_days(user_id: int, days: int):
     )
 
 def remove_premium(user_id: int):
-    users_col.update_one({"_id": user_id}, {"$set": {"premium_until": None}})
+    users_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"premium_until": None}}
+    )
     
 def get_premium_expiry(user_id: int):
     """
