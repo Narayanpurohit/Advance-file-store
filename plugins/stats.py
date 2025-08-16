@@ -31,7 +31,7 @@ async def stats_handler(client, message):
         f"📊 **Bot Stats** 📊\n\n"
         f"👥 Total Users: `{total_users}`\n"
         f"⭐ Premium Users: `{premium_users}`\n"
-         f"📁 Total Files Stored: `{total_files_stored}`\n
+         f"📁 Total Files Stored: `{total_files_stored}`\n"
         f"📂 Files Sent: `{total_files_sent}`"
     )
 
