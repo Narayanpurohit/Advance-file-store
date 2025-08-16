@@ -27,12 +27,24 @@ def add_user(user_id: int):
         users_col.insert_one({"_id": user_id, "premium_until": None})
 
 
+import datetime
+
 def is_premium(user_id: int) -> bool:
-    user = users_col.find_one({"_id": user_id})
+    """Check if the user still has active premium."""
+    user = users_col.find_one({"user_id": user_id})
     if not user or not user.get("premium_until"):
         return False
-    return datetime.datetime.utcnow() < user["premium_until"]
 
+    premium_until = user["premium_until"]
+
+    # Handle string case just in case it's stored as ISO string
+    if isinstance(premium_until, str):
+        try:
+            premium_until = datetime.datetime.fromisoformat(premium_until)
+        except Exception:
+            return False
+
+    return datetime.datetime.utcnow() < premium_until
 
 def add_premium_hours(user_id: int, hours: int):
     """Extend premium by given hours."""
