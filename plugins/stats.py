@@ -23,13 +23,16 @@ def get_total_files_sent():
 async def stats_handler(client, message):
     total_users = get_total_users()
     premium_users = get_premium_users()
-    total_files = get_total_files_sent()
+    total_files_stored = files_col.count_documents({})
+    total_files_sent = get_total_files_sent()
+    
 
     text = (
         f"📊 **Bot Stats** 📊\n\n"
         f"👥 Total Users: `{total_users}`\n"
         f"⭐ Premium Users: `{premium_users}`\n"
-        f"📂 Files Sent: `{total_files}`"
+         f"📁 Total Files Stored: `{total_files_stored}`\n
+        f"📂 Files Sent: `{total_files_sent}`"
     )
 
     await message.reply_text(text)
