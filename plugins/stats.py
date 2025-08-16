@@ -1,6 +1,6 @@
 import datetime
 from pyrogram import Client, filters
-from database import users_col, stats_col
+from database import users_col, stats_col,files_col
 
 
 def get_total_users():
