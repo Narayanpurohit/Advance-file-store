@@ -1,41 +1,33 @@
 import requests
 from config import SHORTENER_DOMAIN, SHORTENER_API_KEY
 
-# Mapping dictionary: domain → API URL pattern
-SHORTENER_FORMATS = {
-    "shareus.io": "https://api.shareus.io/easy_api?key={api}&link={url}",
-    "gplinks.in": "https://api.gplinks.com/st?api={api}&url={url}",
+# Map each shortener domain to its API format
+SHORTENER_MAP = {
+    "shareus.io": lambda api, link: f"https://api.shareus.io/easy_api?key={api}&link={link}",
+    "gplinks.in": lambda api, link: f"https://api.gplinks.com/st?api={api}&url={link}",
+    # You can add more mappings here later
 }
 
-def shorten_url(long_url: str) -> str:
-    """Shorten a URL using the configured shortener domain & API key."""
+def shorten_url(url: str) -> str:
+    """Shorten a URL using the configured shortener domain + API key."""
     if not SHORTENER_DOMAIN or not SHORTENER_API_KEY:
-        return long_url  # No shortener configured
-
-    # Match domain to format
-    api_format = SHORTENER_FORMATS.get(SHORTENER_DOMAIN.lower())
-    if not api_format:
-        return long_url  # Unsupported shortener
+        return url
 
     try:
-        # Build the request URL
-        api_url = api_format.format(api=SHORTENER_API_KEY, url=long_url)
+        domain = SHORTENER_DOMAIN.lower().replace("www.", "")
+        if domain in SHORTENER_MAP:
+            api_url = SHORTENER_MAP[domain](SHORTENER_API_KEY, url)
+            resp = requests.get(api_url, timeout=10)
 
-        # Call the shortener API
-        resp = requests.get(api_url, timeout=10)
-        data = resp.json()
+            # Shareus & GPlink return plain text (shortened URL), not JSON
+            if resp.status_code == 200:
+                short_url = resp.text.strip()
+                if short_url.startswith("http"):
+                    return short_url
 
-        # Handle known response fields
-        if "shortenedUrl" in data:
-            return data["shortenedUrl"]
-        if "shortenUrl" in data:
-            return data["shortenUrl"]
-        if "short" in data:
-            return data["short"]
-
-        # Fallback: try first value in response
-        return next(iter(data.values())) if isinstance(data, dict) else long_url
+        # fallback if something failed
+        return url
 
     except Exception as e:
         print(f"[Shortener error] {e}")
-        return long_url
+        return url
