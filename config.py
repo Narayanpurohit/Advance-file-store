@@ -20,7 +20,7 @@ VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", "48"))  # how lon
 
 # URL shortener service config
 
-SHORTENER_DOMAIN = "gplinks.in"   # or "gplinks.in"
+SHORTENER_DOMAIN = "gplinks.com"   # or "gplinks.in"
 SHORTENER_API = "4aac6a311c58f4d5a739dd10c22d65db725e2988"
 
 
