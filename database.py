@@ -1,33 +1,31 @@
 import datetime
-import uuid
 from pymongo import MongoClient
-from config import MONGO_URI, DB_NAME
+from config import MONGO_URI
 
-# Mongo Setup
+# Connect to Mongo
 mongo_client = MongoClient(MONGO_URI)
-db = mongo_client[DB_NAME]
+db = mongo_client.get_default_database()
 
 # Collections
 users_col = db["users"]
 files_col = db["files"]
 stats_col = db["stats"]
-verifications_col = db["verifications"]
-batches_col = db["batches"]
+batch_col = db["batches"]
+slugs_col = db["slugs"]
 
 
-# ---------------- USERS ---------------- #
-
-def add_user(user_id: int):
-    if not users_col.find_one({"user_id": user_id}):
-        users_col.insert_one({
-            "user_id": user_id,
-            "joined_at": datetime.datetime.utcnow(),
-            "premium_until": None
-        })
-
-
+# ---------------- USERS ----------------
 def user_exists(user_id: int) -> bool:
     return users_col.find_one({"user_id": user_id}) is not None
+
+
+def add_user(user_id: int):
+    if not user_exists(user_id):
+        users_col.insert_one({
+            "user_id": user_id,
+            "joined": datetime.datetime.utcnow(),
+            "premium_until": None
+        })
 
 
 def is_premium(user_id: int) -> bool:
@@ -37,6 +35,11 @@ def is_premium(user_id: int) -> bool:
     return datetime.datetime.utcnow() < user["premium_until"]
 
 
+def get_premium_expiry(user_id: int):
+    user = users_col.find_one({"user_id": user_id})
+    return user.get("premium_until") if user else None
+
+
 def add_premium_hours(user_id: int, hours: int):
     now = datetime.datetime.utcnow()
     user = users_col.find_one({"user_id": user_id})
@@ -44,7 +47,11 @@ def add_premium_hours(user_id: int, hours: int):
         new_time = user["premium_until"] + datetime.timedelta(hours=hours)
     else:
         new_time = now + datetime.timedelta(hours=hours)
-    users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": new_time}}, upsert=True)
+    users_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"premium_until": new_time}},
+        upsert=True
+    )
 
 
 def add_premium_days(user_id: int, days: int):
@@ -54,25 +61,23 @@ def add_premium_days(user_id: int, days: int):
         new_expiry = expiry + datetime.timedelta(days=days)
     else:
         new_expiry = now + datetime.timedelta(days=days)
-    users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": new_expiry}}, upsert=True)
-
-
-def get_premium_expiry(user_id: int):
-    user = users_col.find_one({"user_id": user_id})
-    return user.get("premium_until") if user else None
+    users_col.update_one(
+        {"user_id": user_id},
+        {"$set": {"premium_until": new_expiry}},
+        upsert=True
+    )
 
 
 def remove_premium(user_id: int):
     users_col.update_one({"user_id": user_id}, {"$set": {"premium_until": None}})
 
 
-# ---------------- FILES ---------------- #
-
-def add_file(slug: str, file_id: str, file_type: str, file_name: str, file_size: int, caption: str = ""):
+# ---------------- FILES ----------------
+def add_file(slug: str, file_id: str, file_type: str, file_name: str, file_size: int, caption: str):
     files_col.insert_one({
         "slug": slug,
         "file_id": file_id,
-        "file_type": file_type,
+        "file_type": file_type,  # doc, vid, aud
         "file_name": file_name,
         "file_size": file_size,
         "caption": caption,
@@ -84,25 +89,51 @@ def get_file_by_slug(slug: str):
     return files_col.find_one({"slug": slug})
 
 
-# ---------------- STATS ---------------- #
+# ---------------- BATCH ----------------
+def add_batch(slug: str, messages: list):
+    batch_col.insert_one({
+        "slug": slug,
+        "messages": messages,  # [{type, file_id, caption, text, entities}]
+        "created_at": datetime.datetime.utcnow()
+    })
 
+
+def get_batch(slug: str):
+    return batch_col.find_one({"slug": slug})
+
+
+# ---------------- STATS ----------------
 def increment_file_send_count():
-    stats_col.update_one({"_id": "stats"}, {"$inc": {"files_sent": 1}}, upsert=True)
+    stats_col.update_one(
+        {"_id": "stats"},
+        {"$inc": {"files_sent": 1}},
+        upsert=True
+    )
+
+
+def get_total_users():
+    return users_col.count_documents({})
+
+
+def get_premium_users():
+    now = datetime.datetime.utcnow()
+    return users_col.count_documents({"premium_until": {"$gt": now}})
 
 
 def get_total_files_sent():
     doc = stats_col.find_one({"_id": "stats"})
-    if not doc:
-        return 0
-    return doc.get("files_sent", 0)
+    return doc.get("files_sent", 0) if doc else 0
 
 
-# ---------------- VERIFICATION ---------------- #
+def get_total_files_stored():
+    return files_col.count_documents({})
 
+
+# ---------------- VERIFICATION SLUGS ----------------
 def create_verification_slug(user_id: int, ttl_hours: int):
-    slug = "verify_" + uuid.uuid4().hex[:16]
+    slug = f"verify_{datetime.datetime.utcnow().timestamp()}"
     expire_at = datetime.datetime.utcnow() + datetime.timedelta(hours=ttl_hours)
-    verifications_col.insert_one({
+    slugs_col.insert_one({
         "slug": slug,
         "user_id": user_id,
         "expire_at": expire_at
@@ -111,34 +142,11 @@ def create_verification_slug(user_id: int, ttl_hours: int):
 
 
 def use_verification_slug(slug: str):
-    record = verifications_col.find_one({"slug": slug})
+    record = slugs_col.find_one({"slug": slug})
     if not record:
         return None
     if record["expire_at"] < datetime.datetime.utcnow():
-        verifications_col.delete_one({"slug": slug})
+        slugs_col.delete_one({"slug": slug})
         return None
-    verifications_col.delete_one({"slug": slug})  # one-time use
+    slugs_col.delete_one({"slug": slug})  # one-time use
     return record
-
-
-# ---------------- BATCH ---------------- #
-
-def save_batch(chat_id, first_id, last_id, items):
-    """
-    Save a batch of messages/files into the database.
-    Returns the slug to be used with /start batch_<slug>.
-    """
-    slug = "batch_" + str(uuid.uuid4())[:8]
-    batches_col.insert_one({
-        "_id": slug,
-        "chat_id": chat_id,
-        "first_id": first_id,
-        "last_id": last_id,
-        "items": items,
-        "created_at": datetime.datetime.utcnow()
-    })
-    return slug
-
-
-def get_batch(slug: str):
-    return batches_col.find_one({"_id": slug})
