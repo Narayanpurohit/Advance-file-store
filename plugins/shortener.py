@@ -3,10 +3,11 @@ from urllib.parse import urlparse
 from config import SHORTENER_API_KEY, SHORTENER_DOMAIN
 
 # Mapping of shortener domains -> (response_type, api_format)
+# response_type = "json" or "text"
 SHORTENER_MAP = {
     "shareus.io": ("json", "https://api.shareus.io/easy_api?key={api}&link={url}"),
-    "gplinks.com": ("json", "https://api.gplinks.com/st?api={api}&url={url}"),
-    # Add more mappings here if needed
+    "gplinks.com": ("text", "https://api.gplinks.com/st?api={api}&url={url}"),
+    # Add more mappings if needed
 }
 
 
@@ -15,7 +16,6 @@ def normalize_domain(domain: str) -> str:
     domain = domain.lower().strip()
     if domain.startswith("www."):
         domain = domain[4:]
-    # handle gplinks.in -> gplinks.com
     if domain in ["gplinks.in", "www.gplinks.in"]:
         domain = "gplinks.com"
     return domain
@@ -40,10 +40,11 @@ def shorten_url(url: str) -> str:
 
         if resp_type == "json":
             data = resp.json()
-            # Both Shareus and GPlinks use `shortenedUrl`
-            return data.get("shortenedUrl") or url
-        else:
+            return data.get("shortenedUrl") or data.get("shortenedUrl") or url
+        elif resp_type == "text":
             return resp.text.strip() or url
+        else:
+            return url
     except Exception as e:
         print(f"[Shortener error] {e}")
         return url
