@@ -1,10 +1,10 @@
 import datetime
 from pymongo import MongoClient
-from config import MONGO_URI
+from config import MONGO_URI,DB_NAME
 
 # Connect to Mongo
 mongo_client = MongoClient(MONGO_URI)
-db = mongo_client.get_default_database()
+db = mongo_client[DB_NAME]
 
 # Collections
 users_col = db["users"]
