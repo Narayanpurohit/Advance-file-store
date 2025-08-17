@@ -13,7 +13,7 @@ users_col = db["users"]
 files_col = db["files"]
 stats_col = db["stats"]
 verify_col = db["verifications"]
-
+batches_col = db["batches"]
 
 # ---------- USER MANAGEMENT ----------
 def user_exists(user_id: int) -> bool:
