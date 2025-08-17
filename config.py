@@ -6,6 +6,8 @@ API_ID = int(os.getenv("API_ID", "15191874"))
 API_HASH = os.getenv("API_HASH", "3037d39233c6fad9b80d83bb8a339a07")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 
+DB_NAME = os.getenv("DB_NAME", "filestore")
+
 # Admins who can manage the bot
 ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
 
