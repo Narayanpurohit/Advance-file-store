@@ -1,50 +1,45 @@
 import requests
-from urllib.parse import urlparse
-from config import SHORTENER_API_KEY, SHORTENER_DOMAIN
+from config import SHORTENER_DOMAIN, SHORTENER_API
 
-# Mapping of shortener domains -> (response_type, api_format)
-# response_type = "json" or "text"
+# Map of supported shorteners and their API formats
 SHORTENER_MAP = {
-    "shareus.io": ("json", "https://api.shareus.io/easy_api?key={api}&link={url}"),
-    "gplinks.com": ("text", "https://api.gplinks.com/st?api={api}&url={url}"),
-    # Add more mappings if needed
+    "shareus.io": lambda api, url: f"https://api.shareus.io/easy_api?key={api}&link={url}",
+    "gplinks.com": lambda api, url: f"https://api.gplinks.com/api?api={api}&url={url}&format=json",
 }
 
 
-def normalize_domain(domain: str) -> str:
-    """Normalize domain to a standard form for matching."""
-    domain = domain.lower().strip()
-    if domain.startswith("www."):
-        domain = domain[4:]
-    if domain in ["gplinks.in", "www.gplinks.in"]:
-        domain = "gplinks.com"
-    return domain
-
-
 def shorten_url(url: str) -> str:
-    """Shorten URL using selected shortener service."""
-    if not SHORTENER_DOMAIN or not SHORTENER_API_KEY:
+    domain = SHORTENER_DOMAIN.lower().strip() if SHORTENER_DOMAIN else None
+    api_key = SHORTENER_API.strip() if SHORTENER_API else None
+
+    if not domain or not api_key:
+        return url  # No shortener configured
+
+    builder = SHORTENER_MAP.get(domain)
+    if not builder:
+        print(f"[Shortener] No mapping for domain {domain}, returning original link")
         return url
 
-    domain = normalize_domain(SHORTENER_DOMAIN)
-    if domain not in SHORTENER_MAP:
-        print(f"[Shortener error] No mapping for domain {domain}")
-        return url
-
-    resp_type, api_format = SHORTENER_MAP[domain]
-    api_url = api_format.format(api=SHORTENER_API_KEY, url=url)
+    api_url = builder(api_key, url)
 
     try:
         resp = requests.get(api_url, timeout=10)
         resp.raise_for_status()
 
-        if resp_type == "json":
+        # Handle JSON responses
+        try:
             data = resp.json()
-            return data.get("shortenedUrl") or data.get("shortenedUrl") or url
-        elif resp_type == "text":
-            return resp.text.strip() or url
-        else:
-            return url
+            if "shortenedUrl" in data:
+                return data["shortenedUrl"]
+        except ValueError:
+            pass  # Not JSON, maybe plain text
+
+        # Handle plain text
+        text = resp.text.strip()
+        if text.startswith("http"):
+            return text
+
     except Exception as e:
         print(f"[Shortener error] {e}")
-        return url
+
+    return url  # fallback to original link
