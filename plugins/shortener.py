@@ -1,42 +1,49 @@
 import requests
-from config import SHORTENER_DOMAIN, SHORTENER_API_KEY
+from urllib.parse import urlparse
+from config import SHORTENER_API_KEY, SHORTENER_DOMAIN
 
-# Map of domain → (mode, API URL format)
+# Mapping of shortener domains -> (response_type, api_format)
 SHORTENER_MAP = {
-    "shareus.io": ("text", "https://api.shareus.io/easy_api?key={api}&link={url}"),
-    "gplinks.in": ("json", "https://api.gplinks.in/st?api={api}&url={url}"),
+    "shareus.io": ("json", "https://api.shareus.io/easy_api?key={api}&link={url}"),
+    "gplinks.com": ("json", "https://api.gplinks.com/st?api={api}&url={url}"),
+    # Add more mappings here if needed
 }
 
 
+def normalize_domain(domain: str) -> str:
+    """Normalize domain to a standard form for matching."""
+    domain = domain.lower().strip()
+    if domain.startswith("www."):
+        domain = domain[4:]
+    # handle gplinks.in -> gplinks.com
+    if domain in ["gplinks.in", "www.gplinks.in"]:
+        domain = "gplinks.com"
+    return domain
+
+
 def shorten_url(url: str) -> str:
-    """Shorten a URL using the configured shortener."""
+    """Shorten URL using selected shortener service."""
     if not SHORTENER_DOMAIN or not SHORTENER_API_KEY:
-        return url  # No shortener configured
+        return url
+
+    domain = normalize_domain(SHORTENER_DOMAIN)
+    if domain not in SHORTENER_MAP:
+        print(f"[Shortener error] No mapping for domain {domain}")
+        return url
+
+    resp_type, api_format = SHORTENER_MAP[domain]
+    api_url = api_format.format(api=SHORTENER_API_KEY, url=url)
 
     try:
-        domain = SHORTENER_DOMAIN.lower().replace("www.", "")
-        if domain not in SHORTENER_MAP:
-            return url
-
-        mode, api_fmt = SHORTENER_MAP[domain]
-        api_url = api_fmt.format(api=SHORTENER_API_KEY, url=url)
-
         resp = requests.get(api_url, timeout=10)
-        if resp.status_code != 200:
-            return url
+        resp.raise_for_status()
 
-        if mode == "text":
-            short_url = resp.text.strip()
-            if short_url.startswith("http"):
-                return short_url
-
-        elif mode == "json":
+        if resp_type == "json":
             data = resp.json()
-            if "shortenedUrl" in data:
-                return data["shortenedUrl"]
-
-        return url  # fallback
-
+            # Both Shareus and GPlinks use `shortenedUrl`
+            return data.get("shortenedUrl") or url
+        else:
+            return resp.text.strip() or url
     except Exception as e:
         print(f"[Shortener error] {e}")
         return url
