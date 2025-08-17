@@ -4,7 +4,7 @@ from config import SHORTENER_DOMAIN, SHORTENER_API_KEY
 # Map each shortener domain to its API format
 SHORTENER_MAP = {
     "shareus.io": lambda api, link: f"https://api.shareus.io/easy_api?key={api}&link={link}",
-    "gplinks.in": lambda api, link: f"https://api.gplinks.com/st?api={api}&url={link}",
+    "gplinks.com": lambda api, link: f"https://api.gplinks.com/st?api={api}&url={link}",
     # You can add more mappings here later
 }
 
