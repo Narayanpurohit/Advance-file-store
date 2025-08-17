@@ -1,113 +1,103 @@
 import re
-import datetime
-import secrets
+import logging
 from pyrogram import Client, filters
-from pyrogram.types import Message
-from database import batches_col
+from database import save_batch
 
-# Regex to parse message links (t.me/c/... for private channels)
-LINK_REGEX = re.compile(r"(https?://t\.me/(c/)?(-?\d+)?/(\d+))")
+log = logging.getLogger(__name__)
+
+LINK_REGEX = re.compile(r"https://t\.me/(c/)?([a-zA-Z0-9_]+)/(\d+)")
 
 def parse_link(link: str):
-    """
-    Parse a Telegram message link into (chat_id, message_id).
-    Works for public and private channels.
-    """
-    match = LINK_REGEX.match(link)
-    if not match:
+    """Extract chat_id (or username) and message_id from a t.me link."""
+    m = LINK_REGEX.match(link)
+    if not m:
         return None, None
-    if match.group(2):  # private channel (t.me/c/<id>/<msg>)
-        chat_id = int("-100" + match.group(3))
+    is_private = bool(m.group(1))
+    chat_part = m.group(2)
+    msg_id = int(m.group(3))
+    if is_private:
+        chat_id = int("-100" + chat_part)  # private channels use -100 prefix
     else:
-        chat_id = match.group(3)  # may be None for public username links
-    message_id = int(match.group(4))
-    return chat_id, message_id
+        chat_id = chat_part
+    return chat_id, msg_id
 
 
-@Client.on_message(filters.command("batch") & filters.private)
-async def create_batch(client: Client, message: Message):
+@Client.on_message(filters.command("batch") & filters.user([123456789]))  # replace with your admin IDs
+async def batch_handler(client, message):
+    args = message.text.split()
+    if len(args) != 3:
+        await message.reply_text("❌ Usage: `/batch <first_msg_link> <last_msg_link>`", quote=True)
+        return
+
+    first_link, last_link = args[1], args[2]
+    first_chat, first_id = parse_link(first_link)
+    last_chat, last_id = parse_link(last_link)
+
+    if not first_chat or not first_id or not last_chat or not last_id:
+        await message.reply_text("❌ Invalid message links provided.", quote=True)
+        return
+
+    if first_chat != last_chat:
+        await message.reply_text("❌ Start and end messages must be from the same channel.", quote=True)
+        return
+
+    if first_id > last_id:
+        await message.reply_text("⚠️ Start message ID must be lower than end message ID.", quote=True)
+        return
+
     try:
-        args = message.text.split()
-        if len(args) != 3:
-            await message.reply_text("❌ Usage:\n`/batch <first_message_link> <last_message_link>`")
+        # test fetching first/last messages
+        test_first = await client.get_messages(first_chat, first_id)
+        test_last = await client.get_messages(first_chat, last_id)
+        if not test_first or not test_last:
+            await message.reply_text("❌ Could not fetch start or end messages. Make sure the bot is in the channel.", quote=True)
             return
+    except Exception as e:
+        log.error(f"Error fetching messages: {e}")
+        await message.reply_text(f"❌ Could not fetch messages: {e}", quote=True)
+        return
 
-        first_link, last_link = args[1], args[2]
-        first_chat, first_id = parse_link(first_link)
-        last_chat, last_id = parse_link(last_link)
-
-        if not first_chat or not first_id or not last_id:
-            await message.reply_text("❌ Invalid links provided.")
-            return
-
-        if first_chat != last_chat:
-            await message.reply_text("⚠️ Both links must be from the same channel.")
-            return
-
-        # Try fetching to check access
+    items = []
+    for msg_id in range(first_id, last_id + 1):
         try:
-            first_msg = await client.get_messages(first_chat, first_id)
-        except Exception as e:
-            await message.reply_text(f"❌ Cannot access channel or message: `{e}`")
-            return
-
-        # Loop through range of messages
-        items = []
-        for msg_id in range(first_id, last_id + 1):
-            try:
-                msg = await client.get_messages(first_chat, msg_id)
-                if not msg:
-                    continue
-
-                if msg.text:
-                    items.append({
-                        "type": "text",
-                        "text": msg.text,
-                        "entities": [e.to_dict() for e in (msg.entities or [])]
-                    })
-
-                elif msg.document:
-                    items.append({
-                        "type": "document",
-                        "file_id": msg.document.file_id,
-                        "file_name": msg.document.file_name,
-                        "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in (msg.caption_entities or [])]
-                    })
-
-                elif msg.video:
-                    items.append({
-                        "type": "video",
-                        "file_id": msg.video.file_id,
-                        "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in (msg.caption_entities or [])]
-                    })
-
-                elif msg.photo:
-                    items.append({
-                        "type": "photo",
-                        "file_id": msg.photo.file_id,
-                        "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in (msg.caption_entities or [])]
-                    })
-
-                # (add more types if needed: audio, voice, etc.)
-
-            except Exception:
+            msg = await client.get_messages(first_chat, msg_id)
+            if not msg:
                 continue
 
-        if not items:
-            await message.reply_text("❌ No valid messages found in given range.")
-            return
+            if msg.text or msg.caption:
+                items.append({
+                    "type": "text" if msg.text else "file",
+                    "text": msg.text.html if msg.text else None,
+                    "file_id": None,
+                    "caption": msg.caption.html if msg.caption else None
+                })
 
-        slug = "batch_" + secrets.token_urlsafe(6)
-        batches_col.insert_one({
-            "_id": slug,
-            "created_at": datetime.datetime.utcnow(),
-            "items": items
-        })
+            if msg.document:
+                items.append({
+                    "type": "doc",
+                    "file_id": msg.document.file_id,
+                    "caption": msg.caption.html if msg.caption else ""
+                })
+            elif msg.video:
+                items.append({
+                    "type": "vid",
+                    "file_id": msg.video.file_id,
+                    "caption": msg.caption.html if msg.caption else ""
+                })
+            elif msg.audio:
+                items.append({
+                    "type": "aud",
+                    "file_id": msg.audio.file_id,
+                    "caption": msg.caption.html if msg.caption else ""
+                })
 
-        await message.reply_text(f"✅ Batch created successfully!\n\nSlug: `{slug}`")
+        except Exception as e:
+            log.warning(f"Skipping message {msg_id} due to error: {e}")
+            continue
 
-    except Exception as e:
-        await message.reply_text(f"❌ Error while creating batch: `{e}`")
+    if not items:
+        await message.reply_text("❌ No valid messages found in given range.", quote=True)
+        return
+
+    slug = save_batch(first_chat, first_id, last_id, items)
+    await message.reply_text(f"✅ Batch created!\n\nHere’s your link:\n`/start batch_{slug}`", quote=True)
