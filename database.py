@@ -27,6 +27,10 @@ def add_user(user_id: int):
             "premium_until": None
         })
 
+def get_all_users():
+    """Return list of all user IDs."""
+    return [doc["_id"] for doc in users_col.find({}, {"_id": 1})]
+    
 
 def is_premium(user_id: int) -> bool:
     user = users_col.find_one({"user_id": user_id})
