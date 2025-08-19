@@ -94,7 +94,7 @@ def get_file_by_slug(slug: str):
 
 
 # ---------------- BATCH ----------------
-def add_batch(slug: str, messages: list):
+def save_batch(slug: str, messages: list):
     batch_col.insert_one({
         "slug": slug,
         "messages": messages,  # [{type, file_id, caption, text, entities}]
