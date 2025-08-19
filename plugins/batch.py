@@ -1,7 +1,7 @@
 import re
 import logging
 from pyrogram import Client, filters
-from database import save_batch
+from database import add_batch
 
 log = logging.getLogger(__name__)
 
@@ -99,5 +99,5 @@ async def batch_handler(client, message):
         await message.reply_text("❌ No valid messages found in given range.", quote=True)
         return
 
-    slug = save_batch(first_chat, first_id, last_id, items)
+    slug = add_batch(first_chat, first_id, last_id, items)
     await message.reply_text(f"✅ Batch created!\n\nHere’s your link:\n`/start batch_{slug}`", quote=True)
