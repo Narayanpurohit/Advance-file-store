@@ -1,8 +1,10 @@
 import re
 import logging
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import ChatAdminRequired, ChannelPrivate, PeerIdInvalid, FloodWait
 from database import save_batch
+from config import ADMINS  # ✅ use ADMINS from config
 
 log = logging.getLogger(__name__)
 
@@ -20,7 +22,7 @@ def parse_message_link(link: str):
         return None, None
 
 
-@Client.on_message(filters.command("batch") & filters.user([123456789]))  # replace with admin IDs
+@Client.on_message(filters.command("batch") & filters.user(ADMINS))  # ✅ admin filter
 async def create_batch(client, message):
     try:
         args = message.text.split()
