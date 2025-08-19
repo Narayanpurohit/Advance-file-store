@@ -1,7 +1,7 @@
 import re
 import logging
 from pyrogram import Client, filters
-from pyrogram.errors import ChatAdminRequired, ChannelPrivate, PeerIdInvalid
+from pyrogram.errors import ChatAdminRequired, ChannelPrivate, PeerIdInvalid, FloodWait
 from database import save_batch
 
 log = logging.getLogger(__name__)
@@ -20,27 +20,26 @@ def parse_message_link(link: str):
         return None, None
 
 
-@Client.on_message(filters.command("batch") & filters.user([123456789]))  # replace with your admin ID(s)
+@Client.on_message(filters.command("batch") & filters.user([123456789]))  # replace with admin IDs
 async def create_batch(client, message):
-    args = message.text.split()
-    if len(args) != 3:
-        await message.reply_text("❌ Usage: `/batch first_message_link last_message_link`", quote=True)
-        return
-
-    first_link, last_link = args[1], args[2]
-    first_chat, first_id = parse_message_link(first_link)
-    last_chat, last_id = parse_message_link(last_link)
-
-    if not first_chat or not last_chat or first_chat != last_chat:
-        await message.reply_text("❌ Invalid or mismatched message links.", quote=True)
-        return
-
     try:
+        args = message.text.split()
+        if len(args) != 3:
+            await message.reply_text("❌ Usage: `/batch first_message_link last_message_link`", quote=True)
+            return
+
+        first_link, last_link = args[1], args[2]
+        first_chat, first_id = parse_message_link(first_link)
+        last_chat, last_id = parse_message_link(last_link)
+
+        if not first_chat or not last_chat or first_chat != last_chat:
+            await message.reply_text("❌ Invalid or mismatched message links.", quote=True)
+            return
+
         batch_items = []
         for msg_id in range(first_id, last_id + 1):
             try:
                 msg = await client.get_messages(first_chat, msg_id)
-
                 if not msg:
                     continue
 
@@ -63,6 +62,9 @@ async def create_batch(client, message):
                                      msg.audio.file_size if msg.audio else None,
                     })
 
+            except FloodWait as e:
+                await message.reply_text(f"⏳ FloodWait: Sleeping for {e.value} seconds...", quote=True)
+                await asyncio.sleep(e.value)
             except Exception as e:
                 log.warning(f"Failed to fetch message {msg_id}: {e}")
                 continue
@@ -77,5 +79,5 @@ async def create_batch(client, message):
     except (ChatAdminRequired, ChannelPrivate, PeerIdInvalid):
         await message.reply_text("❌ I can’t access the channel. Please add me as an admin.", quote=True)
     except Exception as e:
-        log.error(f"Batch creation error: {e}")
-        await message.reply_text(f"⚠️ Error: {e}", quote=True)
+        log.error(f"Batch creation error: {e}", exc_info=True)
+        await message.reply_text(f"⚠️ Unexpected error: {e}", quote=True)
