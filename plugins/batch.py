@@ -1,115 +1,121 @@
-import re
+import datetime
 from pyrogram import Client, filters
-from pyrogram.errors import RPCError
+from pyrogram.errors import RPCError, ChannelInvalid, ChannelPrivate
 from config import ADMINS
 from database import save_batch
 
-
+# --- Helper: serialize entities ---
 def serialize_entities(entities):
     """Convert Pyrogram MessageEntity objects into dicts for MongoDB storage"""
     if not entities:
         return []
-    return [
-        {
-            "type": e.type,
+    serialized = []
+    for e in entities:
+        serialized.append({
+            "type": str(e.type),   # ✅ Convert Enum to string
             "offset": e.offset,
             "length": e.length,
             "url": e.url,
             "user": e.user.id if e.user else None,
             "language": e.language,
-        }
-        for e in entities
-    ]
+        })
+    return serialized
 
 
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
-async def create_batch(client, message):
+async def batch_handler(client, message):
     try:
-        if len(message.command) < 3:
-            await message.reply_text("⚠️ Usage:\n`/batch first_message_link last_message_link`", quote=True)
+        if len(message.command) != 3:
+            await message.reply_text("❌ Usage:\n`/batch first_message_link last_message_link`")
             return
 
         first_link = message.command[1]
         last_link = message.command[2]
 
-        # Parse message links
-        first_match = re.search(r"/(\d+)$", first_link)
-        last_match = re.search(r"/(\d+)$", last_link)
+        try:
+            # Extract chat_id and message_id from t.me/c/ or t.me/ links
+            def extract_ids(link):
+                if "/c/" in link:
+                    parts = link.split("/")
+                    chat_id = int("-100" + parts[-2])  # private supergroup/channel
+                    msg_id = int(parts[-1])
+                    return chat_id, msg_id
+                else:
+                    raise ValueError("Unsupported link format")
 
-        if not first_match or not last_match:
-            await message.reply_text("❌ Invalid message links provided.", quote=True)
+            chat_id, first_id = extract_ids(first_link)
+            _, last_id = extract_ids(last_link)
+
+        except Exception:
+            await message.reply_text("❌ Invalid link format. Make sure to use full `t.me/c/...` links.")
             return
 
-        first_id = int(first_match.group(1))
-        last_id = int(last_match.group(1))
+        if first_id > last_id:
+            first_id, last_id = last_id, first_id
 
-        # Extract chat username or ID
-        if "/c/" in first_link:
-            chat_match = re.search(r"/c/(\d+)", first_link)
-            if not chat_match:
-                await message.reply_text("❌ Could not determine chat ID from first link.", quote=True)
-                return
-            chat_id = int("-100" + chat_match.group(1))
-        else:
-            chat_match = re.search(r"t.me/([^/]+)/", first_link)
-            if not chat_match:
-                await message.reply_text("❌ Could not determine chat username from first link.", quote=True)
-                return
-            chat_id = chat_match.group(1)
-
-        # Collect messages
-        batch_items = []
+        messages = []
         for msg_id in range(first_id, last_id + 1):
             try:
                 msg = await client.get_messages(chat_id, msg_id)
                 if not msg:
                     continue
 
-                item = {}
+                # Text messages
+                if msg.text:
+                    messages.append({
+                        "type": "text",
+                        "text": msg.text,
+                        "entities": serialize_entities(msg.entities),
+                    })
 
-                # Store files
-                if msg.document:
-                    item["type"] = "document"
-                    item["file_id"] = msg.document.file_id
-                    item["caption"] = msg.caption or ""
-                    item["caption_entities"] = serialize_entities(msg.caption_entities)
+                # Files (documents, videos, audios, photos)
+                elif msg.document:
+                    messages.append({
+                        "type": "document",
+                        "file_id": msg.document.file_id,
+                        "caption": msg.caption,
+                        "caption_entities": serialize_entities(msg.caption_entities),
+                    })
                 elif msg.video:
-                    item["type"] = "video"
-                    item["file_id"] = msg.video.file_id
-                    item["caption"] = msg.caption or ""
-                    item["caption_entities"] = serialize_entities(msg.caption_entities)
+                    messages.append({
+                        "type": "video",
+                        "file_id": msg.video.file_id,
+                        "caption": msg.caption,
+                        "caption_entities": serialize_entities(msg.caption_entities),
+                    })
+                elif msg.audio:
+                    messages.append({
+                        "type": "audio",
+                        "file_id": msg.audio.file_id,
+                        "caption": msg.caption,
+                        "caption_entities": serialize_entities(msg.caption_entities),
+                    })
                 elif msg.photo:
-                    item["type"] = "photo"
-                    item["file_id"] = msg.photo.file_id
-                    item["caption"] = msg.caption or ""
-                    item["caption_entities"] = serialize_entities(msg.caption_entities)
-                elif msg.text:
-                    item["type"] = "text"
-                    item["text"] = msg.text
-                    item["entities"] = serialize_entities(msg.entities)
-                else:
-                    continue  # skip unsupported messages
+                    messages.append({
+                        "type": "photo",
+                        "file_id": msg.photo.file_id,
+                        "caption": msg.caption,
+                        "caption_entities": serialize_entities(msg.caption_entities),
+                    })
 
-                batch_items.append(item)
-
-            except RPCError as e:
-                await message.reply_text(f"⚠️ Failed to fetch message {msg_id}: {e}", quote=True)
+            except RPCError:
                 continue
 
-        if not batch_items:
-            await message.reply_text("❌ No valid messages found in given range.", quote=True)
+        if not messages:
+            await message.reply_text("❌ No valid messages found in the given range.")
             return
 
-        # Generate slug for batch
+        # Generate batch slug
         slug = f"batch_{chat_id}_{first_id}_{last_id}"
 
-        # Save in DB
-        save_batch(slug, batch_items)
+        # Save to DB
+        save_batch(slug, messages)
 
-        await message.reply_text(
-            f"✅ Batch saved!\n\nHere’s your link:\n`/start {slug}`",
-            quote=True
-        )
+        await message.reply_text(f"✅ Batch created successfully!\n\nSlug: `{slug}`")
 
+    except ChannelInvalid:
+        await message.reply_text("❌ Bot is not in the channel or channel is invalid.")
+    except ChannelPrivate:
+        await message.reply_text("❌ Bot cannot access this channel (it's private).")
     except Exception as e:
-        await message.reply_text(f"⚠️ Unexpected error: {e}", quote=True)
+        await message.reply_text(f"⚠️ Unexpected error: {e}")
