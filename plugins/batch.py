@@ -2,7 +2,7 @@ import re
 import secrets
 import datetime
 from pyrogram import Client, filters
-from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate, ChannelPublicGroupNaError
+from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate
 from config import ADMINS
 from database import save_batch
 
@@ -90,8 +90,7 @@ async def batch_handler(client, message):
         await message.reply_text("❌ Invalid channel ID or bot is not in the channel.", quote=True)
     except ChannelPrivate:
         await message.reply_text("❌ Channel is private. Add the bot to the channel and try again.", quote=True)
-    except ChannelPublicGroupNaError:
-        await message.reply_text("❌ Cannot access public group. Make sure the bot is a member.", quote=True)
+    
     except FloodWait as e:
         await message.reply_text(f"⏳ Flood wait: retry after {e.value} seconds.", quote=True)
     except Exception as e:
