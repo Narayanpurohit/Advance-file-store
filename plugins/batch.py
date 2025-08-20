@@ -6,107 +6,113 @@ from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate
 from config import ADMINS
 from database import save_batch
 
+# Regex for t.me/c/ links
+LINK_REGEX = re.compile(r"https?://t\.me/c/(-?\d+)/(\d+)")
 
-def generate_slug(length: int = 16) -> str:
+def random_slug(length=16):
     """Generate a random slug of given length."""
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
-async def create_batch(_, message):
+async def batch_handler(client, message):
     try:
-        # Expecting two links: first_message_link last_message_link
-        if len(message.command) != 3:
-            await message.reply_text("❌ Usage: `/batch first_message_link last_message_link`", quote=True)
+        if len(message.command) < 3:
+            await message.reply_text("❌ Usage:\n`/batch first_message_link last_message_link`")
             return
 
         first_link = message.command[1]
         last_link = message.command[2]
 
-        # Extract channel ID and message IDs from links
-        try:
-            def extract_ids(link: str):
-                parts = link.split("/")
-                if "t.me/c/" in link:
-                    # /c/ style link -> need to prepend -100
-                    chat_id = int("-100" + parts[-2])
-                else:
-                    # username style (t.me/username/1234)
-                    chat_id = parts[-2] if parts[-2].startswith("-100") else parts[-2]
-                msg_id = int(parts[-1])
-                return int(chat_id), msg_id
+        # Parse links
+        first_match = LINK_REGEX.match(first_link)
+        last_match = LINK_REGEX.match(last_link)
 
-            channel_id, first_msg_id = extract_ids(first_link)
-            _, last_msg_id = extract_ids(last_link)
-            print(f"Channel ID: {channel_id}, First ID: {first_msg_id}, Last ID: {last_msg_id}")
-
-        except Exception:
-            await message.reply_text("❌ Invalid channel/message link format.", quote=True)
+        if not first_match or not last_match:
+            await message.reply_text("❌ Invalid channel/message link format.")
             return
+
+        channel_id_1, first_msg_id = first_match.groups()
+        channel_id_2, last_msg_id = last_match.groups()
+
+        if channel_id_1 != channel_id_2:
+            await message.reply_text("❌ Both links must belong to the same channel.")
+            return
+
+        channel_id = int(f"-100{channel_id_1}") if not channel_id_1.startswith("-100") else int(channel_id_1)
+        first_msg_id = int(first_msg_id)
+        last_msg_id = int(last_msg_id)
 
         if first_msg_id > last_msg_id:
-            await message.reply_text("❌ First message ID must be smaller than last message ID.", quote=True)
-            return
+            first_msg_id, last_msg_id = last_msg_id, first_msg_id
 
-        saved_messages = []
+        batch_messages = []
 
-        for msg_id in range(first_msg_id, last_msg_id + 1):
+        # Fetch messages one by one
+        for i in range(first_msg_id, last_msg_id + 1):
             try:
-                msg = await _.get_messages(channel_id, msg_id)
+                msg = await client.get_messages(channel_id, i)
+                print(f"DEBUG: fetched message {i}: {msg}")  # Debug log
+
                 if not msg:
                     continue
 
-                # Text message
                 if msg.text:
-                    saved_messages.append({
+                    batch_messages.append({
                         "type": "text",
                         "text": msg.text,
-                        "entities": [e.to_json() for e in msg.entities] if msg.entities else None
+                        "entities": [e.to_dict() for e in msg.entities] if msg.entities else []
                     })
-
-                # Documents, Videos, Photos
                 elif msg.document:
-                    saved_messages.append({
+                    batch_messages.append({
                         "type": "document",
                         "file_id": msg.document.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": [e.to_json() for e in msg.caption_entities] if msg.caption_entities else None
+                        "caption": msg.caption or "",
+                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
                     })
                 elif msg.video:
-                    saved_messages.append({
+                    batch_messages.append({
                         "type": "video",
                         "file_id": msg.video.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": [e.to_json() for e in msg.caption_entities] if msg.caption_entities else None
+                        "caption": msg.caption or "",
+                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
                     })
                 elif msg.photo:
-                    saved_messages.append({
+                    batch_messages.append({
                         "type": "photo",
                         "file_id": msg.photo.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": [e.to_json() for e in msg.caption_entities] if msg.caption_entities else None
+                        "caption": msg.caption or "",
+                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
                     })
+                else:
+                    print(f"DEBUG: message {i} skipped (unsupported type).")
 
             except FloodWait as e:
+                print(f"DEBUG: FloodWait for {e.value} seconds at message {i}")
                 await asyncio.sleep(e.value)
-            except Exception:
+                continue
+            except Exception as e:
+                print(f"DEBUG: error fetching message {i}: {e}")
                 continue
 
-        if not saved_messages:
-            await message.reply_text("❌ No valid messages found in given range.", quote=True)
+        if not batch_messages:
+            await message.reply_text("❌ No valid messages found in given range.")
             return
 
-        slug = generate_slug()
-        await save_batch(slug, saved_messages)
+        # Generate random slug
+        slug = random_slug()
+
+        # Save to DB
+        await save_batch(slug, batch_messages)
 
         await message.reply_text(
-            f"✅ Batch created successfully!\n\nSlug: `{slug}`",
-            quote=True
+            f"✅ Batch created successfully!\n\n"
+            f"Slug: `{slug}`\n"
+            f"Total messages saved: {len(batch_messages)}"
         )
 
     except ChannelInvalid:
-        await message.reply_text("❌ Invalid channel ID or link.", quote=True)
+        await message.reply_text("❌ Invalid channel. Please check the channel ID or link.")
     except ChannelPrivate:
-        await message.reply_text("❌ Bot is not a member of the channel or channel is private.", quote=True)
+        await message.reply_text("❌ Bot has no access to this channel. Add it as admin and try again.")
     except Exception as e:
-        await message.reply_text(f"⚠️ Unexpected error: {e}", quote=True)
+        await message.reply_text(f"⚠️ Unexpected error: {e}")
