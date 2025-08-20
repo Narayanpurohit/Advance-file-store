@@ -1,9 +1,25 @@
 import re
-import html
 from pyrogram import Client, filters
 from pyrogram.errors import RPCError
 from config import ADMINS
 from database import save_batch
+
+
+def serialize_entities(entities):
+    """Convert Pyrogram MessageEntity objects into dicts for MongoDB storage"""
+    if not entities:
+        return []
+    return [
+        {
+            "type": e.type,
+            "offset": e.offset,
+            "length": e.length,
+            "url": e.url,
+            "user": e.user.id if e.user else None,
+            "language": e.language,
+        }
+        for e in entities
+    ]
 
 
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
@@ -56,21 +72,21 @@ async def create_batch(client, message):
                     item["type"] = "document"
                     item["file_id"] = msg.document.file_id
                     item["caption"] = msg.caption or ""
-                    item["caption_entities"] = [e.to_dict() for e in (msg.caption_entities or [])]
+                    item["caption_entities"] = serialize_entities(msg.caption_entities)
                 elif msg.video:
                     item["type"] = "video"
                     item["file_id"] = msg.video.file_id
                     item["caption"] = msg.caption or ""
-                    item["caption_entities"] = [e.to_dict() for e in (msg.caption_entities or [])]
+                    item["caption_entities"] = serialize_entities(msg.caption_entities)
                 elif msg.photo:
                     item["type"] = "photo"
                     item["file_id"] = msg.photo.file_id
                     item["caption"] = msg.caption or ""
-                    item["caption_entities"] = [e.to_dict() for e in (msg.caption_entities or [])]
+                    item["caption_entities"] = serialize_entities(msg.caption_entities)
                 elif msg.text:
                     item["type"] = "text"
                     item["text"] = msg.text
-                    item["entities"] = [e.to_dict() for e in (msg.entities or [])]
+                    item["entities"] = serialize_entities(msg.entities)
                 else:
                     continue  # skip unsupported messages
 
@@ -81,19 +97,4 @@ async def create_batch(client, message):
                 continue
 
         if not batch_items:
-            await message.reply_text("❌ No valid messages found in given range.", quote=True)
-            return
-
-        # Generate slug for batch
-        slug = f"batch_{chat_id}_{first_id}_{last_id}"
-
-        # Save in DB
-        save_batch(slug, batch_items)
-
-        await message.reply_text(
-            f"✅ Batch saved!\n\nHere’s your link:\n`/start {slug}`",
-            quote=True
-        )
-
-    except Exception as e:
-        await message.reply_text(f"⚠️ Unexpected error: {e}", quote=True)
+            await message.reply_text("❌
