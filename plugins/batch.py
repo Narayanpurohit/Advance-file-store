@@ -97,4 +97,19 @@ async def create_batch(client, message):
                 continue
 
         if not batch_items:
-            await message.reply_text("❌
+            await message.reply_text("❌ No valid messages found in given range.", quote=True)
+            return
+
+        # Generate slug for batch
+        slug = f"batch_{chat_id}_{first_id}_{last_id}"
+
+        # Save in DB
+        save_batch(slug, batch_items)
+
+        await message.reply_text(
+            f"✅ Batch saved!\n\nHere’s your link:\n`/start {slug}`",
+            quote=True
+        )
+
+    except Exception as e:
+        await message.reply_text(f"⚠️ Unexpected error: {e}", quote=True)
