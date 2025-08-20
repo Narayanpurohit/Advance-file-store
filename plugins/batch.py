@@ -1,121 +1,98 @@
+import re
+import secrets
 import datetime
 from pyrogram import Client, filters
-from pyrogram.errors import RPCError, ChannelInvalid, ChannelPrivate
+from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate, ChannelPublicGroupNaError
 from config import ADMINS
 from database import save_batch
 
-# --- Helper: serialize entities ---
-def serialize_entities(entities):
-    """Convert Pyrogram MessageEntity objects into dicts for MongoDB storage"""
-    if not entities:
-        return []
-    serialized = []
-    for e in entities:
-        serialized.append({
-            "type": str(e.type),   # ✅ Convert Enum to string
-            "offset": e.offset,
-            "length": e.length,
-            "url": e.url,
-            "user": e.user.id if e.user else None,
-            "language": e.language,
-        })
-    return serialized
+
+def generate_batch_slug():
+    # 16-character random slug with "batch_" prefix
+    return f"batch_{secrets.token_urlsafe(12)[:16]}"
 
 
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
 async def batch_handler(client, message):
     try:
-        if len(message.command) != 3:
-            await message.reply_text("❌ Usage:\n`/batch first_message_link last_message_link`")
+        args = message.text.split()
+        if len(args) != 3:
+            await message.reply_text("❌ Usage: `/batch first_message_link last_message_link`", quote=True)
             return
 
-        first_link = message.command[1]
-        last_link = message.command[2]
+        first_link = args[1]
+        last_link = args[2]
 
-        try:
-            # Extract chat_id and message_id from t.me/c/ or t.me/ links
-            def extract_ids(link):
-                if "/c/" in link:
-                    parts = link.split("/")
-                    chat_id = int("-100" + parts[-2])  # private supergroup/channel
-                    msg_id = int(parts[-1])
-                    return chat_id, msg_id
-                else:
-                    raise ValueError("Unsupported link format")
+        # Extract chat_id and message_id from t.me/c/... links
+        match1 = re.search(r"t\.me/c/(-?\d+)/(\d+)", first_link)
+        match2 = re.search(r"t\.me/c/(-?\d+)/(\d+)", last_link)
 
-            chat_id, first_id = extract_ids(first_link)
-            _, last_id = extract_ids(last_link)
-
-        except Exception:
-            await message.reply_text("❌ Invalid link format. Make sure to use full `t.me/c/...` links.")
+        if not match1 or not match2:
+            await message.reply_text("❌ Invalid message links.", quote=True)
             return
 
-        if first_id > last_id:
-            first_id, last_id = last_id, first_id
+        chat_id = int(f"-100{match1.group(1)}") if not match1.group(1).startswith("-100") else int(match1.group(1))
+        first_msg_id = int(match1.group(2))
+        last_msg_id = int(match2.group(2))
+
+        if last_msg_id < first_msg_id:
+            await message.reply_text("❌ Last message ID must be greater than first message ID.", quote=True)
+            return
 
         messages = []
-        for msg_id in range(first_id, last_id + 1):
-            try:
-                msg = await client.get_messages(chat_id, msg_id)
-                if not msg:
-                    continue
-
-                # Text messages
-                if msg.text:
-                    messages.append({
-                        "type": "text",
-                        "text": msg.text,
-                        "entities": serialize_entities(msg.entities),
-                    })
-
-                # Files (documents, videos, audios, photos)
-                elif msg.document:
-                    messages.append({
-                        "type": "document",
-                        "file_id": msg.document.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": serialize_entities(msg.caption_entities),
-                    })
-                elif msg.video:
-                    messages.append({
-                        "type": "video",
-                        "file_id": msg.video.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": serialize_entities(msg.caption_entities),
-                    })
-                elif msg.audio:
-                    messages.append({
-                        "type": "audio",
-                        "file_id": msg.audio.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": serialize_entities(msg.caption_entities),
-                    })
-                elif msg.photo:
-                    messages.append({
-                        "type": "photo",
-                        "file_id": msg.photo.file_id,
-                        "caption": msg.caption,
-                        "caption_entities": serialize_entities(msg.caption_entities),
-                    })
-
-            except RPCError:
+        async for msg in client.get_chat_history(chat_id, limit=last_msg_id - first_msg_id + 1, offset_id=first_msg_id - 1):
+            if msg.id < first_msg_id or msg.id > last_msg_id:
                 continue
 
+            if msg.text:
+                messages.append({
+                    "type": "text",
+                    "text": msg.text,
+                    "entities": [entity.to_dict() for entity in (msg.entities or [])]
+                })
+            elif msg.document:
+                messages.append({
+                    "type": "document",
+                    "file_id": msg.document.file_id,
+                    "caption": msg.caption or "",
+                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
+                })
+            elif msg.video:
+                messages.append({
+                    "type": "video",
+                    "file_id": msg.video.file_id,
+                    "caption": msg.caption or "",
+                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
+                })
+            elif msg.photo:
+                messages.append({
+                    "type": "photo",
+                    "file_id": msg.photo.file_id,
+                    "caption": msg.caption or "",
+                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
+                })
+
         if not messages:
-            await message.reply_text("❌ No valid messages found in the given range.")
+            await message.reply_text("❌ No valid messages found in given range.", quote=True)
             return
 
-        # Generate batch slug
-        slug = f"batch_{chat_id}_{first_id}_{last_id}"
-
-        # Save to DB
+        slug = generate_batch_slug()
         save_batch(slug, messages)
 
-        await message.reply_text(f"✅ Batch created successfully!\n\nSlug: `{slug}`")
+        await message.reply_text(
+            f"✅ Batch created successfully!\n\n"
+            f"🔑 Slug: `{slug}`\n"
+            f"📌 Total messages saved: **{len(messages)}**",
+            quote=True
+        )
 
     except ChannelInvalid:
-        await message.reply_text("❌ Bot is not in the channel or channel is invalid.")
+        await message.reply_text("❌ Invalid channel ID or bot is not in the channel.", quote=True)
     except ChannelPrivate:
-        await message.reply_text("❌ Bot cannot access this channel (it's private).")
+        await message.reply_text("❌ Channel is private. Add the bot to the channel and try again.", quote=True)
+    except ChannelPublicGroupNaError:
+        await message.reply_text("❌ Cannot access public group. Make sure the bot is a member.", quote=True)
+    except FloodWait as e:
+        await message.reply_text(f"⏳ Flood wait: retry after {e.value} seconds.", quote=True)
     except Exception as e:
-        await message.reply_text(f"⚠️ Unexpected error: {e}")
+        await message.reply_text(f"⚠️ Unexpected error: `{e}`", quote=True)
