@@ -1,97 +1,97 @@
-import re
-import secrets
+import random
+import string
 import datetime
 from pyrogram import Client, filters
+from pyrogram.types import Message
 from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate
 from config import ADMINS
 from database import save_batch
 
 
-def generate_batch_slug():
-    # 16-character random slug with "batch_" prefix
-    return f"batch_{secrets.token_urlsafe(12)[:16]}"
+def generate_batch_slug() -> str:
+    return "batch_" + "".join(random.choices(string.ascii_letters + string.digits, k=16))
 
 
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
-async def batch_handler(client, message):
+async def batch_handler(client: Client, message: Message):
     try:
-        args = message.text.split()
-        if len(args) != 3:
-            await message.reply_text("❌ Usage: `/batch first_message_link last_message_link`", quote=True)
+        if len(message.command) != 3:
+            await message.reply_text("⚠️ Usage:\n`/batch first_message_link last_message_link`")
             return
 
-        first_link = args[1]
-        last_link = args[2]
+        first_link = message.command[1]
+        last_link = message.command[2]
 
-        # Extract chat_id and message_id from t.me/c/... links
-        match1 = re.search(r"t\.me/c/(-?\d+)/(\d+)", first_link)
-        match2 = re.search(r"t\.me/c/(-?\d+)/(\d+)", last_link)
+        # Extract channel ID and message IDs from links
+        try:
+            first_parts = first_link.split("/")
+            last_parts = last_link.split("/")
+            channel_id = int(first_parts[-2]) if first_parts[-2].startswith("-100") else None
+            first_msg_id = int(first_parts[-1])
+            last_msg_id = int(last_parts[-1])
 
-        if not match1 or not match2:
-            await message.reply_text("❌ Invalid message links.", quote=True)
+            if not channel_id:
+                await message.reply_text("❌ Invalid channel/message link format.")
+                return
+        except Exception:
+            await message.reply_text("❌ Could not parse message links.")
             return
 
-        chat_id = int(f"-100{match1.group(1)}") if not match1.group(1).startswith("-100") else int(match1.group(1))
-        first_msg_id = int(match1.group(2))
-        last_msg_id = int(match2.group(2))
-
-        if last_msg_id < first_msg_id:
-            await message.reply_text("❌ Last message ID must be greater than first message ID.", quote=True)
+        # Fetch messages from channel
+        try:
+            msgs = await client.get_messages(channel_id, range(first_msg_id, last_msg_id + 1))
+        except ChannelInvalid:
+            await message.reply_text("❌ Invalid channel. Make sure bot is added.")
+            return
+        except ChannelPrivate:
+            await message.reply_text("❌ Bot is not a member of this channel or it’s private.")
+            return
+        except FloodWait as e:
+            await message.reply_text(f"⏳ FloodWait: retry after {e.value} seconds.")
+            return
+        except Exception as e:
+            await message.reply_text(f"⚠️ Unexpected error while fetching messages:\n`{e}`")
             return
 
-        messages = []
-        async for msg in client.get_chat_history(chat_id, limit=last_msg_id - first_msg_id + 1, offset_id=first_msg_id - 1):
-            if msg.id < first_msg_id or msg.id > last_msg_id:
+        # Collect valid messages
+        collected = []
+        for m in msgs:
+            if not m:
                 continue
-
-            if msg.text:
-                messages.append({
+            if m.text:
+                collected.append({
                     "type": "text",
-                    "text": msg.text,
-                    "entities": [entity.to_dict() for entity in (msg.entities or [])]
+                    "text": m.text,
+                    "entities": [ent.__dict__ for ent in (m.entities or [])]
                 })
-            elif msg.document:
-                messages.append({
+            elif m.document:
+                collected.append({
                     "type": "document",
-                    "file_id": msg.document.file_id,
-                    "caption": msg.caption or "",
-                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
+                    "file_id": m.document.file_id,
+                    "caption": m.caption or "",
+                    "caption_entities": [ent.__dict__ for ent in (m.caption_entities or [])]
                 })
-            elif msg.video:
-                messages.append({
-                    "type": "video",
-                    "file_id": msg.video.file_id,
-                    "caption": msg.caption or "",
-                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
-                })
-            elif msg.photo:
-                messages.append({
+            elif m.photo:
+                collected.append({
                     "type": "photo",
-                    "file_id": msg.photo.file_id,
-                    "caption": msg.caption or "",
-                    "caption_entities": [entity.to_dict() for entity in (msg.caption_entities or [])]
+                    "file_id": m.photo.file_id,
+                    "caption": m.caption or "",
+                    "caption_entities": [ent.__dict__ for ent in (m.caption_entities or [])]
                 })
 
-        if not messages:
-            await message.reply_text("❌ No valid messages found in given range.", quote=True)
+        if not collected:
+            await message.reply_text("❌ No valid messages found in given range.")
             return
 
+        # Generate random slug
         slug = generate_batch_slug()
-        save_batch(slug, messages)
+
+        # Save to DB
+        await save_batch(slug, collected)
 
         await message.reply_text(
-            f"✅ Batch created successfully!\n\n"
-            f"🔑 Slug: `{slug}`\n"
-            f"📌 Total messages saved: **{len(messages)}**",
-            quote=True
+            f"✅ Batch created successfully!\n\nSlug: `{slug}`"
         )
 
-    except ChannelInvalid:
-        await message.reply_text("❌ Invalid channel ID or bot is not in the channel.", quote=True)
-    except ChannelPrivate:
-        await message.reply_text("❌ Channel is private. Add the bot to the channel and try again.", quote=True)
-    
-    except FloodWait as e:
-        await message.reply_text(f"⏳ Flood wait: retry after {e.value} seconds.", quote=True)
     except Exception as e:
-        await message.reply_text(f"⚠️ Unexpected error: `{e}`", quote=True)
+        await message.reply_text(f"⚠️ Unexpected error: {e}")
