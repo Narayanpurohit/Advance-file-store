@@ -38,6 +38,7 @@ async def create_batch(_, message):
 
             channel_id, first_msg_id = extract_ids(first_link)
             _, last_msg_id = extract_ids(last_link)
+            print(f"Channel ID: {channel_id}, First ID: {first_msg_id}, Last ID: {last_msg_id}")
 
         except Exception:
             await message.reply_text("❌ Invalid channel/message link format.", quote=True)
