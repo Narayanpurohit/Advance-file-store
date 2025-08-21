@@ -1,6 +1,7 @@
 import re
 import random
 import string
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, ChannelInvalid, ChannelPrivate
 from config import ADMINS
@@ -12,6 +13,12 @@ LINK_REGEX = re.compile(r"https?://t\.me/c/(-?\d+)/(\d+)")
 def random_slug(length=16):
     """Generate a random slug of given length."""
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+
+def serialize_entities(entities):
+    """Convert Pyrogram entities to serializable dicts."""
+    if not entities:
+        return []
+    return [vars(e) for e in entities]
 
 @Client.on_message(filters.command("batch") & filters.user(ADMINS))
 async def batch_handler(client, message):
@@ -60,28 +67,28 @@ async def batch_handler(client, message):
                     batch_messages.append({
                         "type": "text",
                         "text": msg.text,
-                        "entities": [e.to_dict() for e in msg.entities] if msg.entities else []
+                        "entities": serialize_entities(msg.entities)
                     })
                 elif msg.document:
                     batch_messages.append({
                         "type": "document",
                         "file_id": msg.document.file_id,
                         "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
+                        "caption_entities": serialize_entities(msg.caption_entities)
                     })
                 elif msg.video:
                     batch_messages.append({
                         "type": "video",
                         "file_id": msg.video.file_id,
                         "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
+                        "caption_entities": serialize_entities(msg.caption_entities)
                     })
                 elif msg.photo:
                     batch_messages.append({
                         "type": "photo",
                         "file_id": msg.photo.file_id,
                         "caption": msg.caption or "",
-                        "caption_entities": [e.to_dict() for e in msg.caption_entities] if msg.caption_entities else []
+                        "caption_entities": serialize_entities(msg.caption_entities)
                     })
                 else:
                     print(f"DEBUG: message {i} skipped (unsupported type).")
