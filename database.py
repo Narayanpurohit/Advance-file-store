@@ -98,10 +98,9 @@ async def save_batch(slug: str, messages: list):
     batch_data = {
         "slug": slug,
         "messages": messages,
-        "created_at": datetime.utcnow()
+        "created_at": datetime.utcnow()   # ✅ correct usage
     }
     await db.batches.insert_one(batch_data)
-
 
 # Get batch
 async def get_batch(slug: str):
