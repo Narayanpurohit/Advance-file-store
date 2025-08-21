@@ -94,18 +94,18 @@ def get_file_by_slug(slug: str):
 
 
 # ---------------- BATCH ----------------
-def save_batch(slug: str, messages: list):
-    batch_col.insert_one({
+async def save_batch(slug: str, messages: list):
+    batch_data = {
         "slug": slug,
-        "messages": messages,  # [{type, file_id, caption, text, entities}]
-        "created_at": datetime.datetime.utcnow()
-    })
+        "messages": messages,
+        "created_at": datetime.utcnow()
+    }
+    await db.batches.insert_one(batch_data)
 
 
-def get_batch(slug: str):
-    return batch_col.find_one({"slug": slug})
-
-
+# Get batch
+async def get_batch(slug: str):
+    return await db.batches.find_one({"slug": slug})
 # ---------------- STATS ----------------
 def increment_file_send_count():
     stats_col.update_one(
