@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from pymongo import MongoClient
 from config import MONGO_URI,DB_NAME
 
