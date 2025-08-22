@@ -101,6 +101,18 @@ async def save_batch(slug: str, messages: list):
         "created_at": datetime.utcnow()   # ✅ correct usage
     }
     await db.batches.insert_one(batch_data)
+    
+def get_batch_by_slug(slug: str):
+    """
+    Fetch a batch document by slug from the database.
+    Returns None if not found.
+    """
+    try:
+        batch = db.batches.find_one({"slug": slug})
+        return batch
+    except Exception as e:
+        print(f"⚠️ DB Error (get_batch_by_slug): {e}")
+        return None
 
 # Get batch
 async def get_batch(slug: str):
