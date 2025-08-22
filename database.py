@@ -94,14 +94,23 @@ def get_file_by_slug(slug: str):
 
 
 # ---------------- BATCH ----------------
-async def save_batch(slug: str, messages: list):
-    batch_data = {
-        "slug": slug,
-        "messages": messages,
-        "created_at": datetime.utcnow()   # ✅ correct usage
-    }
-    await db.batches.insert_one(batch_data)
-    
+def save_batch(slug: str, messages: list):
+    """
+    Save a batch of messages in the database.
+    """
+    try:
+        batch_doc = {
+            "slug": slug,
+            "messages": messages,
+            "created_at": datetime.datetime.utcnow()
+        }
+        db.batches.insert_one(batch_doc)
+        return True
+    except Exception as e:
+        print(f"⚠️ DB Error (save_batch): {e}")
+        return False
+        
+        
 def get_batch_by_slug(slug: str):
     """
     Fetch a batch document by slug from the database.
