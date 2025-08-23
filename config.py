@@ -12,7 +12,7 @@ DB_NAME = os.getenv("DB_NAME", "filestore")
 ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
 
 # Verification system toggle
-VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "True").lower() == "true"
+VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "True").lower() == "false"
 
 # Premium settings
 PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", "8"))
