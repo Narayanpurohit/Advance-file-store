@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from pymongo import MongoClient
-from config import MONGO_URI,DB_NAME
+from config import MONGO_URI, DB_NAME
 
 # Connect to Mongo
 mongo_client = MongoClient(MONGO_URI)
@@ -27,10 +27,11 @@ def add_user(user_id: int):
             "premium_until": None
         })
 
+
 def get_all_users():
     """Return list of all user IDs."""
     return [doc["_id"] for doc in users_col.find({}, {"_id": 1})]
-    
+
 
 def is_premium(user_id: int) -> bool:
     user = users_col.find_one({"user_id": user_id})
@@ -48,9 +49,9 @@ def add_premium_hours(user_id: int, hours: int):
     now = datetime.utcnow()
     user = users_col.find_one({"user_id": user_id})
     if user and user.get("premium_until") and user["premium_until"] > now:
-        new_time = user["premium_until"] + datetime.timedelta(hours=hours)
+        new_time = user["premium_until"] + timedelta(hours=hours)
     else:
-        new_time = now + datetime.timedelta(hours=hours)
+        new_time = now + timedelta(hours=hours)
     users_col.update_one(
         {"user_id": user_id},
         {"$set": {"premium_until": new_time}},
@@ -62,9 +63,9 @@ def add_premium_days(user_id: int, days: int):
     expiry = get_premium_expiry(user_id)
     now = datetime.utcnow()
     if expiry and expiry > now:
-        new_expiry = expiry + datetime.timedelta(days=days)
+        new_expiry = expiry + timedelta(days=days)
     else:
-        new_expiry = now + datetime.timedelta(days=days)
+        new_expiry = now + timedelta(days=days)
     users_col.update_one(
         {"user_id": user_id},
         {"$set": {"premium_until": new_expiry}},
@@ -109,8 +110,8 @@ def save_batch(slug: str, messages: list):
     except Exception as e:
         print(f"⚠️ DB Error (save_batch): {e}")
         return False
-        
-        
+
+
 def get_batch_by_slug(slug: str):
     """
     Fetch a batch document by slug from the database.
@@ -123,9 +124,7 @@ def get_batch_by_slug(slug: str):
         print(f"⚠️ DB Error (get_batch_by_slug): {e}")
         return None
 
-# Get batch
-async def get_batch(slug: str):
-    return await db.batches.find_one({"slug": slug})
+
 # ---------------- STATS ----------------
 def increment_file_send_count():
     stats_col.update_one(
@@ -156,7 +155,7 @@ def get_total_files_stored():
 # ---------------- VERIFICATION SLUGS ----------------
 def create_verification_slug(user_id: int, ttl_hours: int):
     slug = f"verify_{datetime.utcnow().timestamp()}"
-    expire_at = datetime.utcnow() + datetime.timedelta(hours=ttl_hours)
+    expire_at = datetime.utcnow() + timedelta(hours=ttl_hours)
     slugs_col.insert_one({
         "slug": slug,
         "user_id": user_id,
