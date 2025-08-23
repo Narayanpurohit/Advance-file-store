@@ -23,7 +23,7 @@ def add_user(user_id: int):
     if not user_exists(user_id):
         users_col.insert_one({
             "user_id": user_id,
-            "joined": datetime.datetime.utcnow(),
+            "joined": datetime.utcnow(),
             "premium_until": None
         })
 
@@ -36,7 +36,7 @@ def is_premium(user_id: int) -> bool:
     user = users_col.find_one({"user_id": user_id})
     if not user or not user.get("premium_until"):
         return False
-    return datetime.datetime.utcnow() < user["premium_until"]
+    return datetime.utcnow() < user["premium_until"]
 
 
 def get_premium_expiry(user_id: int):
@@ -45,7 +45,7 @@ def get_premium_expiry(user_id: int):
 
 
 def add_premium_hours(user_id: int, hours: int):
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     user = users_col.find_one({"user_id": user_id})
     if user and user.get("premium_until") and user["premium_until"] > now:
         new_time = user["premium_until"] + datetime.timedelta(hours=hours)
@@ -60,7 +60,7 @@ def add_premium_hours(user_id: int, hours: int):
 
 def add_premium_days(user_id: int, days: int):
     expiry = get_premium_expiry(user_id)
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     if expiry and expiry > now:
         new_expiry = expiry + datetime.timedelta(days=days)
     else:
@@ -85,7 +85,7 @@ def add_file(slug: str, file_id: str, file_type: str, file_name: str, file_size:
         "file_name": file_name,
         "file_size": file_size,
         "caption": caption,
-        "created_at": datetime.datetime.utcnow()
+        "created_at": datetime.utcnow()
     })
 
 
@@ -140,7 +140,7 @@ def get_total_users():
 
 
 def get_premium_users():
-    now = datetime.datetime.utcnow()
+    now = datetime.utcnow()
     return users_col.count_documents({"premium_until": {"$gt": now}})
 
 
@@ -155,8 +155,8 @@ def get_total_files_stored():
 
 # ---------------- VERIFICATION SLUGS ----------------
 def create_verification_slug(user_id: int, ttl_hours: int):
-    slug = f"verify_{datetime.datetime.utcnow().timestamp()}"
-    expire_at = datetime.datetime.utcnow() + datetime.timedelta(hours=ttl_hours)
+    slug = f"verify_{datetime.utcnow().timestamp()}"
+    expire_at = datetime.utcnow() + datetime.timedelta(hours=ttl_hours)
     slugs_col.insert_one({
         "slug": slug,
         "user_id": user_id,
@@ -169,7 +169,7 @@ def use_verification_slug(slug: str):
     record = slugs_col.find_one({"slug": slug})
     if not record:
         return None
-    if record["expire_at"] < datetime.datetime.utcnow():
+    if record["expire_at"] < datetime.utcnow():
         slugs_col.delete_one({"slug": slug})
         return None
     slugs_col.delete_one({"slug": slug})  # one-time use
