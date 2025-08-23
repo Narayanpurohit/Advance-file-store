@@ -102,7 +102,7 @@ def save_batch(slug: str, messages: list):
         batch_doc = {
             "slug": slug,
             "messages": messages,
-            "created_at": datetime.datetime.utcnow()
+            "created_at": datetime.utcnow()
         }
         db.batches.insert_one(batch_doc)
         return True
