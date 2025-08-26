@@ -1,6 +1,8 @@
 from datetime import datetime, timedelta
 from pymongo import MongoClient
 from config import MONGO_URI, DB_NAME
+import secrets
+import string
 
 # Connect to Mongo
 mongo_client = MongoClient(MONGO_URI)
@@ -154,7 +156,10 @@ def get_total_files_stored():
 
 # ---------------- VERIFICATION SLUGS ----------------
 def create_verification_slug(user_id: int, ttl_hours: int):
-    slug = f"verify_{datetime.utcnow().timestamp()}"
+    # Generate secure random slug instead of timestamp
+    random_str = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
+    slug = f"verify_{random_str}"
+    
     expire_at = datetime.utcnow() + timedelta(hours=ttl_hours)
     slugs_col.insert_one({
         "slug": slug,
