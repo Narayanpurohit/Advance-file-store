@@ -46,7 +46,7 @@ async def send_verification_link(client, user_id):
 
         await client.send_message(
             user_id,
-            f"⚠️ Please verify to continue:\n\n{short_link}"
+            f"⚠️ Please verify to continue:\n\n{short_link}\n\n{bot_link}"
         )
     except Exception as e:
         await client.send_message(user_id, f"❌ Could not generate verification link: {e}")
