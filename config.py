@@ -11,6 +11,16 @@ DB_NAME = os.getenv("DB_NAME", "filestore")
 # Admins who can manage the bot
 ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
 
+# Force Sub settings
+ENABLE_FSUB = True   # True/False toggle
+
+FSUB = {
+    "Channel 1": "@channelusername1",
+    "Channel 2": "@channelusername2",
+    "Channel 3": "@channelusername3"
+}
+
+
 # Verification system toggle
 VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "True")
 
