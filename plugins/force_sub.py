@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import ENABLE_FSUB, FSUB_CHANNELS
+from config import ENABLE_FSUB, FSUB
 
 log = logging.getLogger(__name__)
 
