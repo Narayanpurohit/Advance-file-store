@@ -1,7 +1,7 @@
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import ENABLE_FSUB, FSUB_CHANNELS
+from config import ENABLE_FSUB, FSUB
 
 # Helper to check force sub
 async def check_force_sub(client, user_id, message):
