@@ -1,13 +1,13 @@
 import logging
 from pyrogram import Client, filters
-from config import VERIFICATION_MODE, CAPTION, ENABLE_FSUB
+from config import VERIFICATION_MODE, CAPTION
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
     get_batch_by_slug
 )
 from .verification import start_verification_flow, send_verification_link
-from .force_sub import check_force_sub
+from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
 
 log = logging.getLogger(__name__)
@@ -18,44 +18,32 @@ async def start_handler(client, message):
     user_id = message.from_user.id
     args = message.text.split()
 
-    # 1. Add new user if not exists
-    if not user_exists(user_id):
-        add_user(user_id)
-        log.info(f"New user {user_id} added to database.")
+    try:
+        # 1. Add new user if not exists
+        if not user_exists(user_id):
+            add_user(user_id)
+            log.info(f"👤 New user {user_id} added to database.")
 
-    # 2. ForceSub check (only if enabled)
-    if ENABLE_FSUB:
-        ok = False
-        try:
-            ok = await check_force_sub(client, user_id, message)
-        except Exception as e:
-            log.exception(f"ForceSub check crashed for user {user_id}: {e}")
-            await message.reply_text("❌ Error while checking subscription. Please try again later.")
+        # 2. Check Force Sub (stop flow if not joined)
+        ok = await check_force_sub(client, user_id, message)
+        if not ok:
+            log.warning(f"❌ User {user_id} has not joined required channels.")
             return
 
-        if not ok:
-            log.warning(f"User {user_id} blocked at ForceSub stage.")
-            return  # user not subscribed → stop flow
+        # 3. No arguments — greet user
+        if len(args) == 1:
+            await message.reply_text("👋 Welcome! Send me a file to get started.")
+            return
 
-    # 3. No arguments — greet user
-    if len(args) == 1:
-        await message.reply_text("👋 Welcome! Send me a file to get started.")
-        return
+        slug = args[1]
 
-    slug = args[1]
-
-    # 4. Verification slug
-    if slug.startswith("verify_"):
-        try:
+        # 4. Verification slug
+        if slug.startswith("verify_"):
             await start_verification_flow(client, message, slug)
-        except Exception as e:
-            log.exception(f"Verification flow error for user {user_id}: {e}")
-            await message.reply_text("❌ Error during verification. Please try again later.")
-        return
+            return
 
-    # 5. Batch slug
-    if slug.startswith("batch_"):
-        try:
+        # 5. Batch slug
+        if slug.startswith("batch_"):
             batch_data = get_batch_by_slug(slug)
             if not batch_data:
                 await message.reply_text("❌ Batch not found or expired.")
@@ -73,21 +61,52 @@ async def start_handler(client, message):
                         message_id=item["message_id"]
                     )
                 except Exception as e:
-                    log.warning(f"Failed to send item in batch {slug} for user {user_id}: {e}")
-        except Exception as e:
-            log.exception(f"Batch handling error for user {user_id}: {e}")
-            await message.reply_text("❌ Error while fetching batch. Please try again later.")
-        return
+                    log.warning(f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}")
+            return
 
-    # 6. File slug — fetch from DB
-    try:
+        # 6. File slug — fetch from DB
         file_data = get_file_by_slug(slug)
         if not file_data:
             await message.reply_text("❌ File not found or has been removed.")
             return
-    except Exception as e:
-        log.exception(f"DB fetch error for slug {slug} (user {user_id}): {e}")
-        await message.reply_text("❌ Error while fetching file. Please try again later.")
-        return
 
-   
+        # 7. If verification mode is ON, check premium
+        if VERIFICATION_MODE and not is_premium(user_id):
+            await send_verification_link(client, user_id)
+            return
+
+        # 8. Prepare caption
+        file_name = file_data.get("file_name", "")
+        file_size = file_data.get("file_size", 0)
+        orig_caption = file_data.get("caption", "")
+
+        caption_text = CAPTION.format(
+            filename=file_name,
+            filesize=human_readable_size(file_size),
+            caption=orig_caption
+        )
+
+        # 9. Send file
+        file_type = file_data.get("file_type")
+        file_id = file_data.get("file_id")
+
+        try:
+            if file_type == "doc":
+                await message.reply_document(file_id, caption=caption_text)
+            elif file_type == "vid":
+                await message.reply_video(file_id, caption=caption_text)
+            elif file_type == "aud":
+                await message.reply_audio(file_id, caption=caption_text)
+            else:
+                await message.reply_text("❌ Unknown file type.")
+        except Exception as e:
+            log.error(f"⚠️ Error sending file {slug} to user {user_id}: {e}")
+            await message.reply_text("⚠️ Failed to send file. Try again later.")
+            return
+
+        # 10. Increment file send counter
+        increment_file_send_count()
+
+    except Exception as e:
+        log.exception(f"🔥 Error in /start handler for user {user_id}: {e}")
+        await message.reply_text("⚠️ An unexpected error occurred. Please try again later.")
