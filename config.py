@@ -16,8 +16,7 @@ ENABLE_FSUB = True   # True/False toggle
 
 FSUB = {
     "Channel 1": "-1002005042827",
-    "Channel 2": "-1002121377579",
-    "Channel 3": "-1001880473053"
+    "Channel 2": "-1002121377579"
 }
 
 
