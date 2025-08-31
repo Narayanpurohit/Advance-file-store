@@ -19,7 +19,7 @@ async def check_force_sub(client, user_id, message):
         not_joined = []
         buttons = []
 
-        for btn_text, channel_id in FSUB_CHANNELS.items():
+        for btn_text, channel_id in FSUB.items():
             try:
                 member = await client.get_chat_member(channel_id, user_id)
                 if member.status not in ("member", "administrator", "creator"):
