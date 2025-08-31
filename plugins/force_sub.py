@@ -1,50 +1,53 @@
-import logging
-from pyrogram.errors import UserNotParticipant
+import asyncio
+from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from config import ENABLE_FSUB, FSUB
+from config import ENABLE_FSUB, FSUB_CHANNELS
 
-log = logging.getLogger(__name__)
-
-
+# Helper to check force sub
 async def check_force_sub(client, user_id, message):
     """
-    Check if user has joined all required channels.
-    If not, send join buttons and return False.
-    If yes, return True.
+    Returns True if user is in all required channels, otherwise sends join buttons.
     """
-    if not ENABLE_FSUB or not FSUB:
-        return True  # skip check if disabled
+    if not ENABLE_FSUB:
+        return True
 
-    missing_channels = []
+    not_joined = []
+    buttons = []
 
-    for btn_name, channel in FSUB.items():
+    for btn_text, channel_id in FSUB_CHANNELS.items():
         try:
-            member = await client.get_chat_member(channel, user_id)
-            if member.status in ["kicked", "banned"]:
-                missing_channels.append((btn_name, channel))
-        except UserNotParticipant:
-            missing_channels.append((btn_name, channel))
-        except Exception as e:
-            log.warning(f"ForceSub check failed for {channel}: {e}")
+            member = await client.get_chat_member(channel_id, user_id)
+            if member.status not in ("member", "administrator", "creator"):
+                not_joined.append((btn_text, channel_id))
+        except Exception:
+            # If channel not found or bot not admin
+            not_joined.append((btn_text, channel_id))
 
-    if missing_channels:
-        # Create button layout (2 per row max)
-        buttons = []
-        row = []
-        for idx, (btn_name, channel) in enumerate(missing_channels, start=1):
-            row.append(InlineKeyboardButton(btn_name, url=f"https://t.me/{channel.lstrip('@')}"))
-            if idx % 2 == 0 or idx == len(missing_channels):
-                buttons.append(row)
-                row = []
+    if not not_joined:
+        return True
 
-        # Add recheck button
-        buttons.append([InlineKeyboardButton("✅ I Joined", callback_data="fsub_check")])
+    # Build inline keyboard (2 buttons per row)
+    row = []
+    for i, (btn_text, channel_id) in enumerate(not_joined, start=1):
+        row.append(InlineKeyboardButton(btn_text, url=f"https://t.me/{channel_id.lstrip('@')}"))
+        if i % 2 == 0 or i == len(not_joined):
+            buttons.append(row)
+            row = []
 
-        await message.reply_text(
-            "⚠️ You must join the following channels to use this bot:",
-            reply_markup=InlineKeyboardMarkup(buttons),
-            disable_web_page_preview=True
-        )
-        return False
+    # Add re-check button
+    buttons.append([InlineKeyboardButton("✅ I Joined", callback_data="fsub_check")])
 
-    return True
+    await message.reply_text(
+        "⚠️ You must join the required channels to use this bot.",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+    return False
+
+
+# Callback handler for "I Joined ✅"
+@Client.on_callback_query(filters.regex("fsub_check"))
+async def recheck_force_sub(client, callback_query):
+    user_id = callback_query.from_user.id
+    ok = await check_force_sub(client, user_id, callback_query.message)
+    if ok:
+        await callback_query.message.edit_text("✅ Thanks! You’ve unlocked the bot features. Send /start again.")
