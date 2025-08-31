@@ -15,9 +15,9 @@ ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
 ENABLE_FSUB = True   # True/False toggle
 
 FSUB = {
-    "Channel 1": "@channelusername1",
-    "Channel 2": "@channelusername2",
-    "Channel 3": "@channelusername3"
+    "Channel 1": "-1002005042827",
+    "Channel 2": "-1002121377579",
+    "Channel 3": "-1001880473053"
 }
 
 
