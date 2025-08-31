@@ -1,79 +1,66 @@
 import logging
-from pyrogram import Client, filters
+from pyrogram import Client, errors, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from config import ENABLE_FSUB, FSUB
 
 log = logging.getLogger(__name__)
 
-# ---------------- Force Sub Check ---------------- #
-async def check_force_sub(client, user_id, message):
+async def check_force_sub(client: Client, user_id: int, message):
     """
-    Verify user is in all required channels.
-    Returns True if user has access, otherwise sends join buttons.
+    Checks if the user has joined all required channels.
+    Returns True if subscribed, False otherwise.
     """
-    try:
-        if not ENABLE_FSUB:
-            log.debug(f"ForceSub disabled. Allowing user {user_id}.")
-            return True
 
-        not_joined = []
-        buttons = []
+    if not ENABLE_FSUB or not FSUB:
+        return True  # skip if disabled
 
-        for btn_text, channel_id in FSUB.items():
+    missing_channels = []
+
+    for button, channel_id in FSUB.items():
+        try:
+            member = await client.get_chat_member(channel_id, user_id)
+            if member.status in ["kicked", "banned"]:
+                await message.reply_text("🚫 You are banned from using this bot.")
+                return False
+        except errors.UserNotParticipant:
+            missing_channels.append((button, channel_id))
+        except Exception as e:
+            log.exception(f"Error checking ForceSub for channel {channel_id}, user {user_id}: {e}")
+            missing_channels.append((button, channel_id))
+
+    if missing_channels:
+        btns, row = [], []
+        for idx, (button, channel_id) in enumerate(missing_channels, start=1):
             try:
-                member = await client.get_chat_member(channel_id, user_id)
-                if member.status not in ("member", "administrator", "creator"):
-                    log.info(f"User {user_id} NOT in {channel_id}.")
-                    not_joined.append((btn_text, channel_id))
-                else:
-                    log.debug(f"User {user_id} is in {channel_id}.")
+                invite = await client.create_chat_invite_link(channel_id, creates_join_request=False)
+                url = invite.invite_link
             except Exception as e:
-                log.error(f"Error checking channel {channel_id} for user {user_id}: {e}")
-                not_joined.append((btn_text, channel_id))
+                log.error(f"Failed to create invite link for {channel_id}: {e}")
+                url = "https://t.me/"  # fallback
+            row.append(InlineKeyboardButton(button, url=url))
 
-        if not not_joined:
-            log.info(f"User {user_id} passed ForceSub check.")
-            return True
-
-        # Build inline keyboard (2 buttons per row)
-        row = []
-        for i, (btn_text, channel_id) in enumerate(not_joined, start=1):
-            row.append(
-                InlineKeyboardButton(btn_text, url=f"https://t.me/{channel_id.lstrip('@')}")
-            )
-            if i % 2 == 0 or i == len(not_joined):
-                buttons.append(row)
+            # max 2 buttons per row
+            if idx % 2 == 0 or idx == len(missing_channels):
+                btns.append(row)
                 row = []
 
-        # Add re-check button
-        buttons.append([InlineKeyboardButton("✅ I Joined", callback_data="fsub_check")])
+        # add recheck button
+        btns.append([InlineKeyboardButton("✅ I Joined", callback_data="fsub_check")])
 
         await message.reply_text(
-            "⚠️ You must join the required channels to use this bot.",
-            reply_markup=InlineKeyboardMarkup(buttons)
+            "🔒 To use this bot, please join the required channels:",
+            reply_markup=InlineKeyboardMarkup(btns)
         )
-        log.warning(f"User {user_id} blocked by ForceSub.")
         return False
 
-    except Exception as e:
-        log.exception(f"Unexpected error in check_force_sub for user {user_id}: {e}")
-        try:
-            await message.reply_text("❌ An unexpected error occurred. Please try again later.")
-        except:
-            pass
-        return False
+    return True
 
 
-# ---------------- Callback Handler ---------------- #
 @Client.on_callback_query(filters.regex("fsub_check"))
 async def recheck_force_sub(client, callback_query):
     user_id = callback_query.from_user.id
-    try:
-        ok = await check_force_sub(client, user_id, callback_query.message)
-        if ok:
-            await callback_query.message.edit_text(
-                "✅ Thanks! You’ve unlocked the bot features. Send /start again."
-            )
-    except Exception as e:
-        log.exception(f"Error in recheck_force_sub for user {user_id}: {e}")
-        await callback_query.answer("❌ Error while checking. Try again later.", show_alert=True)
+    ok = await check_force_sub(client, user_id, callback_query.message)
+    if ok:
+        await callback_query.message.edit_text(
+            "✅ Thanks! You’ve unlocked the bot features. Send /start again."
+        )
