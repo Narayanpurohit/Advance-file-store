@@ -4,7 +4,8 @@ from config import VERIFICATION_MODE, CAPTION
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
-    get_batch_by_slug
+    get_batch_by_slug, increment_batches_sent,
+    increment_batch_messages_sent
 )
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
@@ -53,6 +54,7 @@ async def start_handler(client, message):
                 await send_verification_link(client, user_id)
                 return
 
+            sent_count = 0
             for item in batch_data["messages"]:
                 try:
                     await client.copy_message(
@@ -60,8 +62,22 @@ async def start_handler(client, message):
                         from_chat_id=item["chat_id"],
                         message_id=item["message_id"]
                     )
+                    sent_count += 1
                 except Exception as e:
-                    log.warning(f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}")
+                    log.warning(
+                        f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}"
+                    )
+
+            # ✅ Update counters after batch delivery
+            if sent_count > 0:
+                increment_batches_sent()
+                increment_batch_messages_sent(sent_count)
+                log.info(
+                    f"📦 Batch {slug} delivered to user {user_id}: "
+                    f"{sent_count} messages sent."
+                )
+            else:
+                log.warning(f"⚠️ Batch {slug} delivered no messages to user {user_id}.")
             return
 
         # 6. File slug — fetch from DB
@@ -99,6 +115,8 @@ async def start_handler(client, message):
                 await message.reply_audio(file_id, caption=caption_text)
             else:
                 await message.reply_text("❌ Unknown file type.")
+                log.error(f"❌ Unknown file type {file_type} for slug {slug}.")
+                return
         except Exception as e:
             log.error(f"⚠️ Error sending file {slug} to user {user_id}: {e}")
             await message.reply_text("⚠️ Failed to send file. Try again later.")
@@ -106,6 +124,7 @@ async def start_handler(client, message):
 
         # 10. Increment file send counter
         increment_file_send_count()
+        log.info(f"📁 File {slug} sent to user {user_id}.")
 
     except Exception as e:
         log.exception(f"🔥 Error in /start handler for user {user_id}: {e}")
