@@ -166,14 +166,6 @@ def get_total_users():
     return users_col.count_documents({})
 
 
-def get_premium_users():
-    now = datetime.utcnow()
-    return users_col.count_documents({"premium_until": {"$gt": now}})
-
-
-def get_total_files_sent():
-    doc = stats_col.find_one({"_id": "stats"})
-    return doc.get("files_sent", 0) if doc else 0
 
 
 def get_total_batches_sent():
