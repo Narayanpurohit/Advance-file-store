@@ -1,10 +1,14 @@
 from datetime import datetime, timedelta
-from pymongo import MongoClient
+from pymongo import MongoClient, ReturnDocument
 from config import MONGO_URI, DB_NAME
 import secrets
 import string
+import logging
 
-# Connect to Mongo
+# ---------------- LOGGER ----------------
+log = logging.getLogger(__name__)
+
+# ---------------- DB CONNECTION ----------------
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
 
@@ -98,9 +102,7 @@ def get_file_by_slug(slug: str):
 
 # ---------------- BATCH ----------------
 def save_batch(slug: str, messages: list):
-    """
-    Save a batch of messages in the database.
-    """
+    """Save a batch of messages in the database."""
     try:
         batch_doc = {
             "slug": slug,
@@ -110,56 +112,54 @@ def save_batch(slug: str, messages: list):
         db.batches.insert_one(batch_doc)
         return True
     except Exception as e:
-        print(f"⚠️ DB Error (save_batch): {e}")
+        log.error(f"⚠️ DB Error (save_batch): {e}")
         return False
 
 
 def get_batch_by_slug(slug: str):
-    """
-    Fetch a batch document by slug from the database.
-    Returns None if not found.
-    """
+    """Fetch a batch document by slug from the database."""
     try:
-        batch = db.batches.find_one({"slug": slug})
-        return batch
+        return db.batches.find_one({"slug": slug})
     except Exception as e:
-        print(f"⚠️ DB Error (get_batch_by_slug): {e}")
+        log.error(f"⚠️ DB Error (get_batch_by_slug): {e}")
         return None
 
 
 # ---------------- STATS ----------------
 def increment_file_send_count():
-    stats_col.update_one(
+    doc = stats_col.find_one_and_update(
         {"_id": "stats"},
         {"$inc": {"files_sent": 1}},
-        upsert=True
+        upsert=True,
+        return_document=ReturnDocument.AFTER
     )
+    log.info(f"📂 increment_file_send_count → now {doc.get('files_sent', 0)}")
 
 
-# ✅ Increment total batches sent
 def increment_batches_sent():
     try:
-        stats_col.find_one_and_update(
-            {"key": "batches_sent"},
-            {"$inc": {"value": 1}},
+        doc = stats_col.find_one_and_update(
+            {"_id": "stats"},
+            {"$inc": {"batches_sent": 1}},
             upsert=True,
             return_document=ReturnDocument.AFTER
         )
+        log.info(f"📦 increment_batches_sent → now {doc.get('batches_sent', 0)}")
     except Exception as e:
-        print(f"DB Error (increment_batches_sent): {e}")
+        log.error(f"⚠️ DB Error (increment_batches_sent): {e}")
 
 
-# ✅ Increment total batch messages sent
 def increment_batch_messages_sent(count: int):
     try:
-        stats_col.find_one_and_update(
-            {"key": "batch_messages_sent"},
-            {"$inc": {"value": count}},
+        doc = stats_col.find_one_and_update(
+            {"_id": "stats"},
+            {"$inc": {"batch_messages_sent": count}},
             upsert=True,
             return_document=ReturnDocument.AFTER
         )
+        log.info(f"🗂️ increment_batch_messages_sent (+{count}) → now {doc.get('batch_messages_sent', 0)}")
     except Exception as e:
-        print(f"DB Error (increment_batch_messages_sent): {e}")
+        log.error(f"⚠️ DB Error (increment_batch_messages_sent): {e}")
 
 
 def get_total_users():
@@ -176,16 +176,24 @@ def get_total_files_sent():
     return doc.get("files_sent", 0) if doc else 0
 
 
+def get_total_batches_sent():
+    doc = stats_col.find_one({"_id": "stats"})
+    return doc.get("batches_sent", 0) if doc else 0
+
+
+def get_total_batch_messages_sent():
+    doc = stats_col.find_one({"_id": "stats"})
+    return doc.get("batch_messages_sent", 0) if doc else 0
+
+
 def get_total_files_stored():
     return files_col.count_documents({})
 
 
 # ---------------- VERIFICATION SLUGS ----------------
 def create_verification_slug(user_id: int, ttl_hours: int):
-    # Generate secure random slug instead of timestamp
     random_str = ''.join(secrets.choice(string.ascii_letters + string.digits) for _ in range(16))
     slug = f"verify_{random_str}"
-    
     expire_at = datetime.utcnow() + timedelta(hours=ttl_hours)
     slugs_col.insert_one({
         "slug": slug,
