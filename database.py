@@ -135,6 +135,31 @@ def increment_file_send_count():
         upsert=True
     )
 
+# ✅ Increment total batches sent
+def increment_batches_sent():
+    with sqlite3.connect("bot.db") as conn:
+        c = conn.cursor()
+        c.execute("UPDATE stats SET value = value + 1 WHERE key = 'batches_sent'")
+        if c.rowcount == 0:
+            c.execute("INSERT INTO stats (key, value) VALUES ('batches_sent', 1)")
+        conn.commit()
+
+
+# ✅ Increment total batch messages sent
+def increment_batch_messages_sent(count: int):
+    with sqlite3.connect("bot.db") as conn:
+        c = conn.cursor()
+        c.execute(
+            "UPDATE stats SET value = value + ? WHERE key = 'batch_messages_sent'",
+            (count,)
+        )
+        if c.rowcount == 0:
+            c.execute(
+                "INSERT INTO stats (key, value) VALUES ('batch_messages_sent', ?)",
+                (count,)
+            )
+        conn.commit()
+
 
 def get_total_users():
     return users_col.count_documents({})
