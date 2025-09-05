@@ -11,9 +11,9 @@ log = logging.getLogger("CloneMakerBot")
 
 app = Client(
     "clone-maker-bot",
-    api_id=config.API_ID,
-    api_hash=config.API_HASH,
-    bot_token=config.CLONE_BOT_TOKEN,   # ⚠️ New token in config
+    api_id=config.CODE2_API_ID,
+    api_hash=config.CODE2_API_HASH,
+    bot_token=config.CODE2_BOT_TOKEN,   # ⚠️ New token in config
     plugins=dict(root="og_plugins")
 )
 
