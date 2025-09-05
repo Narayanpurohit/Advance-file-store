@@ -2,8 +2,7 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pymongo import MongoClient
-from config import MONGO_URI2, DB_NAME
+from db_config import users_col   # ✅ import directly from db_config.py
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -12,11 +11,6 @@ logging.basicConfig(
 )
 log = logging.getLogger("Settings")
 
-# ---------------- MONGO ----------------
-mongo_client = MongoClient(MONGO_URI2)
-db = mongo_client[DB_NAME]
-users_col = db["users"]
-
 # ---------------- VARIABLES ----------------
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE"]
 NORMAL_VARS = [
@@ -24,7 +18,6 @@ NORMAL_VARS = [
     "ADMINS", "FSUB", "PREMIUM_HOURS_VERIFICATION", "VERIFY_SLUG_TTL_HOURS",
     "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION", "PREMIUM_POINTS"
 ]
-
 
 # ---------------- MAIN MENU ----------------
 def get_settings_keyboard(user_data: dict):
@@ -35,7 +28,6 @@ def get_settings_keyboard(user_data: dict):
             [InlineKeyboardButton(f"{var}: {val}", callback_data=f"setting:{var}")]
         )
     return InlineKeyboardMarkup(buttons)
-
 
 @Client.on_message(filters.command("settings") & filters.private)
 async def settings_handler(client, message):
@@ -54,7 +46,6 @@ async def settings_handler(client, message):
     except Exception as e:
         log.exception(f"Error in /settings for user {user_id}: {e}")
         await message.reply_text("⚠️ Something went wrong while opening settings.")
-
 
 # ---------------- CALLBACK HANDLER ----------------
 @Client.on_callback_query(filters.regex(r"^setting:(.+)"))
@@ -91,7 +82,6 @@ async def setting_selected(client, callback_query):
         log.exception(f"Error handling setting:{var_name} for user {user_id}: {e}")
         await callback_query.answer("⚠️ Error loading setting", show_alert=True)
 
-
 # ---------------- TOGGLE BOOLEAN ----------------
 @Client.on_callback_query(filters.regex(r"^toggle:(.+)"))
 async def toggle_boolean(client, callback_query):
@@ -121,7 +111,6 @@ async def toggle_boolean(client, callback_query):
     except Exception as e:
         log.exception(f"Error toggling {var_name} for user {user_id}: {e}")
         await callback_query.answer("⚠️ Toggle failed", show_alert=True)
-
 
 # ---------------- EDIT NORMAL VAR ----------------
 @Client.on_callback_query(filters.regex(r"^edit:(.+)"))
@@ -159,7 +148,6 @@ async def edit_variable(client, callback_query):
     except Exception as e:
         log.exception(f"Error editing {var_name} for user {user_id}: {e}")
         await callback_query.message.reply_text("⚠️ Failed to update setting.")
-
 
 # ---------------- BACK TO SETTINGS ----------------
 @Client.on_callback_query(filters.regex(r"^back_to_settings$"))
