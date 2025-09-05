@@ -3,8 +3,7 @@
 import os
 from pymongo import MongoClient
 import logging
-from config import CODE2_MONGO_URI,CODE2_DB_NAME
-# ---------------------------
+from config import CODE2_MONGO_URI, CODE2_DB_NAME# ---------------------------
 # Mongo for Code 2 (Clone Manager)
 # ---------------------------
 client = MongoClient(CODE2_MONGO_URI)
