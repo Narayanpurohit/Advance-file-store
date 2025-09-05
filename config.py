@@ -1,43 +1,40 @@
+# config.py
+
 import os
-
-# Fill these values before running
-BOT_TOKEN = os.getenv("BOT_TOKEN", "6677023637:AAEzYMmsN_aqsIUtMl8D8hgId74z6hUJa0Q")
-API_ID = int(os.getenv("API_ID", "15191874"))
-API_HASH = os.getenv("API_HASH", "3037d39233c6fad9b80d83bb8a339a07")
-MONGO_URI = os.getenv("MONGO_URI", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-
-DB_NAME = os.getenv("DB_NAME", "filestore")
-
-# Admins who can manage the bot
-ADMINS = list(map(int, os.getenv("ADMINS", "5597521952").split(",")))
-
-# Force Sub settings
-ENABLE_FSUB = True   # True/False toggle
-
-FSUB = {
-    "Channel 1": -1002005042827,
-    "Channel 2": -1002121377579,
-    "Channel 3": -1001880473053
-}
+from db_config import CONFIG   # This is for Code 1 (filestore bot)
 
 
-# Verification system toggle
-VERIFICATION_MODE = os.getenv("VERIFICATION_MODE", "True")
+# ---------------------------
+# Code 1 (Filestore Bot) Config
+# ---------------------------
 
-# Premium settings
-PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", "8"))
+BOT_TOKEN = CONFIG.get("BOT_TOKEN")
+API_ID = CONFIG.get("API_ID")
+API_HASH = CONFIG.get("API_HASH")
+MONGO_URI = CONFIG.get("MONGO_URI")
+DB_NAME = CONFIG.get("DB_NAME", "filestore_clone")
 
-# Verification slug settings
-VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", "48"))  # how long a slug stays valid
+ADMINS = CONFIG.get("ADMINS", [])
+ENABLE_FSUB = CONFIG.get("ENABLE_FSUB", False)
+FSUB = CONFIG.get("FSUB")
 
-# URL shortener service config
+VERIFICATION_MODE = CONFIG.get("VERIFICATION_MODE", False)
+PREMIUM_HOURS_VERIFICATION = CONFIG.get("PREMIUM_HOURS_VERIFICATION", 8)
+VERIFY_SLUG_TTL_HOURS = CONFIG.get("VERIFY_SLUG_TTL_HOURS", 48)
 
-SHORTENER_DOMAIN = "shareus.io"   # or "gplinks.in"
-SHORTENER_API = "zu1xmKAMdlguQSBt5c8ais2aV212"
+SHORTENER_DOMAIN = CONFIG.get("SHORTENER_DOMAIN", "")
+SHORTENER_API_KEY = CONFIG.get("SHORTENER_API_KEY")
+CAPTION = CONFIG.get("CAPTION", "📄{caption}")
 
 
-SHORTENER_API_KEY = "zu1xmKAMdlguQSBt5c8ais2aV212"
-SHORTENER_API_BASE = "https://api.shareus.io/easy_api"
-# This will be set automatically at runtime
-BOT_USERNAME = None
-CAPTION = "📄 **{filename}**\n💾 {filesize}\n\n{caption}"
+# ---------------------------
+# Code 2 (Clone Maker Bot) Config
+# ---------------------------
+
+CODE2_BOT_TOKEN = os.getenv("CODE2_BOT_TOKEN", "7630512584:AAEAnpDk4dW7Xa9TGEIZ3C37k6CicN7bAnA")
+CODE2_API_ID = int(os.getenv("CODE2_API_ID", "15191874"))
+CODE2_API_HASH = os.getenv("CODE2_API_HASH", "3037d39233c6fad9b80d83bb8a339a07")
+CODE2_MONGO_URI = os.getenv("CODE2_MONGO_URI", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+CODE2_DB_NAME = os.getenv("CODE2_DB_NAME", "clone_maker")
+
+CODE2_ADMINS = list(map(int, os.getenv("CODE2_ADMINS", "5597521952").split(",")))
