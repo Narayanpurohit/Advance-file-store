@@ -2,16 +2,14 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db_config import users_col   # ✅ import directly from db_config.py
+from db_config import users_col
 
-# ---------------- LOGGING ----------------
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] - %(name)s - %(message)s"
 )
 log = logging.getLogger("Settings")
 
-# ---------------- VARIABLES ----------------
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE"]
 NORMAL_VARS = [
     "BOT_TOKEN", "API_ID", "API_HASH", "MONGO_URI", "DB_NAME",
@@ -19,7 +17,6 @@ NORMAL_VARS = [
     "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION", "PREMIUM_POINTS"
 ]
 
-# ---------------- MAIN MENU ----------------
 def get_settings_keyboard(user_data: dict):
     buttons = []
     for var in BOOLEAN_VARS + NORMAL_VARS:
@@ -47,7 +44,6 @@ async def settings_handler(client, message):
         log.exception(f"Error in /settings for user {user_id}: {e}")
         await message.reply_text("⚠️ Something went wrong while opening settings.")
 
-# ---------------- CALLBACK HANDLER ----------------
 @Client.on_callback_query(filters.regex(r"^setting:(.+)"))
 async def setting_selected(client, callback_query):
     user_id = callback_query.from_user.id
@@ -82,7 +78,6 @@ async def setting_selected(client, callback_query):
         log.exception(f"Error handling setting:{var_name} for user {user_id}: {e}")
         await callback_query.answer("⚠️ Error loading setting", show_alert=True)
 
-# ---------------- TOGGLE BOOLEAN ----------------
 @Client.on_callback_query(filters.regex(r"^toggle:(.+)"))
 async def toggle_boolean(client, callback_query):
     user_id = callback_query.from_user.id
@@ -112,7 +107,6 @@ async def toggle_boolean(client, callback_query):
         log.exception(f"Error toggling {var_name} for user {user_id}: {e}")
         await callback_query.answer("⚠️ Toggle failed", show_alert=True)
 
-# ---------------- EDIT NORMAL VAR ----------------
 @Client.on_callback_query(filters.regex(r"^edit:(.+)"))
 async def edit_variable(client, callback_query):
     user_id = callback_query.from_user.id
@@ -125,7 +119,7 @@ async def edit_variable(client, callback_query):
         )
 
         try:
-            response = await client.listen(callback_query.message.chat.id, filters=filters.text, timeout=120)
+            response = await client.listen(callback_query.message.chat.id, filters.text, timeout=120)
         except asyncio.TimeoutError:
             log.warning(f"Timeout waiting for input on {var_name} (user {user_id})")
             await callback_query.message.reply_text("⏰ Timeout! Back to settings.")
@@ -149,7 +143,6 @@ async def edit_variable(client, callback_query):
         log.exception(f"Error editing {var_name} for user {user_id}: {e}")
         await callback_query.message.reply_text("⚠️ Failed to update setting.")
 
-# ---------------- BACK TO SETTINGS ----------------
 @Client.on_callback_query(filters.regex(r"^back_to_settings$"))
 async def back_to_settings(client, callback_query):
     user_id = callback_query.from_user.id
