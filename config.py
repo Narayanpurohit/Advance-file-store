@@ -1,7 +1,7 @@
 # config.py
 
 import os
-from db_config import CONFIG   # This is for Code 1 (filestore bot)
+ # This is for Code 1 (filestore bot)
 
 
 # ---------------------------
