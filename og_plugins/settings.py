@@ -119,7 +119,11 @@ async def edit_variable(client, callback_query):
         )
 
         try:
-            response = await client.listen(callback_query.message.chat.id, filters.text, timeout=120)
+            response = await client.listen(
+                callback_query.message.chat.id,
+                filter=lambda _, __, msg: msg.text and not msg.text.startswith("/"),
+                timeout=120
+            )
         except asyncio.TimeoutError:
             log.warning(f"Timeout waiting for input on {var_name} (user {user_id})")
             await callback_query.message.reply_text("⏰ Timeout! Back to settings.")
@@ -142,7 +146,6 @@ async def edit_variable(client, callback_query):
     except Exception as e:
         log.exception(f"Error editing {var_name} for user {user_id}: {e}")
         await callback_query.message.reply_text("⚠️ Failed to update setting.")
-
 @Client.on_callback_query(filters.regex(r"^back_to_settings$"))
 async def back_to_settings(client, callback_query):
     user_id = callback_query.from_user.id
