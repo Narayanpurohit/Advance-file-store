@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from database import add_user, user_exists
+from db_config import add_user, user_exists
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
