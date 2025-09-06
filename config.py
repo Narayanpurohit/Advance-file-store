@@ -12,7 +12,7 @@ BOT_TOKEN =  ("BOT_TOKEN")
 API_ID =  ("API_ID")
 API_HASH =  ("API_HASH")
 MONGO_URI =  ("MONGO_URI")
-DB_NAME =  ("DB_NAME", "filestore_clone")
+DB_NAME = os.getenv("DB_NAME", "filestore")
 
 ADMINS =  ("ADMINS", [])
 ENABLE_FSUB =  ("ENABLE_FSUB", False)
