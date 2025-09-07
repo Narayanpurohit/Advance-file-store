@@ -28,10 +28,11 @@ async def runbot_handler(client, message):
             text=True
         )
 
-        await asyncio.sleep(3)  # Allow some time for the process to start
-
-        stdout = proc.stdout.read()
-        stderr = proc.stderr.read()
+        # Wait for up to 5 seconds to capture output
+        try:
+            stdout, stderr = proc.communicate(timeout=5)
+        except subprocess.TimeoutExpired:
+            stdout, stderr = "", ""
 
         if proc.poll() is not None:  # Process exited early
             error_msg = stderr or stdout or "Unknown error"
