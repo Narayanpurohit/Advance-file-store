@@ -33,19 +33,14 @@ def get_settings_keyboard(user_data: dict):
 async def settings_handler(client, message):
     user_id = message.from_user.id
     try:
-        user = users_col.find_one({"USER_ID": user_id})
-        if not user:
-            log.warning(f"Unauthorized user {user_id} tried to access settings.")
-            await message.reply_text("❌ You are not registered in the database.")
-            return
-
+        user = users_col.find_one({"USER_ID": user_id}) or {}
         log.info(f"User {user_id} accessed /settings.")
         text = "⚙️ **Your Settings**\n\nSelect a variable to edit:"
         await message.reply_text(text, reply_markup=get_settings_keyboard(user))
 
     except Exception as e:
         log.exception(f"Error in /settings for user {user_id}: {e}")
-        await message.reply_text("⚠️ Something went wrong while opening settings.")
+        await message.reply_text(f"⚠️ Something went wrong: {str(e)}")
 
 # ---------------- CALLBACK HANDLER ----------------
 @Client.on_callback_query(filters.regex(r"^setting:(.+)"))
@@ -54,12 +49,7 @@ async def setting_selected(client, callback_query):
     var_name = callback_query.data.split(":")[1]
 
     try:
-        user = users_col.find_one({"USER_ID": user_id})
-        if not user:
-            log.error(f"User {user_id} not found in DB when selecting {var_name}")
-            await callback_query.answer("Not found in DB", show_alert=True)
-            return
-
+        user = users_col.find_one({"USER_ID": user_id}) or {}
         current_value = user.get(var_name, "Not set")
         log.info(f"User {user_id} selected {var_name} (current: {current_value})")
 
@@ -80,7 +70,7 @@ async def setting_selected(client, callback_query):
 
     except Exception as e:
         log.exception(f"Error handling setting:{var_name} for user {user_id}: {e}")
-        await callback_query.answer("⚠️ Error loading setting", show_alert=True)
+        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
 
 # ---------------- TOGGLE BOOLEAN ----------------
 @Client.on_callback_query(filters.regex(r"^toggle:(.+)"))
@@ -89,12 +79,7 @@ async def toggle_boolean(client, callback_query):
     var_name = callback_query.data.split(":")[1]
 
     try:
-        user = users_col.find_one({"USER_ID": user_id})
-        if not user:
-            log.error(f"Toggle failed - User {user_id} not found in DB.")
-            await callback_query.answer("Not found in DB", show_alert=True)
-            return
-
+        user = users_col.find_one({"USER_ID": user_id}) or {}
         current_value = bool(user.get(var_name, False))
         new_value = not current_value
 
@@ -110,7 +95,7 @@ async def toggle_boolean(client, callback_query):
 
     except Exception as e:
         log.exception(f"Error toggling {var_name} for user {user_id}: {e}")
-        await callback_query.answer("⚠️ Toggle failed", show_alert=True)
+        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
 
 # ---------------- EDIT NORMAL VAR ----------------
 @Client.on_callback_query(filters.regex(r"^edit:(.+)"))
@@ -148,20 +133,16 @@ async def edit_variable(client, callback_query):
 
     except Exception as e:
         log.exception(f"Error editing {var_name} for user {user_id}: {e}")
-        await callback_query.message.reply_text("⚠️ Failed to update setting.")
+        await callback_query.message.reply_text(f"⚠️ Failed to update setting: {str(e)}")
 
 # ---------------- BACK TO SETTINGS ----------------
 @Client.on_callback_query(filters.regex(r"^back_to_settings$"))
 async def back_to_settings(client, callback_query):
     user_id = callback_query.from_user.id
     try:
-        user = users_col.find_one({"USER_ID": user_id})
-        if not user:
-            log.error(f"Back to settings failed - User {user_id} not in DB.")
-            await callback_query.answer("Not found in DB", show_alert=True)
-            return
-
+        user = users_col.find_one({"USER_ID": user_id}) or {}
         log.info(f"User {user_id} returned to settings menu.")
+
         await callback_query.message.edit_text(
             "⚙️ **Your Settings**\n\nSelect a variable to edit:",
             reply_markup=get_settings_keyboard(user)
@@ -169,4 +150,4 @@ async def back_to_settings(client, callback_query):
 
     except Exception as e:
         log.exception(f"Error returning to settings menu for user {user_id}: {e}")
-        await callback_query.answer("⚠️ Failed to go back", show_alert=True)
+        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
