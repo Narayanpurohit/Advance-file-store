@@ -2,7 +2,7 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from db_config import users_col  # Import DB collection directly
+from db_config import users_col
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -125,7 +125,6 @@ async def edit_variable(client, callback_query):
         )
 
         try:
-            # Proper usage of pyromod.listen without filter keyword
             response = await client.listen(callback_query.message.chat.id, timeout=120)
 
         except asyncio.TimeoutError:
