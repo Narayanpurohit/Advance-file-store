@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from database import db
+import db_config
 
 users_col = db["users"]
 
