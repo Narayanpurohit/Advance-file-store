@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from config import ADMINS
+from bot import ADMINS
 from database import add_premium_days, remove_premium, get_premium_expiry
 import datetime
 
