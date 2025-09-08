@@ -20,11 +20,22 @@ if not user:
     logger.error(f"❌ User {USER_ID} config not found in database!")
     sys.exit(1)
 
-# Extract configuration from DB
+# Extract config variables from DB
 API_ID = user.get("API_ID")
 API_HASH = user.get("API_HASH")
 BOT_TOKEN = user.get("BOT_TOKEN")
 ADMINS = user.get("ADMINS", [])
+
+ENABLE_FSUB = user.get("ENABLE_FSUB", False)
+VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
+MONGO_URI = user.get("MONGO_URI", "")
+DB_NAME = user.get("DB_NAME", "")
+FSUB = user.get("FSUB", "")
+PREMIUM_HOURS_VERIFICATION = user.get("PREMIUM_HOURS_VERIFICATION", 12)
+VERIFY_SLUG_TTL_HOURS = user.get("VERIFY_SLUG_TTL_HOURS", 12)
+SHORTENER_DOMAIN = user.get("SHORTENER_DOMAIN", "")
+SHORTENER_API_KEY = user.get("SHORTENER_API_KEY", "")
+CAPTION = user.get("CAPTION", "")
 
 # Initialize the bot
 app = Client(
