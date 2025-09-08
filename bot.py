@@ -11,13 +11,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Get deploy user ID from env
-#DEPLOY_USER_ID = int(os.getenv("DEPLOY_DEPLOY_USER_ID", 0))
-logger.info(f"🔧 Deploying bot for DEPLOY_USER_ID: {DEPLOY_USER_ID}")
+USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
+logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
 
 # Load user config from database
-user = users_col.find_one({"DEPLOY_USER_ID": DEPLOY_USER_ID})
+user = users_col.find_one({"USER_ID": USER_ID})
 if not user:
-    logger.error(f"❌ User {DEPLOY_USER_ID} config not found in database!")
+    logger.error(f"❌ User {USER_ID} config not found in database!")
     sys.exit(1)
 
 # Load required variables from DB
@@ -69,7 +69,7 @@ if __name__ == "__main__":
         try:
             app.send_message(
                 admin_id,
-                f"✅ Deployed bot started as @{BOT_USERNAME} for DEPLOY_USER_ID {DEPLOY_USER_ID}."
+                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
             )
             logger.info(f"📨 Startup message sent to admin {admin_id}")
         except Exception as e:
