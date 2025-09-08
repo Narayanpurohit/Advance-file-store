@@ -23,7 +23,7 @@ async def runbot_handler(client, message):
         return
 
     try:
-        print(f"[DEBUG] Starting deployment for user_id: {user_id}")
+        await message.reply_text("🚀 Starting bot deployment... Logs will follow shortly:")
 
         proc = subprocess.Popen(
             ["python3", "bot.py"],
@@ -33,16 +33,29 @@ async def runbot_handler(client, message):
             env={**os.environ, "DEPLOY_USER_ID": str(user_id)}
         )
 
-        await asyncio.sleep(3)  # Allow time for bot to start
+        # Continuously read stdout and stderr and send logs to user
+        async def send_logs():
+            while True:
+                output = proc.stdout.readline()
+                error = proc.stderr.readline()
 
-        stdout = proc.stdout.read()
-        stderr = proc.stderr.read()
+                if output:
+                    await client.send_message(user_id, f"📜 LOG: `{output.strip()}`")
 
-        if proc.poll() is not None:  # Process exited early
-            error_msg = stderr or stdout or "Unknown error"
-            await message.reply_text(f"❌ Deployment failed:\n```\n{error_msg}\n```")
+                if error:
+                    await client.send_message(user_id, f"⚠️ ERROR: `{error.strip()}`")
+
+                if output == "" and error == "" and proc.poll() is not None:
+                    break
+
+                await asyncio.sleep(1)
+
+        await send_logs()
+
+        if proc.poll() is not None and proc.returncode != 0:
+            await message.reply_text("❌ Deployment failed! Check logs above.")
         else:
-            await message.reply_text("🚀 Bot deployed successfully! It is now running.")
+            await message.reply_text("✅ Deployment completed successfully!")
 
     except Exception as e:
         await message.reply_text(f"❌ Deployment error occurred:\n```\n{str(e)}\n```")
