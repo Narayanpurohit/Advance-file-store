@@ -128,4 +128,4 @@ async def start_handler(client, message):
 
     except Exception as e:
         log.exception(f"🔥 Error in /start handler for user {user_id}: {e}")
-        await message.reply_text("⚠️ An unexpected error occurred. Please try again later.")
+        await message.reply_text("⚠️ An unexpected error occurred. Please try again later.\n 🔥Error in /start handler for user {user_id}: {e}")
