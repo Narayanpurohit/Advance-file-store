@@ -24,7 +24,7 @@ if not user:
 API_ID = user.get("API_ID")
 API_HASH = user.get("API_HASH")
 BOT_TOKEN = user.get("BOT_TOKEN")
-ADMINS = int(user.get("ADMINS"))
+ADMINS = user.get("ADMINS")
 
 ENABLE_FSUB = user.get("ENABLE_FSUB", False)
 VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
