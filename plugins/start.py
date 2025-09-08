@@ -1,6 +1,6 @@
 import logging
 from pyrogram import Client, filters
-from config import VERIFICATION_MODE, CAPTION
+from bot import VERIFICATION_MODE, CAPTION
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
