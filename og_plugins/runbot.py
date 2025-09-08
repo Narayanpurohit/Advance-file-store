@@ -8,7 +8,7 @@ MIN_POINTS = 10   # Minimum points required to deploy
 async def runbot_handler(client, message):
     user_id = message.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    premium_points = user.get("PREMIUM_POINTS", 0)
+    premium_points = int(user.get("PREMIUM_POINTS", 0))
 
     if premium_points < MIN_POINTS:
         await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points to deploy. You have {premium_points}.")
