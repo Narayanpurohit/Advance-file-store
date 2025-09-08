@@ -1,5 +1,5 @@
 import datetime
-from config import PREMIUM_HOURS_VERIFICATION, VERIFY_SLUG_TTL_HOURS
+from bot import PREMIUM_HOURS_VERIFICATION, VERIFY_SLUG_TTL_HOURS
 from database import create_verification_slug, use_verification_slug, add_premium_hours
 from .shortener import shorten_url
 
