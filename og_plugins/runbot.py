@@ -28,7 +28,7 @@ async def runbot_handler(client, message):
     user_id = message.from_user.id
     try:
         user = users_col.find_one({"USER_ID": user_id}) or {}
-        points = int(user.get("points", 0))
+        points = int(user.get("PREMIUM_POINTS", 0))
 
         if points < MIN_POINTS:
             log.warning(f"User {user_id} tried to deploy with {points} points.")
