@@ -25,7 +25,7 @@ async def runbot_handler(client, message):
         return
 
     # Extract PREMIUM_POINTS (not points)
-    points = user.get("PREMIUM_POINTS", 0)
+    points = int(user.get("PREMIUM_POINTS", 0))
 
     if points < MIN_POINTS:
         await message.reply_text(
