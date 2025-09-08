@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
 import asyncio
 from database import get_all_users
-from config import ADMINS
+from bot import ADMINS
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def broadcast_handler(client, message):
