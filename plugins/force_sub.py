@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired
-from config import ENABLE_FSUB, FSUB
+from bot import ENABLE_FSUB, FSUB
 
 log = logging.getLogger(__name__)
 
