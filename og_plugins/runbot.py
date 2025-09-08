@@ -8,7 +8,7 @@ MIN_POINTS = 10   # Minimum points required to deploy
 async def runbot_handler(client, message):
     user_id = message.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    premium_points = int(user.get("PREMIUM_POINTS", 0))
+    premium_points = user.get("PREMIUM_POINTS", 0)
 
     if premium_points < MIN_POINTS:
         await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points to deploy. You have {premium_points}.")
@@ -23,7 +23,7 @@ async def runbot_handler(client, message):
         return
 
     try:
-        await message.reply_text("🚀 Starting bot deployment... Logs will follow shortly:")
+        status_msg = await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
 
         proc = subprocess.Popen(
             ["python3", "bot.py"],
@@ -33,29 +33,51 @@ async def runbot_handler(client, message):
             env={**os.environ, "DEPLOY_USER_ID": str(user_id)}
         )
 
-        # Continuously read stdout and stderr and send logs to user
-        async def send_logs():
-            while True:
-                output = proc.stdout.readline()
-                error = proc.stderr.readline()
+        log_file_path = f"./deployment_log_{user_id}.txt"
+        log_lines = []
 
-                if output:
-                    await client.send_message(user_id, f"📜 LOG: `{output.strip()}`")
+        def read_line_non_blocking(pipe):
+            return pipe.readline() if not pipe.closed else ""
 
-                if error:
-                    await client.send_message(user_id, f"⚠️ ERROR: `{error.strip()}`")
+        while True:
+            output = read_line_non_blocking(proc.stdout)
+            error = read_line_non_blocking(proc.stderr)
 
-                if output == "" and error == "" and proc.poll() is not None:
-                    break
+            if output:
+                log_lines.append(f"[LOG] {output}")
+            if error:
+                log_lines.append(f"[ERROR] {error}")
 
-                await asyncio.sleep(1)
+            # Periodically send updates every 5 seconds
+            if len(log_lines) >= 10:
+                logs_text = "".join(log_lines[-10:]) or "No new logs yet..."
+                try:
+                    await status_msg.edit(f"📜 Deployment Logs:\n```\n{logs_text}\n```")
+                except Exception:
+                    pass  # Avoid error if too long or invalid characters
 
-        await send_logs()
+                # Save to file too
+                with open(log_file_path, "a") as log_file:
+                    log_file.writelines(log_lines)
 
-        if proc.poll() is not None and proc.returncode != 0:
-            await message.reply_text("❌ Deployment failed! Check logs above.")
-        else:
-            await message.reply_text("✅ Deployment completed successfully!")
+                log_lines.clear()
+
+            if output == "" and error == "" and proc.poll() is not None:
+                break
+
+            await asyncio.sleep(1)
+
+        # Send any remaining logs
+        if log_lines:
+            with open(log_file_path, "a") as log_file:
+                log_file.writelines(log_lines)
+
+        final_caption = "✅ Deployment succeeded!" if proc.returncode == 0 else "❌ Deployment failed!"
+
+        await client.send_document(user_id, log_file_path, caption=f"📄 Deployment Log\n\n{final_caption}")
+
+        # Clean up
+        os.remove(log_file_path)
 
     except Exception as e:
         await message.reply_text(f"❌ Deployment error occurred:\n```\n{str(e)}\n```")
