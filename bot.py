@@ -63,6 +63,7 @@ if __name__ == "__main__":
     app.start()
     me = app.get_me()
     BOT_USERNAME = me.username
+    logger.info("🚀 bot deployed Successfully...")
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
     for admin_id in FINAL_ADMINS:
