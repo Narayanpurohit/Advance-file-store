@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from pymongo import MongoClient, ReturnDocument
-from config import MONGO_URI, DB_NAME
+from bot import MONGO_URI, DB_NAME
 import secrets
 import string
 import logging
