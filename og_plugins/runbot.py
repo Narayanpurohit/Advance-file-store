@@ -1,49 +1,39 @@
 from pyrogram import Client, filters
 from db_config import users_col
-import subprocess, asyncio
+import subprocess, asyncio, os
 
 MIN_POINTS = 10   # Minimum points required to deploy
 
 @Client.on_message(filters.command("runbot") & filters.private)
 async def runbot_handler(client, message):
     user_id = message.from_user.id
-    user = users_col.find_one({"USER_ID": user_id})
+    user = users_col.find_one({"USER_ID": user_id}) or {}
+    premium_points = user.get("PREMIUM_POINTS", 0)
 
-    if not user:
-        await message.reply_text("❌ You are not registered yet. Start the bot with /start to register yourself.")
+    if premium_points < MIN_POINTS:
+        await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points to deploy. You have {premium_points}.")
         return
 
-    # Check if required fields are filled
-    required_fields = ["API_ID", "API_HASH", "BOT_TOKEN"]
-    missing = [field for field in required_fields if not user.get(field)]
+    required_vars = ["BOT_TOKEN", "API_ID", "API_HASH"]
+    missing_vars = [var for var in required_vars if not user.get(var)]
 
-    if missing:
-        await message.reply_text(
-            f"❌ Please configure these required fields first using /settings:\n"
-            f"👉 {', '.join(missing)}"
-        )
-        return
-
-    # Extract PREMIUM_POINTS (not points)
-    points = int(user.get("PREMIUM_POINTS", 0))
-
-    if points < MIN_POINTS:
-        await message.reply_text(
-            f"❌ You need at least {MIN_POINTS} PREMIUM_POINTS to deploy your bot.\n"
-            f"You currently have: {points} PREMIUM_POINTS."
-        )
+    if missing_vars:
+        missing_str = ", ".join(missing_vars)
+        await message.reply_text(f"❌ Please configure these required settings first using /settings:\n`{missing_str}`")
         return
 
     try:
-        # Start the bot as subprocess
+        print(f"[DEBUG] Starting deployment for user_id: {user_id}")
+
         proc = subprocess.Popen(
             ["python3", "bot.py"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
+            env={**os.environ, "DEPLOY_USER_ID": str(user_id)}
         )
 
-        await asyncio.sleep(3)  # Allow some time for the process to start
+        await asyncio.sleep(3)  # Allow time for bot to start
 
         stdout = proc.stdout.read()
         stderr = proc.stderr.read()
