@@ -1,8 +1,9 @@
 from pyrogram import Client, filters
 from db_config import users_col
-import subprocess, asyncio, os
+import asyncio
+import os
 
-MIN_POINTS = 10   # Minimum points required to deploy
+MIN_POINTS = 10  # Minimum points required to deploy
 
 @Client.on_message(filters.command("runbot") & filters.private)
 async def runbot_handler(client, message):
@@ -23,50 +24,48 @@ async def runbot_handler(client, message):
         return
 
     try:
-        initial_msg = await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
+        await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
 
-        proc = subprocess.Popen(
-            ["python3", "bot.py"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env={**os.environ, "DEPLOY_USER_ID": str(user_id)}
+        env = {**os.environ, "DEPLOY_USER_ID": str(user_id)}
+        proc = await asyncio.create_subprocess_exec(
+            "python3", "bot.py",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env
         )
 
         log_file_path = f"./deployment_log_{user_id}.txt"
         log_lines = []
 
-        def read_line_non_blocking(pipe):
-            return pipe.readline() if not pipe.closed else ""
-
         while True:
-            output = read_line_non_blocking(proc.stdout)
-            error = read_line_non_blocking(proc.stderr)
+            stdout_line = await proc.stdout.readline()
+            stderr_line = await proc.stderr.readline()
 
-            if output:
-                log_lines.append(f"[LOG] {output}")
-            if error:
-                log_lines.append(f"[ERROR] {error}")
+            has_output = False
 
-            # Send a new message for every 10 new lines
+            if stdout_line:
+                log_lines.append(f"[LOG] {stdout_line.decode()}")
+                has_output = True
+
+            if stderr_line:
+                log_lines.append(f"[ERROR] {stderr_line.decode()}")
+                has_output = True
+
+            # Send logs every 10 lines or periodically
             if len(log_lines) >= 10:
-                logs_text = "".join(log_lines[-10:]) or "No new logs yet..."
+                logs_text = "".join(log_lines[-10:])
                 try:
                     await client.send_message(user_id, f"📜 Deployment Logs:\n```\n{logs_text}\n```")
                 except Exception:
-                    # Avoid errors if text is too long or invalid
                     await client.send_message(user_id, "📜 Deployment Logs: (Some logs could not be displayed)")
 
-                # Append logs to file
                 with open(log_file_path, "a") as log_file:
                     log_file.writelines(log_lines)
 
                 log_lines.clear()
 
-            if output == "" and error == "" and proc.poll() is not None:
+            if not has_output and proc.stdout.at_eof() and proc.stderr.at_eof():
                 break
-
-            await asyncio.sleep(1)
 
         # Send any remaining logs at the end
         if log_lines:
@@ -82,7 +81,7 @@ async def runbot_handler(client, message):
 
         await client.send_document(user_id, log_file_path, caption=f"📄 Full Deployment Log\n\n{final_caption}")
 
-        # Clean up the file
+        # Cleanup
         os.remove(log_file_path)
 
     except Exception as e:
