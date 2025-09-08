@@ -1,7 +1,8 @@
 import logging
+import os
+import sys
 from pyrogram import Client, idle
 from db_config import users_col
-from pymongo import DESCENDING
 
 logging.basicConfig(
     level=logging.INFO,
@@ -9,39 +10,49 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-def get_admins():
-    # Fetch the first user with non-empty ADMINS list (or you can define a better logic)
-    user = users_col.find_one({"ADMINS": {"$exists": True, "$not": {"$size": 0}}}, sort=[("created_at", DESCENDING)])
-    if user:
-        return user["ADMINS"]
-    return []
+# Get the deploy USER_ID from environment variables
+USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
+logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
 
+# Fetch user config from database
+user = users_col.find_one({"USER_ID": USER_ID})
+if not user:
+    logger.error(f"❌ User {USER_ID} config not found in database!")
+    sys.exit(1)
+
+# Extract configuration from DB
+API_ID = user.get("API_ID")
+API_HASH = user.get("API_HASH")
+BOT_TOKEN = user.get("BOT_TOKEN")
+ADMINS = user.get("ADMINS", [])
+
+# Initialize the bot
 app = Client(
-    "FileStoreBot",
-    api_id="API_ID_FROM_DB",  # Should be set dynamically if needed
-    api_hash="API_HASH_FROM_DB",
-    bot_token="BOT_TOKEN_FROM_DB",
+    "DeployedFileStoreBot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN,
     plugins=dict(root="plugins")
 )
 
 if __name__ == "__main__":
-    logger.info("🚀 Starting bot...")
+    logger.info("🚀 Starting deployed bot...")
     app.start()
     me = app.get_me()
     BOT_USERNAME = me.username
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
-    ADMINS = get_admins()
-    if ADMINS:
-        for admin_id in ADMINS:
-            try:
-                app.send_message(admin_id, "✅ Bot deployed successfully!")
-                logger.info(f"📨 Startup message sent to admin {admin_id}")
-            except Exception as e:
-                logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
-    else:
-        logger.warning("⚠️ No ADMINS found in the database!")
+    # Send deployment message to admins
+    for admin_id in ADMINS:
+        try:
+            app.send_message(
+                admin_id,
+                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
+            )
+            logger.info(f"📨 Startup message sent to admin {admin_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
 
-    logger.info("📡 Bot is now running and ready for updates.")
+    logger.info("📡 Bot is now running and ready.")
     idle()
     app.stop()
