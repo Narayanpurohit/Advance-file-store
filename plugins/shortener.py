@@ -1,5 +1,5 @@
 import requests
-from config import SHORTENER_DOMAIN, SHORTENER_API
+from bot import SHORTENER_DOMAIN, SHORTENER_API
 
 # Map of supported shorteners and their API formats
 SHORTENER_MAP = {
