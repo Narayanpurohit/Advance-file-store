@@ -8,7 +8,7 @@ MIN_POINTS = 10   # Minimum points required to deploy
 async def runbot_handler(client, message):
     user_id = message.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    premium_points = int(user.get("PREMIUM_POINTS", 0))
+    premium_points = user.get("PREMIUM_POINTS", 0)
 
     if premium_points < MIN_POINTS:
         await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points to deploy. You have {premium_points}.")
@@ -23,7 +23,7 @@ async def runbot_handler(client, message):
         return
 
     try:
-        status_msg = await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
+        initial_msg = await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
 
         proc = subprocess.Popen(
             ["python3", "bot.py"],
@@ -48,15 +48,16 @@ async def runbot_handler(client, message):
             if error:
                 log_lines.append(f"[ERROR] {error}")
 
-            # Periodically send updates every 5 seconds
+            # Send a new message for every 10 new lines
             if len(log_lines) >= 10:
                 logs_text = "".join(log_lines[-10:]) or "No new logs yet..."
                 try:
-                    await status_msg.edit(f"📜 Deployment Logs:\n```\n{logs_text}\n```")
+                    await client.send_message(user_id, f"📜 Deployment Logs:\n```\n{logs_text}\n```")
                 except Exception:
-                    pass  # Avoid error if too long or invalid characters
+                    # Avoid errors if text is too long or invalid
+                    await client.send_message(user_id, "📜 Deployment Logs: (Some logs could not be displayed)")
 
-                # Save to file too
+                # Append logs to file
                 with open(log_file_path, "a") as log_file:
                     log_file.writelines(log_lines)
 
@@ -67,16 +68,21 @@ async def runbot_handler(client, message):
 
             await asyncio.sleep(1)
 
-        # Send any remaining logs
+        # Send any remaining logs at the end
         if log_lines:
             with open(log_file_path, "a") as log_file:
                 log_file.writelines(log_lines)
+            final_logs = "".join(log_lines)
+            try:
+                await client.send_message(user_id, f"📜 Final Deployment Logs:\n```\n{final_logs}\n```")
+            except Exception:
+                await client.send_message(user_id, "📜 Final Deployment Logs: (Some logs could not be displayed)")
 
         final_caption = "✅ Deployment succeeded!" if proc.returncode == 0 else "❌ Deployment failed!"
 
-        await client.send_document(user_id, log_file_path, caption=f"📄 Deployment Log\n\n{final_caption}")
+        await client.send_document(user_id, log_file_path, caption=f"📄 Full Deployment Log\n\n{final_caption}")
 
-        # Clean up
+        # Clean up the file
         os.remove(log_file_path)
 
     except Exception as e:
