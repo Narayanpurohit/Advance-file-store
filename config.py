@@ -1,32 +1,26 @@
-# config.py
 
 import os
- # This is for Code 1 (filestore bot)
+ 
+
+BOT_TOKEN =  ("Get from @botfather")
+API_ID = ("get from my.telegram.org")
+API_HASH =  ("get from my.telegram.org")
+MONGO_URI =  ("send mongo db click here to khow how to create :")
+DB_NAME =  ("filestore ok")
+
+ADMINS = ("List Admin id like this ")
+
+ENABLE_FSUB = ("click on button to switch value")  
+FSUB = ("send channel id list like this ")
+
+VERIFICATION_MODE =  ("")
+PREMIUM_HOURS_VERIFICATION = ("how much time.verification from link"))
+VERIFY_SLUG_TTL_HOURS = ("")
+SHORTENER_DOMAIN = ("url shortner domain name without www or https://")  
+SHORTENER_API = ("send shortner api")
 
 
-# ---------------------------
-# Code 1 (Filestore Bot) Config
-# ---------------------------
-
-BOT_TOKEN =  ("BOT_TOKEN")
-API_ID =  ("API_ID")
-API_HASH =  ("API_HASH")
-MONGO_URI =  ("MONGO_URI")
-DB_NAME = os.getenv("DB_NAME", "filestore")
-
-ADMINS =  ("ADMINS", [])
-ENABLE_FSUB =  ("ENABLE_FSUB", False)
-FSUB =  ("FSUB")
-
-VERIFICATION_MODE =  ("VERIFICATION_MODE", False)
-PREMIUM_HOURS_VERIFICATION =  ("PREMIUM_HOURS_VERIFICATION", 8)
-VERIFY_SLUG_TTL_HOURS =  ("VERIFY_SLUG_TTL_HOURS", 48)
-
-SHORTENER_DOMAIN =  ("SHORTENER_DOMAIN", "")
-SHORTENER_API =  ("SHORTENER_API_KEY")
-CAPTION =  ("CAPTION", "📄{caption}")
-
-
+CAPTION = "📄file name : {filename}\n💾file size: {filesize}\n\nold caption :{caption}"
 # ---------------------------
 # Code 2 (Clone Maker Bot) Config
 # ---------------------------
