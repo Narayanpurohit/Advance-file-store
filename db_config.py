@@ -47,6 +47,7 @@ def add_user(user_id: int):
         "SHORTENER_API_KEY": "",
         "CAPTION": "",
         "PREMIUM_POINTS": 0,
+        "LOG_CHANNEL_ID":0,
     }
 
     users_col.insert_one(default_user)
