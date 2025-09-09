@@ -11,35 +11,31 @@ START_TIME = time.time()
 async def stats_handler(client, message):
     total_users = users_col.count_documents({})
     active_deployments = users_col.count_documents({"BOT_STATUS": "running"})
-    users_with_log = users_col.count_documents({"LOG_CHANNEL_ID": {"$exists": True}})
-
-    cpu_percent = psutil.cpu_percent(interval=1)
+    users_with_log_channel = users_col.count_documents({"LOG_CHANNEL_ID": {"$exists": True}})
+    
+    cpu_usage = psutil.cpu_percent()
     mem = psutil.virtual_memory()
-    total_mem = round(mem.total / (1024 * 1024 * 1024), 2)
-    used_mem = round(mem.used / (1024 * 1024 * 1024), 2)
+    mem_used = round(mem.used / 1024 / 1024, 2)
+    mem_total = round(mem.total / 1024 / 1024, 2)
     mem_percent = mem.percent
 
     disk = shutil.disk_usage("/")
-    total_disk = round(disk.total / (1024 * 1024 * 1024), 2)
-    used_disk = round(disk.used / (1024 * 1024 * 1024), 2)
-    disk_percent = round((used_disk / total_disk) * 100, 2)
+    disk_used = round(disk.used / 1024 / 1024 / 1024, 2)
+    disk_total = round(disk.total / 1024 / 1024 / 1024, 2)
+    disk_percent = round((disk.used / disk.total) * 100, 2)
 
     uptime_seconds = int(time.time() - START_TIME)
-    hours, remainder = divmod(uptime_seconds, 3600)
-    minutes, _ = divmod(remainder, 60)
-    uptime_str = f"{hours} hours {minutes} minutes"
+    uptime_str = str(datetime.utcfromtimestamp(uptime_seconds).strftime("%H hours %M minutes"))
 
-    stats_message = f"""📊 Bot System Statistics
+    stats_message = (
+        "📊 Bot System Statistics\n\n"
+        f"👥 Total Users: {total_users}\n"
+        f"🚀 Active Deployments: {active_deployments}\n"
+        f"🔔 Users with LOG_CHANNEL_ID: {users_with_log_channel}\n\n"
+        f"⚙️ CPU Usage: {cpu_usage}%\n"
+        f"💾 Memory Usage: {mem_used} MB / {mem_total} MB ({mem_percent}%)\n"
+        f"📂 Disk Usage: {disk_used} GB / {disk_total} GB ({disk_percent}%)\n\n"
+        f"⏱️ Uptime: {uptime_str}"
+    )
 
-👥 Total Users: {total_users}
-🚀 Active Deployments: {active_deployments}
-🔔 Users with LOG_CHANNEL_ID: {users_with_log}
-
-⚙️ CPU Usage: {cpu_percent}%
-💾 Memory Usage: {used_mem} GB / {total_mem} GB ({mem_percent}%)
-📂 Disk Usage: {used_disk} GB / {total_disk} GB ({disk_percent}%)
-
-⏱️ Uptime: {uptime_str}
-"""
-
-    await message.reply_text(stats_message, parse_mode="md")
+    await message.reply_text(stats_message)
