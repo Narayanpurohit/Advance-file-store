@@ -1,6 +1,7 @@
 from pyrogram import Client, filters
 import psutil
 import os
+from db_config import users_col
 
 @Client.on_message(filters.command("stopbot") & filters.private)
 async def stopbot_handler(client, message):
