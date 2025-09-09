@@ -49,48 +49,64 @@ async def runbot_handler(client, message):
     log_channel_id = user.get("LOG_CHANNEL_ID")
     sent_log_channel_notice = False
     deployment_success = False
+    after_success_mode = False  # Track if we are in after-success mode
 
     try:
         async def read_stream(stream):
-            nonlocal deployment_success, sent_log_channel_notice
+            nonlocal deployment_success, sent_log_channel_notice, after_success_mode
             while True:
                 line = await stream.readline()
                 if not line:
                     break
 
                 decoded_line = line.decode().strip()
-                log_lines.append(decoded_line)
 
-                # Detect successful deployment
-                if "🚀 bot deployed Successfully" in decoded_line:
+                # Detect successful deployment message
+                if "Bot is now running and ready." in decoded_line:
                     deployment_success = True
+                    after_success_mode = True
                     users_col.update_one(
                         {"USER_ID": user_id},
                         {"$set": {"BOT_STATUS": "running", "BOT_PID": proc.pid}}
                     )
                     await client.send_message(user_id, "✅ Bot deployed successfully!")
+                    continue  # Skip sending this specific line as log
 
-                # Send logs every 5 lines
-                if len(log_lines) >= 5:
-                    logs_text = "\n".join(log_lines)
-
+                # BEFORE success: Send logs every 5 lines
+                if not after_success_mode:
+                    log_lines.append(decoded_line)
+                    if len(log_lines) >= 5:
+                        logs_text = "\n".join(log_lines)
+                        try:
+                            if log_channel_id:
+                                await client.send_message(
+                                    log_channel_id,
+                                    f"📜 Deployment Logs:\n```\n{logs_text}\n```"
+                                )
+                            else:
+                                if not sent_log_channel_notice:
+                                    await client.send_message(
+                                        user_id,
+                                        "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make bot an admin there."
+                                    )
+                                    sent_log_channel_notice = True
+                        except Exception:
+                            await client.send_message(user_id, "⚠️ Log message too long to send.")
+                        log_lines.clear()
+                        await asyncio.sleep(1)
+                else:
+                    # AFTER success: Send every single line immediately
                     try:
                         if log_channel_id:
                             await client.send_message(
                                 log_channel_id,
-                                f"📜 Deployment Logs:\n```\n{logs_text}\n```"
+                                f"📜 Deployment Log:\n```\n{decoded_line}\n```"
                             )
                         else:
-                            if not sent_log_channel_notice:
-                                await client.send_message(
-                                    user_id,
-                                    "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make bot an admin there."
-                                )
-                                sent_log_channel_notice = True
+                            # No need to repeatedly notify about missing LOG_CHANNEL_ID
+                            pass
                     except Exception:
                         await client.send_message(user_id, "⚠️ Log message too long to send.")
-
-                    log_lines.clear()
                     await asyncio.sleep(1)
 
         await asyncio.gather(
