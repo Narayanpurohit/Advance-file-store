@@ -1,5 +1,5 @@
 from pyrogram import Client, filters
-from db_config import users_col, config_col
+from db_config import users_col
 import subprocess, asyncio, os
 from pyrogram.errors import FloodWait
 
@@ -23,7 +23,7 @@ async def runbot_handler(client, message):
         await message.reply_text(f"❌ Please configure these settings first using /settings:\n`{missing_str}`")
         return
 
-    log_channel_id = config_col.find_one({"_id": "LOG_CHANNEL_ID"})
+    log_channel_id = users_col.find_one({"_id": "LOG_CHANNEL_ID"})
     log_channel_id = int(log_channel_id["value"]) if log_channel_id and log_channel_id.get("value") else None
 
     status_msg = await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
