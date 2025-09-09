@@ -1,5 +1,7 @@
 from pyrogram import Client, filters
 import psutil
+from db_config import users_col
+
 
 @Client.on_message(filters.command("status") & filters.private)
 async def status_handler(client, message):
