@@ -1,3 +1,7 @@
+from pyrogram import Client, filters
+import psutil
+import os
+
 @Client.on_message(filters.command("stopbot") & filters.private)
 async def stopbot_handler(client, message):
     user_id = message.from_user.id
