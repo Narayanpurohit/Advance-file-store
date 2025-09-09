@@ -29,14 +29,14 @@ async def stats_handler(client, message):
     uptime_minutes, _ = divmod(remainder, 60)
 
     stats_message = (
-        "📊 <b>Bot System Statistics</b>\n\n"
-        f"👥 Total Users: <b>{total_users}</b>\n"
-        f"🚀 Active Deployments: <b>{active_deployments}</b>\n"
-        f"🔔 Users with LOG_CHANNEL_ID: <b>{log_channel_users}</b>\n\n"
-        f"⚙️ CPU Usage: <b>{cpu_usage}%</b>\n"
-        f"💾 Memory Usage: <b>{mem_used_gb:.1f} GB / {mem_total_gb:.1f} GB ({mem_percent}%)</b>\n"
-        f"📂 Disk Usage: <b>{disk_used_gb:.1f} GB / {disk_total_gb:.1f} GB ({disk_percent:.1f}%)</b>\n\n"
-        f"⏱️ Uptime: <b>{uptime_hours} hours {uptime_minutes} minutes</b>"
+        "📊 *Bot System Statistics*\n\n"
+        f"👥 Total Users: *{total_users}*\n"
+        f"🚀 Active Deployments: *{active_deployments}*\n"
+        f"🔔 Users with LOG_CHANNEL_ID: *{log_channel_users}*\n\n"
+        f"⚙️ CPU Usage: *{cpu_usage}%*\n"
+        f"💾 Memory Usage: *{mem_used_gb:.1f} GB / {mem_total_gb:.1f} GB ({mem_percent}%) *\n"
+        f"📂 Disk Usage: *{disk_used_gb:.1f} GB / {disk_total_gb:.1f} GB ({disk_percent:.1f}%) *\n\n"
+        f"⏱️ Uptime: *{uptime_hours} hours {uptime_minutes} minutes*"
     )
 
-    await message.reply_text(stats_message, parse_mode="html")
+    await message.reply_text(stats_message, parse_mode="markdown")
