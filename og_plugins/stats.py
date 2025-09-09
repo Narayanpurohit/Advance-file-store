@@ -3,40 +3,43 @@ from db_config import users_col
 import psutil
 import shutil
 import time
+from datetime import datetime
 
-# Record bot start time for uptime calculation
 START_TIME = time.time()
 
 @Client.on_message(filters.command("stats") & filters.private)
 async def stats_handler(client, message):
     total_users = users_col.count_documents({})
     active_deployments = users_col.count_documents({"BOT_STATUS": "running"})
-    log_channel_users = users_col.count_documents({"LOG_CHANNEL_ID": {"$exists": True, "$ne": None}})
-    
-    cpu_usage = psutil.cpu_percent(interval=1)
-    memory = psutil.virtual_memory()
-    mem_used_gb = memory.used / (1024 ** 3)
-    mem_total_gb = memory.total / (1024 ** 3)
-    mem_percent = memory.percent
+    users_with_log = users_col.count_documents({"LOG_CHANNEL_ID": {"$exists": True}})
+
+    cpu_percent = psutil.cpu_percent(interval=1)
+    mem = psutil.virtual_memory()
+    total_mem = round(mem.total / (1024 * 1024 * 1024), 2)
+    used_mem = round(mem.used / (1024 * 1024 * 1024), 2)
+    mem_percent = mem.percent
 
     disk = shutil.disk_usage("/")
-    disk_used_gb = disk.used / (1024 ** 3)
-    disk_total_gb = disk.total / (1024 ** 3)
-    disk_percent = (disk.used / disk.total) * 100
+    total_disk = round(disk.total / (1024 * 1024 * 1024), 2)
+    used_disk = round(disk.used / (1024 * 1024 * 1024), 2)
+    disk_percent = round((used_disk / total_disk) * 100, 2)
 
     uptime_seconds = int(time.time() - START_TIME)
-    uptime_hours, remainder = divmod(uptime_seconds, 3600)
-    uptime_minutes, _ = divmod(remainder, 60)
+    hours, remainder = divmod(uptime_seconds, 3600)
+    minutes, _ = divmod(remainder, 60)
+    uptime_str = f"{hours} hours {minutes} minutes"
 
-    stats_message = (
-        "📊 *Bot System Statistics*\n\n"
-        f"👥 Total Users: *{total_users}*\n"
-        f"🚀 Active Deployments: *{active_deployments}*\n"
-        f"🔔 Users with LOG_CHANNEL_ID: *{log_channel_users}*\n\n"
-        f"⚙️ CPU Usage: *{cpu_usage}%*\n"
-        f"💾 Memory Usage: *{mem_used_gb:.1f} GB / {mem_total_gb:.1f} GB ({mem_percent}%) *\n"
-        f"📂 Disk Usage: *{disk_used_gb:.1f} GB / {disk_total_gb:.1f} GB ({disk_percent:.1f}%) *\n\n"
-        f"⏱️ Uptime: *{uptime_hours} hours {uptime_minutes} minutes*"
-    )
+    stats_message = f"""📊 Bot System Statistics
 
-    await message.reply_text(stats_message, parse_mode="markdown")
+👥 Total Users: {total_users}
+🚀 Active Deployments: {active_deployments}
+🔔 Users with LOG_CHANNEL_ID: {users_with_log}
+
+⚙️ CPU Usage: {cpu_percent}%
+💾 Memory Usage: {used_mem} GB / {total_mem} GB ({mem_percent}%)
+📂 Disk Usage: {used_disk} GB / {total_disk} GB ({disk_percent}%)
+
+⏱️ Uptime: {uptime_str}
+"""
+
+    await message.reply_text(stats_message, parse_mode="md")
