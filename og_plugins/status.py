@@ -1,3 +1,6 @@
+from pyrogram import Client, filters
+import psutil
+
 @Client.on_message(filters.command("status") & filters.private)
 async def status_handler(client, message):
     user_id = message.from_user.id
