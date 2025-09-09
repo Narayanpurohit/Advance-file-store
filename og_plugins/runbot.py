@@ -46,6 +46,16 @@ async def runbot_handler(client, message):
     log_lines = []
     log_channel_id = user.get("LOG_CHANNEL_ID")  # Fetch LOG_CHANNEL_ID from user document
     deployment_success = False
+    log_channel_configured = True
+
+    # Check log channel once
+    if not log_channel_id:
+        await client.send_message(
+            user_id,
+            "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make bot an admin there."
+        )
+        logger.info(f"LOG_CHANNEL_ID not set for user {user_id}; skipping log channel logging.")
+        log_channel_configured = False
 
     try:
         async def read_stream(stream):
@@ -65,24 +75,19 @@ async def runbot_handler(client, message):
                     await client.send_message(user_id, "✅ Bot deployed successfully!")
                     logger.info(f"User {user_id}: Deployment success detected")
 
-                # Send logs every 5 lines
-                if len(log_lines) >= 5:
+                # Send logs every 5 lines if log channel is configured
+                if len(log_lines) >= 5 and log_channel_configured:
                     logs_text = "\n".join(log_lines)
                     try:
-                        if log_channel_id:
-                            await client.send_message(log_channel_id, f"📜 Deployment Logs:\n```\n{logs_text}\n```")
-                            logger.info(f"Sent log chunk to LOG_CHANNEL_ID {log_channel_id}")
-                        else:
-                            await client.send_message(user_id, "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make bot an admin there.")
-                            logger.info(f"LOG_CHANNEL_ID not set for user {user_id}")
+                        await client.send_message(log_channel_id, f"📜 Deployment Logs:\n```\n{logs_text}\n```")
+                        logger.info(f"Sent log chunk to LOG_CHANNEL_ID {log_channel_id}")
                     except Exception as send_error:
-                        await client.send_message(user_id, "⚠️ Log message too long to send.")
+                        await client.send_message(user_id, "⚠️ Failed to send log message to log channel.")
                         logger.error(f"Failed to send log message: {send_error}")
 
                     log_lines.clear()
                     await asyncio.sleep(1)  # Small delay to prevent FloodWait
 
-        # Read both stdout and stderr concurrently
         await asyncio.gather(
             read_stream(proc.stdout),
             read_stream(proc.stderr)
