@@ -2,25 +2,24 @@
 import os
  
 
-BOT_TOKEN =  ("Get from @botfather")
-API_ID = ("get from my.telegram.org")
-API_HASH =  ("get from my.telegram.org")
-MONGO_URI =  ("send mongo db click here to khow how to create :")
-DB_NAME =  ("filestore ok")
-
-ADMINS = ("List Admin id like this ")
-
-ENABLE_FSUB = ("click on button to switch value")  
-FSUB = ("send channel id list like this ")
-
-VERIFICATION_MODE =  ("")
-PREMIUM_HOURS_VERIFICATION = ("how much time.verification from link"))
-VERIFY_SLUG_TTL_HOURS = ("")
-SHORTENER_DOMAIN = ("url shortner domain name without www or https://")  
-SHORTENER_API = ("send shortner api")
-
-
-CAPTION = "📄file name : {filename}\n💾file size: {filesize}\n\nold caption :{caption}"
+HELP_TEXTS = {
+    "BOT_TOKEN": "Get from @botfather",
+    "API_ID": "Get from my.telegram.org",
+    "API_HASH": "Get from my.telegram.org",
+    "MONGO_URI": "Send Mongo DB URI. Click here to know how to create.",
+    "DB_NAME": "Your Mongo DB database name",
+    "ADMINS": "List of admin user IDs separated by spaces",
+    "ENABLE_FSUB": "Click the button to toggle True/False",
+    "FSUB": "Channel ID list separated by spaces",
+    "VERIFICATION_MODE": "Set True or False for verification mode",
+    "PREMIUM_HOURS_VERIFICATION": "How many hours verification is valid",
+    "VERIFY_SLUG_TTL_HOURS": "Slug validity duration in hours",
+    "SHORTENER_DOMAIN": "Your URL shortener domain (without www or https://)",
+    "SHORTENER_API_KEY": "API key for your URL shortener service",
+    "CAPTION": "File caption template, e.g., 📄 Name: {filename}\n💾 Size: {filesize}",
+    "PREMIUM_POINTS": "How many points to give for premium",
+    "LOG_CHANNEL_ID": "Log channel ID for bot logs"
+}
 # ---------------------------
 # Code 2 (Clone Maker Bot) Config
 # ---------------------------
