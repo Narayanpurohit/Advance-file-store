@@ -92,8 +92,11 @@ async def runbot_handler(client, message):
                                             "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make bot an admin there."
                                         )
                                         sent_log_channel_notice = True
-                            except Exception:
-                                pass  # Ignore sending logs errors
+                            except Exception as e:
+                                await client.send_message(
+                                    user_id,
+                                    f"⚠️ Failed to send log to LOG_CHANNEL_ID: {str(e)}"
+                                )
                             log_lines.clear()
                             await asyncio.sleep(1)
                     else:
@@ -103,8 +106,11 @@ async def runbot_handler(client, message):
                                     log_channel_id,
                                     f"📜 Deployment Log:\n```\n{decoded_line}\n```"
                                 )
-                        except Exception:
-                            pass
+                        except Exception as e:
+                            await client.send_message(
+                                user_id,
+                                f"⚠️ Failed to send log line to LOG_CHANNEL_ID: {str(e)}"
+                            )
                         await asyncio.sleep(1)
 
             await asyncio.gather(
