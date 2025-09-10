@@ -3,6 +3,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db_config import users_col
+from config import VARIABLE_HELP_TEXTS
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -16,7 +17,7 @@ BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE"]
 NORMAL_VARS = [
     "BOT_TOKEN", "API_ID", "API_HASH", "MONGO_URI", "DB_NAME",
     "ADMINS", "FSUB", "PREMIUM_HOURS_VERIFICATION", "VERIFY_SLUG_TTL_HOURS",
-    "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION", "PREMIUM_POINTS","LOG_CHANNEL_ID"
+    "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION", "PREMIUM_POINTS", "LOG_CHANNEL_ID"
 ]
 
 REQUIRED_VARS = [
@@ -47,7 +48,7 @@ async def settings_handler(client, message):
     user_id = message.from_user.id
     try:
         log.info(f"User {user_id} accessed /settings.")
-        text = "⚙️ **Your Settings**\n\nSelect a category to view and edit settings:"
+        text = "⚙️ Your Settings\n\nSelect a category to view and edit settings:"
         await message.reply_text(text, reply_markup=get_main_keyboard())
 
     except Exception as e:
@@ -64,10 +65,10 @@ async def show_settings_category(client, callback_query):
         user = users_col.find_one({"USER_ID": user_id}) or {}
 
         if category == "required":
-            text = "📝 **Required Settings**"
+            text = "📝 Required Settings"
             variables = REQUIRED_VARS
         else:
-            text = "⚙️ **Optional Settings**"
+            text = "⚙️ Optional Settings"
             variables = OPTIONAL_VARS + BOOLEAN_VARS
 
         keyboard = get_settings_keyboard(user, variables)
@@ -90,13 +91,13 @@ async def setting_selected(client, callback_query):
         log.info(f"User {user_id} selected {var_name} (current: {current_value})")
 
         if var_name in BOOLEAN_VARS:
-            text = f"⚡ {var_name}: `{current_value}`"
+            text = f"{var_name}: {current_value}"
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔄 Toggle", callback_data=f"toggle:{var_name}")],
+                [InlineKeyboardButton("Toggle", callback_data=f"toggle:{var_name}")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
             ])
         else:
-            text = f"✏️ **{var_name}**\nCurrent Value:\n`{current_value}`"
+            text = f"{var_name}\nCurrent Value:\n{current_value}"
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("Edit", callback_data=f"edit:{var_name}")],
                 [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
@@ -119,10 +120,10 @@ async def toggle_boolean(client, callback_query):
         new_value = not current_value
 
         users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
-        log.info(f"✅ {var_name} toggled from {current_value} → {new_value} (user {user_id})")
+        log.info(f"Toggled {var_name}: {current_value} → {new_value} (user {user_id})")
 
         await callback_query.message.edit_text(
-            f"⚡ {var_name} updated: `{new_value}`",
+            f"{var_name} updated: {new_value}",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
             ])
@@ -136,11 +137,12 @@ async def toggle_boolean(client, callback_query):
 async def edit_variable(client, callback_query):
     user_id = callback_query.from_user.id
     var_name = callback_query.data.split(":")[1]
+    var_help_text = VARIABLE_HELP_TEXTS.get(var_name, "")
 
     try:
         await callback_query.message.edit_text(
-            f"✏️ Send me the new value for **{var_name}**.\n\n"
-            f"You have 120 seconds. Send /cancel to abort."
+            f"Send new value for {var_name}.\n\n{var_help_text}\n\n"
+            "You have 120 seconds. Send /cancel to abort."
         )
 
         try:
@@ -154,29 +156,28 @@ async def edit_variable(client, callback_query):
 
         if response.text.lower() == "/cancel":
             log.info(f"User {user_id} cancelled editing {var_name}")
-            await callback_query.message.reply_text("❌ Cancelled. Back to main settings.")
+            await callback_query.message.reply_text("Cancelled. Back to main settings.")
             await settings_handler(client, callback_query.message)
             return
 
         new_value = response.text
         users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
-        log.info(f"✅ {var_name} updated for user {user_id}: {new_value}")
+        log.info(f"{var_name} updated for user {user_id}: {new_value}")
 
-        await callback_query.message.reply_text(f"✅ {var_name} updated to:\n`{new_value}`")
+        await callback_query.message.reply_text(f"{var_name} updated to:\n{new_value}")
         await settings_handler(client, callback_query.message)
 
     except Exception as e:
         log.exception(f"Error editing {var_name} for user {user_id}: {e}")
-        await callback_query.message.reply_text(f"⚠️ Failed to update setting: {str(e)}")
+        await callback_query.message.reply_text(f"Error updating setting: {str(e)}")
 
 @Client.on_callback_query(filters.regex(r"^back_to_main$"))
 async def back_to_main_settings(client, callback_query):
     user_id = callback_query.from_user.id
     try:
-        log.info(f"User {user_id} returned to main settings menu.")
-        text = "⚙️ **Your Settings**\n\nSelect a category to view and edit settings:"
+        text = "Your Settings\nSelect a category to view and edit settings:"
         await callback_query.message.edit_text(text, reply_markup=get_main_keyboard())
 
     except Exception as e:
         log.exception(f"Error returning to main settings menu for user {user_id}: {e}")
-        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
+        await callback_query.answer(f"Error: {str(e)}", show_alert=True)
