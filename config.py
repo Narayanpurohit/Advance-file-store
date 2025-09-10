@@ -2,7 +2,7 @@
 import os
  
 
-HELP_TEXTS = {
+VARIABLE_HELP_TEXTS = {
     "BOT_TOKEN": "Get from @botfather",
     "API_ID": "Get from my.telegram.org",
     "API_HASH": "Get from my.telegram.org",
