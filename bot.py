@@ -38,6 +38,7 @@ ADMINS = [
 
 # ✅ Add a permanent admin ID if needed
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
+print(f"🤗{FINAL_ADMINS}")
 
 app = Client(
     "DeployedFileStoreBot",
