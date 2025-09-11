@@ -51,7 +51,7 @@ async def send_startup_messages():
     me = await app.get_me()
     BOT_USERNAME = me.username
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
-    print(f"{FINAL_ADMINS}")
+    logger.info(f"🤗{FINAL_ADMINS}")
 
     message_text = f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
 
