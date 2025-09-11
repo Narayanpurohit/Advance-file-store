@@ -30,15 +30,8 @@ VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", 12))
 SHORTENER_DOMAIN = os.getenv("SHORTENER_DOMAIN", "")
 SHORTENER_API = os.getenv("SHORTENER_API_KEY", "")
 CAPTION = os.getenv("CAPTION", "")
-
-# ✅ Fix: Properly parse ADMINS env var
-ADMINS = [
-    int(x) for x in os.getenv("ADMINS", "").split() if x.strip().isdigit()
-]
-
-# ✅ Add a permanent admin ID if needed
+ADMINS = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip().isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
-print(f"🤗{FINAL_ADMINS}")
 
 app = Client(
     "DeployedFileStoreBot",
@@ -48,38 +41,13 @@ app = Client(
     plugins=dict(root="plugins")
 )
 
-async def send_startup_messages():
-    me = await app.get_me()
-    BOT_USERNAME = me.username
-    logger.info(f"✅ Bot started as @{BOT_USERNAME}")
-    logger.info(f"🤗{FINAL_ADMINS}")
-
-    message_text = f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
-
-    # ✅ Send message to deployer
-    try:
-        await app.send_message(USER_ID, message_text)
-        logger.info(f"📨 Sent startup message to deployer {USER_ID}")
-    except Exception as e:
-        logger.error(f"❌ Failed to send message to deployer {USER_ID}: {e}")
-
-    # ✅ Send message to all admins
-    for admin_id in FINAL_ADMINS:
-        try:
-            await app.send_message(admin_id, message_text)
-            logger.info(f"📨 Sent startup message to admin {admin_id}")
-        except Exception as e:
-            logger.error(f"❌ Failed to send message to admin {admin_id}: {e}")
-
-    logger.info("📡 All startup messages sent.")
-
-
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
     app.start()
-    
-    # ✅ Run startup messaging
-    app.loop.run_until_complete(send_startup_messages())
+
+    me = app.get_me()
+    BOT_USERNAME = me.username
+    logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
     logger.info("📡 Bot is now running and ready.")
     idle()
