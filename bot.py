@@ -63,7 +63,6 @@ app = Client(
 
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
-    print(f"BOT TOKEN: {BOT_TOKEN}")
     app.start()
     
     me = app.get_me()
