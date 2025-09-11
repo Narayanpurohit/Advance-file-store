@@ -59,14 +59,19 @@ async def runbot_handler(client, message):
         "ADMINS": " ".join([str(x) for x in user.get("ADMINS", [])])
     }
 
+    logger.info(f"🌐 Starting container with env vars: {env_vars}")
+
     try:
         container = docker_client.containers.run(
             image="userbot_image",
             environment=env_vars,
             detach=True,
             name=container_name,
-            restart_policy={"Name": "on-failure"}
+            restart_policy={"Name": "on-failure"},
+            network_mode="bridge"
         )
+
+        logger.info(f"✅ Container {container_name} started successfully with ID {container.id}")
 
         users_col.update_one(
             {"USER_ID": user_id},
@@ -75,6 +80,12 @@ async def runbot_handler(client, message):
 
         await message.reply_text(f"✅ Your bot is now running in container `{container.id}`.")
 
+    except docker.errors.ImageNotFound:
+        error_msg = "❌ Docker image `userbot_image` not found. Please build it first."
+        logger.error(error_msg)
+        await message.reply_text(error_msg)
+
     except Exception as e:
-        await message.reply_text(f"❌ Deployment failed:\n```\n{str(e)}\n```")
-        logger.error(f"Deployment failed for {container_name}: {str(e)}")
+        error_msg = f"❌ Deployment failed with exception:\n{str(e)}"
+        logger.error(error_msg)
+        await message.reply_text(error_msg)
