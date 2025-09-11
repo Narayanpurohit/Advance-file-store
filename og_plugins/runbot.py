@@ -94,7 +94,7 @@ async def runbot_handler(client, message):
                 log_buffer.append(text_line)
 
                 # Detect success message
-                if "🚀 bot deployed Successfully" in text_line:
+                if "Bot is now running and ready" in text_line:
                     deployment_success = True
 
                 if log_mode == 'batch' and len(log_buffer) >= 10:
