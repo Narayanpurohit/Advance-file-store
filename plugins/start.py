@@ -59,8 +59,8 @@ async def start_handler(client, message):
                 try:
                     await client.copy_message(
                         chat_id=message.chat.id,
-                        from_chat_id=item["chat_id"],
-                        message_id=item["message_id"]
+                        from_chat_id=item[int("chat_id")],
+                        message_id=item[int("message_id")]
                     )
                     sent_count += 1
                 except Exception as e:
