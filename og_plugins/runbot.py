@@ -19,6 +19,7 @@ async def runbot_handler(client, message):
     docker_client = docker.from_env()
 
     user = users_col.find_one({"USER_ID": user_id}) or {}
+    log_channel = user.get("LOG_CHANNEL_ID")
 
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     if premium_points < MIN_POINTS:
@@ -31,7 +32,12 @@ async def runbot_handler(client, message):
         await message.reply_text(f"⚠️ Please configure: `{', '.join(missing_vars)}`")
         return
 
-    # Remove existing container if it exists
+    if not log_channel:
+        await message.reply_text("⚠️ Please set `LOG_CHANNEL_ID` in your configuration to receive logs.")
+        return
+
+    await message.reply_text("🚀 Deployment started...")
+
     try:
         existing = docker_client.containers.get(container_name)
         logger.info(f"⚠️ Found existing container {container_name}, removing it...")
@@ -59,33 +65,64 @@ async def runbot_handler(client, message):
         "ADMINS": " ".join([str(x) for x in user.get("ADMINS", [])])
     }
 
-    logger.info(f"🌐 Starting container with env vars: {env_vars}")
+    container = docker_client.containers.run(
+        image="userbot_image",
+        environment=env_vars,
+        detach=True,
+        name=container_name,
+        restart_policy={"Name": "on-failure"},
+        network_mode="bridge"
+    )
 
-    try:
-        container = docker_client.containers.run(
-            image="userbot_image",
-            environment=env_vars,
-            detach=True,
-            name=container_name,
-            restart_policy={"Name": "on-failure"},
-            network_mode="bridge"
-        )
+    users_col.update_one(
+        {"USER_ID": user_id},
+        {"$set": {"BOT_STATUS": "running", "DOCKER_CONTAINER_ID": container.id}}
+    )
 
-        logger.info(f"✅ Container {container_name} started successfully with ID {container.id}")
+    logger.info(f"✅ Container {container_name} started with ID {container.id}")
 
-        users_col.update_one(
-            {"USER_ID": user_id},
-            {"$set": {"BOT_STATUS": "running", "DOCKER_CONTAINER_ID": container.id}}
-        )
+    log_buffer = []
+    log_mode = 'batch'  # Start in batch mode (10 lines per message)
 
-        await message.reply_text(f"✅ Your bot is now running in container `{container.id}`.")
+    while True:
+        logs = container.logs(stream=True, since=int(asyncio.get_event_loop().time()))
+        deployment_success = False
 
-    except docker.errors.ImageNotFound:
-        error_msg = "❌ Docker image `userbot_image` not found. Please build it first."
-        logger.error(error_msg)
-        await message.reply_text(error_msg)
+        try:
+            async for line in _docker_log_stream(logs):
+                text_line = line.decode('utf-8').strip()
+                log_buffer.append(text_line)
 
-    except Exception as e:
-        error_msg = f"❌ Deployment failed with exception:\n{str(e)}"
-        logger.error(error_msg)
-        await message.reply_text(error_msg)
+                # Detect success message
+                if "🚀 bot deployed Successfully" in text_line:
+                    deployment_success = True
+
+                if log_mode == 'batch' and len(log_buffer) >= 10:
+                    await client.send_message(log_channel, "```\n" + "\n".join(log_buffer) + "\n```")
+                    log_buffer = []
+
+                elif log_mode == 'single' and len(log_buffer) >= 1:
+                    await client.send_message(log_channel, "```\n" + log_buffer[0] + "\n```")
+                    log_buffer = log_buffer[1:]
+
+                if deployment_success:
+                    log_mode = 'single'
+                    await client.send_message(message.chat.id, "✅ Bot deployed successfully!")
+                    break
+
+            if deployment_success:
+                # Flush remaining logs
+                if log_buffer:
+                    await client.send_message(log_channel, "```\n" + "\n".join(log_buffer) + "\n```")
+                break
+
+            await asyncio.sleep(1)
+
+        except Exception as e:
+            await client.send_message(message.chat.id, f"⚠️ Error while streaming logs: {str(e)}")
+            break
+
+
+async def _docker_log_stream(logs):
+    for log in logs:
+        yield log
