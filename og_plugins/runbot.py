@@ -1,7 +1,7 @@
-from pyrogram import Client, filters
-from db_config import users_col
 import docker
 import logging
+from pyrogram import Client, filters
+from db_config import users_col
 import asyncio
 
 logging.basicConfig(
@@ -10,34 +10,36 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MIN_POINTS = 10  # Minimum points required to deploy
+MIN_POINTS = 10
 
 @Client.on_message(filters.command("runbot") & filters.private)
 async def runbot_handler(client, message):
     user_id = message.from_user.id
-    logger.info(f"Received /runbot from USER_ID: {user_id}")
+    container_name = f"userbot_{user_id}"
+    docker_client = docker.from_env()
 
     user = users_col.find_one({"USER_ID": user_id}) or {}
 
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     if premium_points < MIN_POINTS:
-        logger.warning(f"User {user_id} has insufficient premium points: {premium_points}")
-        await message.reply_text(
-            f"❌ You need at least {MIN_POINTS} premium points to deploy.\nYou currently have {premium_points}."
-        )
+        await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points. You have {premium_points}.")
         return
 
     required_vars = ["BOT_TOKEN", "API_ID", "API_HASH"]
     missing_vars = [var for var in required_vars if not user.get(var)]
     if missing_vars:
-        logger.warning(f"User {user_id} missing vars: {missing_vars}")
-        await message.reply_text(
-            f"⚠️ Please configure these required settings first using /settings:\n`{', '.join(missing_vars)}`"
-        )
+        await message.reply_text(f"⚠️ Please configure: `{', '.join(missing_vars)}`")
         return
 
-    await message.reply_text("🚀 Starting deployment... This may take a few seconds.")
-    logger.info(f"Deploying bot for USER_ID: {user_id}")
+    # Remove existing container if it exists
+    try:
+        existing = docker_client.containers.get(container_name)
+        logger.info(f"⚠️ Found existing container {container_name}, removing it...")
+        existing.stop()
+        existing.remove()
+        logger.info(f"✅ Existing container {container_name} removed.")
+    except docker.errors.NotFound:
+        logger.info(f"✅ No existing container named {container_name}")
 
     env_vars = {
         "DEPLOY_USER_ID": str(user_id),
@@ -57,14 +59,12 @@ async def runbot_handler(client, message):
         "ADMINS": " ".join([str(x) for x in user.get("ADMINS", [])])
     }
 
-    docker_client = docker.from_env()
-
     try:
         container = docker_client.containers.run(
             image="userbot_image",
             environment=env_vars,
             detach=True,
-            name=f"userbot_{user_id}",
+            name=container_name,
             restart_policy={"Name": "on-failure"}
         )
 
@@ -73,18 +73,8 @@ async def runbot_handler(client, message):
             {"$set": {"BOT_STATUS": "running", "DOCKER_CONTAINER_ID": container.id}}
         )
 
-        logger.info(f"Deployed container {container.id} for USER_ID {user_id}")
-        await message.reply_text(
-            f"✅ Your bot is now running in a Docker container.\nContainer ID:\n`{container.id}`"
-        )
+        await message.reply_text(f"✅ Your bot is now running in container `{container.id}`.")
 
-    except docker.errors.APIError as e:
-        logger.error(f"Docker API error for USER_ID {user_id}: {e}")
-        await message.reply_text(
-            f"❌ Docker API error:\n```\n{str(e)}\n```"
-        )
     except Exception as e:
-        logger.exception(f"Unexpected error during deployment for USER_ID {user_id}")
-        await message.reply_text(
-            f"❌ Unexpected error:\n```\n{str(e)}\n```"
-        )
+        await message.reply_text(f"❌ Deployment failed:\n```\n{str(e)}\n```")
+        logger.error(f"Deployment failed for {container_name}: {str(e)}")
