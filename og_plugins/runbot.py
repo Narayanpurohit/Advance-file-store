@@ -1,14 +1,12 @@
 from pyrogram import Client, filters
 from db_config import users_col
-import asyncio
-import os
-import psutil
-import signal
+import docker
 import logging
+import asyncio
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
 
@@ -18,124 +16,69 @@ MIN_POINTS = 10  # Minimum points required to deploy
 async def runbot_handler(client, message):
     user_id = message.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    premium_points = int(user.get("PREMIUM_POINTS", 0))
 
+    premium_points = int(user.get("PREMIUM_POINTS", 0))
     if premium_points < MIN_POINTS:
         await message.reply_text(
-            f"❌ You need at least {MIN_POINTS} premium points to deploy. You have {premium_points}."
+            f"❌ You need at least {MIN_POINTS} premium points to deploy.\nYou currently have {premium_points}."
         )
         return
 
     required_vars = ["BOT_TOKEN", "API_ID", "API_HASH"]
     missing_vars = [var for var in required_vars if not user.get(var)]
     if missing_vars:
-        missing_str = ", ".join(missing_vars)
         await message.reply_text(
-            f"❌ Please configure these required settings first using /settings:\n`{missing_str}`"
+            f"⚠️ Please configure these required settings first using /settings:\n`{', '.join(missing_vars)}`"
         )
         return
 
-    await message.reply_text("🚀 Starting bot deployment... Collecting logs...")
+    await message.reply_text("🚀 Starting deployment... This may take a few seconds.")
 
-    env = {**os.environ, "DEPLOY_USER_ID": str(user_id)}
-    proc = await asyncio.create_subprocess_exec(
-        "python3", "bot.py",
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        env=env
-    )
+    env_vars = {
+        "DEPLOY_USER_ID": str(user_id),
+        "API_ID": str(user.get("API_ID")),
+        "API_HASH": user.get("API_HASH"),
+        "BOT_TOKEN": user.get("BOT_TOKEN"),
+        "ENABLE_FSUB": str(user.get("ENABLE_FSUB", False)),
+        "VERIFICATION_MODE": str(user.get("VERIFICATION_MODE", False)),
+        "MONGO_URI": user.get("MONGO_URI", ""),
+        "DB_NAME": user.get("DB_NAME", ""),
+        "FSUB": user.get("FSUB", ""),
+        "PREMIUM_HOURS_VERIFICATION": str(user.get("PREMIUM_HOURS_VERIFICATION", 12)),
+        "VERIFY_SLUG_TTL_HOURS": str(user.get("VERIFY_SLUG_TTL_HOURS", 12)),
+        "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
+        "SHORTENER_API_KEY": user.get("SHORTENER_API_KEY", ""),
+        "CAPTION": user.get("CAPTION", ""),
+        "ADMINS": " ".join([str(x) for x in user.get("ADMINS", [])])
+    }
 
-    log_lines = []
-    log_channel_id = user.get("LOG_CHANNEL_ID")
-    sent_log_channel_notice = False
-    deployment_success = False
-    after_success_mode = False
-    log_file_path = f"deployment_logs_{user_id}.txt"
-
-    async def send_log(chat_id, text):
-        try:
-            await client.send_message(chat_id, text)
-        except Exception as e:
-            await client.send_message(user_id, f"⚠️ Failed to send log to {chat_id}: {str(e)}")
-
-    # Validate LOG_CHANNEL_ID by sending a test message
-    if log_channel_id:
-        try:
-            await client.send_message(log_channel_id, "✅ Log channel validated successfully.")
-        except Exception as e:
-            await client.send_message(
-                user_id,
-                f"⚠️ LOG_CHANNEL_ID seems invalid: {str(e)}. Please make sure the bot is an admin there."
-            )
-            log_channel_id = None
+    docker_client = docker.from_env()
 
     try:
-        with open(log_file_path, "w") as log_file:
-            async def read_stream(stream):
-                nonlocal deployment_success, sent_log_channel_notice, after_success_mode
-                while True:
-                    line = await stream.readline()
-                    if not line:
-                        break
+        # Run the container
+        container = docker_client.containers.run(
+            image="userbot_image",
+            environment=env_vars,
+            detach=True,
+            name=f"userbot_{user_id}",
+            restart_policy={"Name": "on-failure"}
+        )
 
-                    decoded_line = line.decode().strip()
-                    log_file.write(decoded_line + "\n")
-                    log_file.flush()
+        # Save the container ID in DB
+        users_col.update_one(
+            {"USER_ID": user_id},
+            {"$set": {"BOT_STATUS": "running", "DOCKER_CONTAINER_ID": container.id}}
+        )
 
-                    if "Bot is now running and ready." in decoded_line:
-                        deployment_success = True
-                        after_success_mode = True
-                        users_col.update_one(
-                            {"USER_ID": user_id},
-                            {"$set": {"BOT_STATUS": "running", "BOT_PID": proc.pid}}
-                        )
-                        await send_log(user_id, "✅ Bot deployed successfully!")
-                        continue
+        await message.reply_text(
+            f"✅ Your bot is now running in a Docker container.\nContainer ID:\n`{container.id}`"
+        )
 
-                    if not after_success_mode:
-                        log_lines.append(decoded_line)
-                        if len(log_lines) >= 5:
-                            logs_text = "\n".join(log_lines)
-                            if log_channel_id:
-                                await send_log(
-                                    log_channel_id,
-                                    f"📜 Deployment Logs:\n```\n{logs_text}\n```"
-                                )
-                            else:
-                                if not sent_log_channel_notice:
-                                    await send_log(
-                                        user_id,
-                                        "ℹ️ To receive full logs, please set LOG_CHANNEL_ID in your settings and make the bot an admin there."
-                                    )
-                                    sent_log_channel_notice = True
-                            log_lines.clear()
-                            await asyncio.sleep(1)
-                    else:
-                        if log_channel_id:
-                            await send_log(
-                                log_channel_id,
-                                f"📜 Deployment Log:\n```\n{decoded_line}\n```"
-                            )
-                        await asyncio.sleep(1)
-
-            await asyncio.gather(
-                read_stream(proc.stdout),
-                read_stream(proc.stderr)
-            )
-
-            await proc.wait()
-
-        if not deployment_success:
-            await send_log(
-                user_id,
-                "❌ Deployment failed. See attached logs for details."
-            )
-            await client.send_document(user_id, log_file_path)
-            users_col.update_one({"USER_ID": user_id}, {"$set": {"BOT_STATUS": "stopped", "BOT_PID": None}})
-
+    except docker.errors.APIError as e:
+        await message.reply_text(
+            f"❌ Docker API error:\n```\n{str(e)}\n```"
+        )
     except Exception as e:
-        await message.reply_text(f"❌ Error during deployment:\n```\n{str(e)}\n```")
-        users_col.update_one({"USER_ID": user_id}, {"$set": {"BOT_STATUS": "stopped", "BOT_PID": None}})
-    finally:
-        if os.path.exists(log_file_path):
-            os.remove(log_file_path)
+        await message.reply_text(
+            f"❌ Unexpected error:\n```\n{str(e)}\n```"
+        )
