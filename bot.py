@@ -46,4 +46,20 @@ if __name__ == "__main__":
     app.start()
 
     me = app.get_me()
-   
+    BOT_USERNAME = me.username
+    logger.info(f"✅ Bot started as @{BOT_USERNAME}")
+
+    for admin_id in FINAL_ADMINS:
+        try:
+            app.send_message(
+                admin_id,
+                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
+            )
+            logger.info(f"📨 Sent startup message to admin {admin_id}")
+        except Exception as e:
+            logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
+
+    logger.info("📡 Bot is now running and ready.")
+    idle()
+    app.stop()
+    logger.info("🛑 Bot stopped.")
