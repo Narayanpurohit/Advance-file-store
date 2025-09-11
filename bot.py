@@ -12,7 +12,6 @@ logger = logging.getLogger(__name__)
 USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
 logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
 
-# Load config directly from env
 API_ID = os.getenv("API_ID")
 API_HASH = os.getenv("API_HASH")
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -47,20 +46,4 @@ if __name__ == "__main__":
     app.start()
 
     me = app.get_me()
-    BOT_USERNAME = me.username
-    logger.info(f"✅ Bot started as @{BOT_USERNAME}")
-
-    for admin_id in FINAL_ADMINS:
-        try:
-            app.send_message(
-                admin_id,
-                f"✅ Deployed bot started as @{BOT_USERNAME} for USER_ID {USER_ID}."
-            )
-            logger.info(f"📨 Startup message sent to admin {admin_id}")
-        except Exception as e:
-            logger.error(f"❌ Failed to send startup message to {admin_id}: {e}")
-
-    logger.info("📡 Bot is now running and ready.")
-    idle()
-    app.stop()
-    logger.info("🛑 Bot stopped.")
+   
