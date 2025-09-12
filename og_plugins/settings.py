@@ -4,6 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db_config import users_col
 from config import VARIABLE_HELP_TEXTS
+from pyrogram.enums import ParseMode
 
 # ---------------- LOGGING ----------------
 logging.basicConfig(
@@ -143,7 +144,7 @@ async def edit_variable(client, callback_query):
         await callback_query.message.edit_text(
     f"Send new value for *{var_name}*.\n\n{var_help_text}\n\n"
     "You have 120 seconds. Send /cancel to abort.",
-    parse_mode="Markdown"
+    parse_mode=ParseMode.MARKDOWN
 )
 
         try:
