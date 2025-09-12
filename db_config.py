@@ -42,7 +42,7 @@ def add_user(user_id: int):
         "ADMINS": [],
         "FSUB": "",
         "PREMIUM_HOURS_VERIFICATION": 12,
-        "VERIFY_SLUG_TTL_HOURS": 12,
+        "VERIFY_SLUG_TTL_HOURS": 8,
         "SHORTENER_DOMAIN": "",
         "SHORTENER_API_KEY": "",
         "CAPTION": "",
