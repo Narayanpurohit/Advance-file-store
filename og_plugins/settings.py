@@ -142,9 +142,10 @@ async def edit_variable(client, callback_query):
 
     try:
         await callback_query.message.edit_text(
-    f"Send new value for *{var_name}*.\n\n{var_help_text}\n\n"
+    f"Send new value for <b>{var_name}</b>.\n\n{var_help_text}\n\n"
     "You have 120 seconds. Send /cancel to abort.",
-    parse_mode=ParseMode.HTML
+    parse_mode=ParseMode.HTML,
+    disable_web_page_preview=True
 )
 
         try:
