@@ -6,7 +6,7 @@ VARIABLE_HELP_TEXTS = {
     "BOT_TOKEN": "Get from @botfather",
     "API_ID": "",
     "API_HASH": "",
-    "MONGO_URI": "Click here for  <a href="https://youtu.be/4d-07F-Z2dc?si=_8OIuEJoL5oT1kQr">tutorial link</a>.",
+    "MONGO_URI": 'Click here for  <a href="https://youtu.be/4d-07F-Z2dc?si=_8OIuEJoL5oT1kQr">tutorial link</a>.',
     "DB_NAME": "",
     "ADMINS": "List of admin user IDs separated by spaces",
     "ENABLE_FSUB": "Click the button to toggle True/False",
