@@ -4,10 +4,10 @@ import os
 
 VARIABLE_HELP_TEXTS = {
     "BOT_TOKEN": "Get from @botfather",
-    "API_ID": "Get from my.telegram.org",
-    "API_HASH": "Get from my.telegram.org",
-    "MONGO_URI": "Send Mongo DB URI. Click here to know how to create.",
-    "DB_NAME": "Your Mongo DB database name",
+    "API_ID": "",
+    "API_HASH": "",
+    "MONGO_URI": "Click here for  <a href="https://youtu.be/4d-07F-Z2dc?si=_8OIuEJoL5oT1kQr">tutorial link</a>.",
+    "DB_NAME": "",
     "ADMINS": "List of admin user IDs separated by spaces",
     "ENABLE_FSUB": "Click the button to toggle True/False",
     "FSUB": "Channel ID list separated by spaces",
