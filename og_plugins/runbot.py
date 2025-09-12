@@ -62,8 +62,8 @@ async def runbot_handler(client, message):
         "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
         "SHORTENER_API_KEY": user.get("SHORTENER_API_KEY", ""),
         "CAPTION": user.get("CAPTION", ""),
-        "ADMINS": " ".join([str(x) for x in user.get("ADMINS", [])])
-    }
+        "ADMINS": " ".join(map(str, user.get("ADMINS", [])))  # Space-separated string
+}
 
     container = docker_client.containers.run(
         image="userbot_image",
