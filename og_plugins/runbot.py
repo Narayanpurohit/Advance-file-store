@@ -19,7 +19,6 @@ async def runbot_handler(client, message):
     docker_client = docker.from_env()
 
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    log_channel = user.get("LOG_CHANNEL_ID")
 
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     if premium_points < MIN_POINTS:
@@ -30,10 +29,6 @@ async def runbot_handler(client, message):
     missing_vars = [var for var in required_vars if not user.get(var)]
     if missing_vars:
         await message.reply_text(f"⚠️ Please configure: `{', '.join(missing_vars)}`")
-        return
-
-    if not log_channel:
-        await message.reply_text("⚠️ Please set `LOG_CHANNEL_ID` in your configuration to receive logs.")
         return
 
     await message.reply_text("🚀 Deployment started...")
@@ -66,9 +61,8 @@ async def runbot_handler(client, message):
         "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
         "SHORTENER_API_KEY": user.get("SHORTENER_API_KEY", ""),
         "CAPTION": user.get("CAPTION", ""),
-        #"ADMINS": " ".join(map(str, user.get("ADMINS", [])))  # Space-separated string}
-        "ADMINS": user.get("ADMINS", "")}
-    
+        "ADMINS": user.get("ADMINS", "")
+    }
 
     container = docker_client.containers.run(
         image="userbot_image",
@@ -86,45 +80,28 @@ async def runbot_handler(client, message):
 
     logger.info(f"✅ Container {container_name} started with ID {container.id}")
 
-    log_buffer = []
-    log_mode = 'batch'  # Start in batch mode (10 lines per message)
+    logs = container.logs(stream=True)
+    deployment_success = False
+    log_lines = []
 
-    while True:
-        logs = container.logs(stream=True, since=int(asyncio.get_event_loop().time()))
-        deployment_success = False
+    try:
+        async for line in _docker_log_stream(logs):
+            text_line = line.decode('utf-8').strip()
+            log_lines.append(text_line)
 
-        try:
-            async for line in _docker_log_stream(logs):
-                text_line = line.decode('utf-8').strip()
-                log_buffer.append(text_line)
+            if "Bot is now running and ready" in text_line:
+                deployment_success = True
+                await message.reply_text("✅ Bot deployed successfully!")
+                break
 
-                # Detect success message
-                if "Bot is now running and ready" in text_line:
-                    deployment_success = True
-
-                if log_mode == 'batch' and len(log_buffer) >= 10:
-                    await client.send_message(log_channel, "```\n" + "\n".join(log_buffer) + "\n```")
-                    log_buffer = []
-
-                elif log_mode == 'single' and len(log_buffer) >= 1:
-                    await client.send_message(log_channel, "```\n" + log_buffer[0] + "\n```")
-                    log_buffer = log_buffer[1:]
-
-                if deployment_success:
-                    log_mode = 'single'
-                    await client.send_message(message.chat.id, "✅ Bot deployed successfully!")
-                    break
-
-            if deployment_success:
-                # Flush remaining logs
-                if log_buffer:
-                    await client.send_message(log_channel, "```\n" + "\n".join(log_buffer) + "\n```")
-
-            await asyncio.sleep(1)
-
-        except Exception as e:
-            await client.send_message(message.chat.id, f"⚠️ Error while streaming logs: {str(e)}")
-            break
+        if not deployment_success:
+            # Send log file if deployment failed
+            log_file_path = f"./logs_{user_id}.txt"
+            with open(log_file_path, "w") as f:
+                f.write("\n".join(log_lines))
+            await message.reply_document(log_file_path, caption="❌ Deployment failed. See logs.")
+    except Exception as e:
+        await message.reply_text(f"⚠️ Error while streaming logs: {str(e)}")
 
 
 async def _docker_log_stream(logs):
