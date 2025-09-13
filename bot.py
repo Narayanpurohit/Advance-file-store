@@ -43,7 +43,10 @@ app = Client(
 
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
+    logger.info(f"ADMINS variable extracted from DB: {ADMINS}")
+    logger.info(f"ADMINS variable extracted from DB: {FINAL_ADMINS}")
     app.start()
+    
 
     me = app.get_me()
     BOT_USERNAME = me.username
