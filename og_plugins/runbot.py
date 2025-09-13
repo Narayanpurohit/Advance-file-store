@@ -64,7 +64,9 @@ async def runbot_handler(client, message):
         "CAPTION": user.get("CAPTION", ""),
         "ADMINS": " ".join(map(str, user.get("ADMINS", [])))  # Space-separated string
 }
+    
 
+    logger.info(f"✅ ADMINS variable extracted from DB: {ADMINS}")
     container = docker_client.containers.run(
         image="userbot_image",
         environment=env_vars,
