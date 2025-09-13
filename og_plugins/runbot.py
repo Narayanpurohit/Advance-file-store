@@ -37,7 +37,8 @@ async def runbot_handler(client, message):
         return
 
     await message.reply_text("🚀 Deployment started...")
-        user = users_col.find_one({"USER_ID": user_id}) or {}
+
+    user = users_col.find_one({"USER_ID": user_id}) or {}
     admins_list = user.get("ADMINS", [])
     logger.info(f"ADMINS variable extracted from DB: {admins_list}")
 
