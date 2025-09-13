@@ -25,8 +25,10 @@ REQUIRED_VARS = [
     "BOT_TOKEN", "MONGO_URI", "LOG_CHANNEL_ID"
 ]
 
-OPTIONAL_VARS = list(set(NORMAL_VARS) - set(REQUIRED_VARS))
-
+OPTIONAL_VARS =  [
+    "ADMINS","ENABLE_FSUB", "FSUB", "VERIFICATION_MODE", "PREMIUM_HOURS_VERIFICATION", 
+    "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION"
+]
 # ---------------- MAIN MENU ----------------
 def get_main_keyboard():
     buttons = [
@@ -40,7 +42,7 @@ def get_settings_keyboard(user_data: dict, variables: list):
     for var in variables:
         val = user_data.get(var, "Not set")
         buttons.append(
-            [InlineKeyboardButton(f"{var}: {val}", callback_data=f"setting:{var}")]
+            [InlineKeyboardButton(f"{var}", callback_data=f"setting:{var}")]
         )
     return InlineKeyboardMarkup(buttons)
 
@@ -70,7 +72,7 @@ async def show_settings_category(client, callback_query):
             variables = REQUIRED_VARS
         else:
             text = "⚙️ Optional Settings"
-            variables = OPTIONAL_VARS + BOOLEAN_VARS
+            variables = OPTIONAL_VARS
 
         keyboard = get_settings_keyboard(user, variables)
         keyboard.inline_keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")])
