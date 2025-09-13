@@ -113,13 +113,11 @@ async def runbot_handler(client, message):
                 if deployment_success:
                     log_mode = 'single'
                     await client.send_message(message.chat.id, "✅ Bot deployed successfully!")
-                    break
 
             if deployment_success:
                 # Flush remaining logs
                 if log_buffer:
                     await client.send_message(log_channel, "```\n" + "\n".join(log_buffer) + "\n```")
-                break
 
             await asyncio.sleep(1)
 
