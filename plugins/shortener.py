@@ -8,17 +8,20 @@ SHORTENER_MAP = {
 }
 
 
-def shorten_url(url: str) -> str:
+def shorten_url(url: str):
+    """
+    Try to shorten a URL. 
+    Returns tuple: (short_link or None, error_message or None)
+    """
     domain = SHORTENER_DOMAIN.lower().strip() if SHORTENER_DOMAIN else None
     api_key = SHORTENER_API.strip() if SHORTENER_API else None
 
     if not domain or not api_key:
-        return url  # No shortener configured
+        return None, "Shortener not configured"
 
     builder = SHORTENER_MAP.get(domain)
     if not builder:
-        print(f"[Shortener] No mapping for domain {domain}, returning original link")
-        return url
+        return None, f"No mapping for shortener domain '{domain}'"
 
     api_url = builder(api_key, url)
 
@@ -30,16 +33,16 @@ def shorten_url(url: str) -> str:
         try:
             data = resp.json()
             if "shortenedUrl" in data:
-                return data["shortenedUrl"]
+                return data["shortenedUrl"], None
         except ValueError:
             pass  # Not JSON, maybe plain text
 
         # Handle plain text
         text = resp.text.strip()
         if text.startswith("http"):
-            return text
+            return text, None
+
+        return None, f"Unexpected response: {resp.text[:100]}"
 
     except Exception as e:
-        print(f"[Shortener error] {e}")
-
-    return url  # fallback to original link
+        return None, str(e)
