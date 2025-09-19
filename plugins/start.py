@@ -1,5 +1,6 @@
 import logging
 from pyrogram import Client, filters
+from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
 from bot import VERIFICATION_MODE, CAPTION
 from database import (
     user_exists, add_user, get_file_by_slug,
@@ -55,15 +56,25 @@ async def start_handler(client, message):
                 return
 
             sent_count = 0
+            failure_reasons = {}
+
             for item in batch_data["messages"]:
                 try:
                     await client.copy_message(
                         chat_id=message.chat.id,
-                        from_chat_id=item[int("chat_id")],
-                        message_id=item[int("message_id")]
+                        from_chat_id=int(item["chat_id"]),
+                        message_id=int(item["message_id"])
                     )
                     sent_count += 1
+                except FloodWait as e:
+                    failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
+                    log.warning(f"⚠️ FloodWait {e.value}s for user {user_id} while batch {slug}")
+                except PeerIdInvalid:
+                    failure_reasons["PeerIdInvalid"] = failure_reasons.get("PeerIdInvalid", 0) + 1
+                except UserIsBlocked:
+                    failure_reasons["UserIsBlocked"] = failure_reasons.get("UserIsBlocked", 0) + 1
                 except Exception as e:
+                    failure_reasons[type(e).__name__] = failure_reasons.get(type(e).__name__, 0) + 1
                     log.warning(
                         f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}"
                     )
@@ -78,6 +89,11 @@ async def start_handler(client, message):
                 )
             else:
                 log.warning(f"⚠️ Batch {slug} delivered no messages to user {user_id}.")
+
+            # Show failure breakdown if any
+            if failure_reasons:
+                breakdown = "\n".join([f"• {k}: {v}" for k, v in failure_reasons.items()])
+                await message.reply_text(f"❌ Some messages failed in batch:\n{breakdown}")
             return
 
         # 6. File slug — fetch from DB
@@ -117,6 +133,17 @@ async def start_handler(client, message):
                 await message.reply_text("❌ Unknown file type.")
                 log.error(f"❌ Unknown file type {file_type} for slug {slug}.")
                 return
+        except FloodWait as e:
+            log.error(f"⏳ FloodWait {e.value}s while sending file {slug} to user {user_id}")
+            await message.reply_text(f"⚠️ Please wait {e.value}s and try again.")
+            return
+        except PeerIdInvalid:
+            log.error(f"❌ PeerIdInvalid for user {user_id} while sending file {slug}")
+            await message.reply_text("⚠️ Cannot send file (invalid user).")
+            return
+        except UserIsBlocked:
+            log.error(f"❌ User {user_id} blocked the bot while sending file {slug}")
+            return
         except Exception as e:
             log.error(f"⚠️ Error sending file {slug} to user {user_id}: {e}")
             await message.reply_text("⚠️ Failed to send file. Try again later.")
@@ -128,4 +155,7 @@ async def start_handler(client, message):
 
     except Exception as e:
         log.exception(f"🔥 Error in /start handler for user {user_id}: {e}")
-        await message.reply_text(f"⚠️ An unexpected error occurred. Please try again later.\n 🔥Error in /start handler for user {user_id}: {e}")
+        await message.reply_text(
+            f"⚠️ An unexpected error occurred. Please try again later.\n"
+            f"🔥 Error in /start handler for user {user_id}: {e}"
+        )
