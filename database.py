@@ -35,8 +35,10 @@ def add_user(user_id: int):
 
 
 def get_all_users():
-    """Return list of all user IDs."""
-    return [doc["_id"] for doc in users_col.find({}, {"_id": 1})]
+    """Return list of all Telegram user IDs."""
+    return [doc["user_id"] for doc in users_col.find({}, {"user_id": 1})]
+
+
 
 
 def is_premium(user_id: int) -> bool:
