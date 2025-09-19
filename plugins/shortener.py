@@ -1,5 +1,5 @@
 import requests
-from bot import SHORTENER_DOMAIN, SHORTENER_API
+from bot import SHORTENER_DOMAIN, SHORTENER_API_KEY
 
 # Map of supported shorteners and their API formats
 SHORTENER_MAP = {
@@ -14,7 +14,7 @@ def shorten_url(url: str):
     Returns tuple: (short_link or None, error_message or None)
     """
     domain = SHORTENER_DOMAIN.lower().strip() if SHORTENER_DOMAIN else None
-    api_key = SHORTENER_API.strip() if SHORTENER_API else None
+    api_key = SHORTENER_API_KEY.strip() if SHORTENER_API_KEY else None
 
     if not domain or not api_key:
         return None, "Shortener not configured"
