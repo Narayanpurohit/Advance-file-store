@@ -11,7 +11,7 @@ from database import (
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
-
+import asyncio
 # Auto delete settings
 AUTO_DELETE = True
 AUTO_DELETE_TIME = 40  # 30 minutes (in seconds)
