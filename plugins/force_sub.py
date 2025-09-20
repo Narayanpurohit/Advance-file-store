@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired
-from bot import ENABLE_FSUB, FSUB
+from bot import ENABLE_FSUB, FSUB_CHANNELS
 
 log = logging.getLogger(__name__)
 
@@ -16,7 +16,7 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
 
     not_joined = []
 
-    for btn_name, channel_id in FSUB.items():
+    for btn_name, channel_id in FSUB_CHANNELS.items():
         try:
             member = await client.get_chat_member(channel_id, user_id)
             if member.status in ("left", "kicked"):
