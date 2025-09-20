@@ -12,6 +12,10 @@ from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
 
+# Auto delete settings
+AUTO_DELETE = True
+AUTO_DELETE_TIME = 40  # 30 minutes (in seconds)
+
 log = logging.getLogger(__name__)
 
 
@@ -58,14 +62,18 @@ async def start_handler(client, message):
             sent_count = 0
             failure_reasons = {}
 
+            batch_sent_messages = []  # ✅ store sent messages
+
             for item in batch_data["messages"]:
                 try:
-                    await client.copy_message(
-                        chat_id=message.chat.id,
-                        from_chat_id=int(item["chat_id"]),
-                        message_id=int(item["message_id"])
-                    )
-                    sent_count += 1
+                   sent = await client.copy_message(chat_id=message.chat.id,from_chat_id=int(item["chat_id"]),
+message_id=int(item["message_id"]))
+                   sent_count += 1
+                   batch_sent_messages.append(sent)   # ✅ collect for auto delete
+                   # ✅ Schedule auto delete for the whole batch
+                   if AUTO_DELETE and batch_sent_messages:
+                       asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
+                    
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
                     log.warning(f"⚠️ FloodWait {e.value}s for user {user_id} while batch {slug}")
@@ -124,11 +132,16 @@ async def start_handler(client, message):
 
         try:
             if file_type == "doc":
-                await message.reply_document(file_id, caption=caption_text)
+                sent = await message.reply_document(file_id, caption=caption_text)
             elif file_type == "vid":
-                await message.reply_video(file_id, caption=caption_text)
+                sent = await message.reply_video(file_id, caption=caption_text)
             elif file_type == "aud":
-                await message.reply_audio(file_id, caption=caption_text)
+                sent = await message.reply_audio(file_id, caption=caption_text)
+
+            if AUTO_DELETE:
+                asyncio.create_task(auto_delete(client, sent, slug, file_name, user_id))
+            
+                        
             else:
                 await message.reply_text("❌ Unknown file type.")
                 log.error(f"❌ Unknown file type {file_type} for slug {slug}.")
@@ -159,3 +172,52 @@ async def start_handler(client, message):
             f"⚠️ An unexpected error occurred. Please try again later.\n"
             f"🔥 Error in /start handler for user {user_id}: {e}"
         )
+        
+        
+        
+        
+        
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+async def auto_delete(client, sent_message, slug, file_name, user_id, delay=AUTO_DELETE_TIME):
+    """Delete single file after delay and send 'Get File' button."""
+    try:
+        await asyncio.sleep(delay)
+        await sent_message.delete()
+        await client.send_message(
+            chat_id=user_id,
+            text=f"🗑️ This file was auto-deleted.\n\n📂 **{file_name}**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📥 Get File", url=f"https://t.me/{client.me.username}?start={slug}")]
+            ])
+        )
+        log.info(f"🗑️ Auto-deleted file {slug} for user {user_id}")
+    except Exception as e:
+        log.warning(f"⚠️ Failed auto-delete for {slug} user {user_id}: {e}")
+
+
+async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_TIME):
+    """Delete all batch messages after delay and notify user once."""
+    try:
+        await asyncio.sleep(delay)
+
+        # Delete all batch messages
+        for msg in messages:
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+        # Send one "batch deleted" message
+        await client.send_message(
+            chat_id=user_id,
+            text=f"🗑️ This batch was auto-deleted.\n\n📦 **Batch: {slug}**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📥 Get Batch", url=f"https://t.me/{client.me.username}?start={slug}")]
+            ])
+        )
+
+        log.info(f"🗑️ Auto-deleted batch {slug} for user {user_id}")
+
+    except Exception as e:
+        log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
