@@ -40,7 +40,7 @@ def add_user(user_id: int):
         "MONGO_URI": "",
         "DB_NAME": "filestorebot",
         "ADMINS": [],
-        "FSUB": "",
+        "FSUB_CHANNELS": "",
         "PREMIUM_HOURS_VERIFICATION": 12,
         "VERIFY_SLUG_TTL_HOURS": 8,
         "SHORTENER_DOMAIN": "",
@@ -48,6 +48,8 @@ def add_user(user_id: int):
         "CAPTION": "",
         "PREMIUM_POINTS": 0,
         "LOG_CHANNEL_ID":0,
+        "AUTO_DELETE" = True,
+        "AUTO_DELETE_TIME" = 40,
     }
 
     users_col.insert_one(default_user)
