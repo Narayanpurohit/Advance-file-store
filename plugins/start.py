@@ -39,7 +39,10 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text("Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.")
+            await message.reply_text(
+    "Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.",
+    reply_markup=START_BUTTONS
+)
             return
 
         slug = args[1]
