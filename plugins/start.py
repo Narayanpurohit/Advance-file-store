@@ -1,7 +1,7 @@
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
-from bot import VERIFICATION_MODE, CAPTION
+from bot import VERIFICATION_MODE, CAPTION,AUTO_DELETE,AUTO_DELETE_TIME
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
@@ -12,13 +12,14 @@ from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
 import asyncio
-# Auto delete settings
-AUTO_DELETE = True
-AUTO_DELETE_TIME = 40  # 30 minutes (in seconds)
 
 log = logging.getLogger(__name__)
 
-
+START_BUTTONS = InlineKeyboardMarkup(
+    [
+        [InlineKeyboardButton("Create own clone bot", url="https://t.me/File_store_clone_robot")]
+    ]
+)
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
     user_id = message.from_user.id
@@ -38,7 +39,7 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text("👋 Welcome! Send me a file to get started.")
+            await message.reply_text("Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.")
             return
 
         slug = args[1]
