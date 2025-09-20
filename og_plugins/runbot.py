@@ -55,13 +55,17 @@ async def runbot_handler(client, message):
         "VERIFICATION_MODE": str(user.get("VERIFICATION_MODE", False)),
         "MONGO_URI": user.get("MONGO_URI", ""),
         "DB_NAME": user.get("DB_NAME", ""),
-        "FSUB": user.get("FSUB", ""),
-        "PREMIUM_HOURS_VERIFICATION": str(user.get("PREMIUM_HOURS_VERIFICATION", 12)),
-        "VERIFY_SLUG_TTL_HOURS": str(user.get("VERIFY_SLUG_TTL_HOURS", 12)),
+        "FSUB_CHANNELS": user.get("FSUB_CHANNELS", ""),
+        "PREMIUM_HOURS_VERIFICATION": str(user.get("PREMIUM_HOURS_VERIFICATION", "")),
+        "VERIFY_SLUG_TTL_HOURS": str(user.get("VERIFY_SLUG_TTL_HOURS", "")),
         "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
         "SHORTENER_API_KEY": user.get("SHORTENER_API_KEY", ""),
         "CAPTION": user.get("CAPTION", ""),
-        "ADMINS": user.get("ADMINS", "")
+        "ADMINS": user.get("ADMINS", ""),
+        "AUTO_DELETE": str(user.get("AUTO_DELETE", False)),
+        "AUTO_DELETE_TIME": str(user.get("AUTO_DELETE_TIME", ""))
+
+        
     }
 
     container = docker_client.containers.run(
