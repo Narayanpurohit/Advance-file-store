@@ -71,9 +71,7 @@ message_id=int(item["message_id"]))
                    sent_count += 1
                    batch_sent_messages.append(sent)   # ✅ collect for auto delete
                    # ✅ Schedule auto delete for the whole batch
-                   if AUTO_DELETE and batch_sent_messages:
-                       asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
-                    
+                                          
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
                     log.warning(f"⚠️ FloodWait {e.value}s for user {user_id} while batch {slug}")
@@ -86,6 +84,9 @@ message_id=int(item["message_id"]))
                     log.warning(
                         f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}"
                     )
+            if AUTO_DELETE and batch_sent_messages:
+                asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
+
 
             # ✅ Update counters after batch delivery
             if sent_count > 0:
