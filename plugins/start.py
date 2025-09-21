@@ -94,8 +94,7 @@ message_id=int(item["message_id"]))
                     )
             if AUTO_DELETE and batch_sent_messages:
                 
-                asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
-
+                asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
 
             # ✅ Update counters after batch delivery
             if sent_count > 0:
@@ -185,17 +184,22 @@ message_id=int(item["message_id"]))
             f"🔥 Error in /start handler for user {user_id}: {e}"
         )
         
-        
-        
-        
-        
+
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-async def auto_delete(client, sent_message, slug, file_name, user_id, delay=AUTO_DELETE_TIME):
-    """Delete single file after delay and send 'Get File' button."""
+async def auto_delete(client, messages, slug, file_name, user_id, delay=AUTO_DELETE_TIME):
+    """Delete file + notice after delay and send 'Get File' button."""
     try:
         await asyncio.sleep(delay)
-        await sent_message.delete()
+
+        # Delete both file and notice
+        for msg in messages:
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+        # Send "Get File" button
         await client.send_message(
             chat_id=user_id,
             text=f"🗑️ This file was auto-deleted.\n\n📂 **{file_name}**",
@@ -233,3 +237,7 @@ async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_T
 
     except Exception as e:
         log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
+
+
+        
+        
