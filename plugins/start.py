@@ -75,6 +75,10 @@ message_id=int(item["message_id"]))
                    sent_count += 1
                    batch_sent_messages.append(sent)   # ✅ collect for auto delete
                    # ✅ Schedule auto delete for the whole batch
+                   notice = await message.reply_text(
+    f"🔺This File/Video will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\nPlease forward this File/Video to your Saved Messages and **Start Download there**"
+)
+                   batch_sent_messages.append(notice)
                                           
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
@@ -89,6 +93,7 @@ message_id=int(item["message_id"]))
                         f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}"
                     )
             if AUTO_DELETE and batch_sent_messages:
+                
                 asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
 
 
@@ -144,8 +149,10 @@ message_id=int(item["message_id"]))
                 sent = await message.reply_audio(file_id, caption=caption_text)
 
             if AUTO_DELETE:
-                asyncio.create_task(auto_delete(client, sent, slug, file_name, user_id))
-            
+                notice = await message.reply_text(f"🔺This File/Video will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\nPlease forward this File/Video to your Saved Messages and **Start Download there**"
+    )
+   
+                asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))            
                         
             else:
                 await message.reply_text("❌ Unknown file type.")
