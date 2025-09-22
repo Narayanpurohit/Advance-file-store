@@ -2,6 +2,7 @@ import logging
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired
 from bot import ENABLE_FSUB, FSUB_CHANNELS
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 log = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         except ChatAdminRequired:
             log.error(f"❌ Bot is not admin in channel {channel_id}, cannot check membership!")
             await message.reply_text(
-                f"⚠️ Force-sub misconfigured: bot must be admin in {btn_name} ({channel_id})."
+                "⚠️ ғᴏʀᴄᴇ-sᴜʙ ᴍɪsᴄᴏɴғɪɢᴜʀᴇᴅ: ʙᴏᴛ ᴍᴜsᴛ ʙᴇ ᴀᴅᴍɪɴ ɪɴ ᴄʜᴀɴɴᴇʟ!"
             )
             return False
         except Exception as e:
@@ -37,17 +38,15 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         return True  # All good
 
     # Generate buttons for channels not joined
-    from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
     buttons = []
     row = []
     for i, (btn_name, channel_id) in enumerate(not_joined, start=1):
         try:
             invite = await client.create_chat_invite_link(channel_id)
-            row.append(InlineKeyboardButton(btn_name, url=invite.invite_link))
+            row.append(InlineKeyboardButton(f"• {btn_name} •", url=invite.invite_link))
         except Exception as e:
             log.error(f"⚠️ Failed to create invite link for {channel_id}: {e}")
-            row.append(InlineKeyboardButton(btn_name, url="https://t.me"))
+            row.append(InlineKeyboardButton(f"• {btn_name} •", url="https://t.me"))
         
         # 2 buttons per row
         if i % 2 == 0:
@@ -58,10 +57,10 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         buttons.append(row)
 
     # Add "I Joined" button
-    buttons.append([InlineKeyboardButton("✅ I Joined", callback_data="fsub_check")])
+    buttons.append([InlineKeyboardButton("• ✅ ɪ ᴊᴏɪɴᴇᴅ •", callback_data="fsub_check")])
 
     await message.reply_text(
-        "⚠️ You must join the following channel(s) before using this bot:",
+        "⚠️ ʏᴏᴜ ᴍᴜsᴛ ᴊᴏɪɴ ᴛʜᴇ ғᴏʟʟᴏᴡɪɴɢ ᴄʜᴀɴɴᴇʟ(s) ʙᴇғᴏʀᴇ ᴜsɪɴɢ ᴛʜɪs ʙᴏᴛ:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
     return False
@@ -69,10 +68,10 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
 
 # Callback for "I Joined" button
 @Client.on_callback_query(filters.regex("fsub_check"))
-async def recheck_force_sub(client, callback_query):
+async def recheck_force_sub(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     ok = await check_force_sub(client, user_id, callback_query.message)
     if ok:
         await callback_query.message.edit_text(
-            "✅ Thanks! You’ve unlocked the bot features. Send /start again."
+            "✅ ᴛʜᴀɴᴋs! ʏᴏᴜ’ᴠᴇ ᴜɴʟᴏᴄᴋᴇᴅ ᴛʜᴇ ʙᴏᴛ ғᴇᴀᴛᴜʀᴇs.\n\nsᴇɴᴅ /start ᴀɢᴀɪɴ."
         )
