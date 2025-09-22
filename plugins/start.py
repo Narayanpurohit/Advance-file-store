@@ -2,7 +2,7 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton,CallbackQuery
 
 from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME
 from database import (
@@ -18,13 +18,34 @@ from utils import human_readable_size
 log = logging.getLogger(__name__)
 
 START_BUTTONS = InlineKeyboardMarkup(
-    [[InlineKeyboardButton("Create own clone bot", url="https://t.me/File_store_clone_robot")]]
+    [
+        [InlineKeyboardButton("• 🤖 ᴄʀᴇᴀᴛᴇ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ •", url="https://t.me/File_store_clone_robot")],
+        [
+            InlineKeyboardButton("• 📚 ʜᴇʟᴘ •", callback_data="help"),
+            InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
+        ],
+    ]
 )
+
+
+
+
+
+
 
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
     user_id = message.from_user.id
     args = message.text.split()
+    mention = message.from_user.mention
+    START_MSG = (
+        f"ʜᴇʏ {mention}👋,\n\n"
+        "ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ᴀɴᴅ ᴍᴀɴʏ ᴀᴍᴀᴢɪɴɢ "
+        "ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs. ᴜsᴇʀs ᴄᴀɴ ᴀᴄᴄᴇss sᴛᴏʀᴇᴅ ᴍᴇssᴀɢᴇs "
+        "ʙʏ ᴜsɪɴɢ ᴀ sʜᴀʀᴇᴀʙʟᴇ ʟɪɴᴋ ɢɪᴠᴇɴ ʙʏ ᴍᴇ.\n\n"
+        "ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ, ᴄʟɪᴄᴋ ᴛʜᴇ ʜᴇʟᴘ ʙᴜᴛᴛᴏɴ 👇"
+    )
+  
 
     try:
         # 1. Add new user if not exists
@@ -40,10 +61,7 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text(
-                "Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.",
-                reply_markup=START_BUTTONS
-            )
+            await message.reply_text(START_MSG, reply_markup=START_BUTTONS)
             return
 
         slug = args[1]
@@ -233,3 +251,39 @@ async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_T
         log.info(f"🗑️ Auto-deleted batch {slug} for user {user_id}")
     except Exception as e:
         log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
+        
+Is it of if i add this code in button of my start code 
+
+HELP_TEXT = (
+    "ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ. ᴏɴʟʏ ᴀᴅᴍɪɴs ᴄᴀɴ sᴛᴏʀᴇ ғɪʟᴇs "
+    "ᴡɪᴛʜᴏᴜᴛ ᴍᴇ ʙᴇɪɴɢ ᴀᴅᴍɪɴ. ᴀɴᴅ ʏᴏᴜ ᴄᴀɴ ᴀᴄᴄᴇss sᴛᴏʀᴇᴅ ғɪʟᴇs "
+    "ʙʏ ᴜsɪɴɢ sʜᴀʀᴇᴀʙʟᴇ ʟɪɴᴋ ɢɪᴠᴇɴ ʙʏ ᴍᴇ.\n\n"
+    "📚 ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅ:\n\n"
+    "➛ /start - ᴄʜᴇᴄᴋ ɪ ᴀᴍ ᴀʟɪᴠᴇ.\n"
+    "➛ sᴇɴᴅ ғɪʟᴇ - ᴛᴏ sᴛᴏʀᴇ ᴀ sɪɴɢʟᴇ ᴍᴇssᴀɢᴇ ᴏʀ ғɪʟᴇ.\n"
+    "➛ /batch - ᴛᴏ sᴛᴏʀᴇ ᴍᴜᴛɪᴘʟᴇ ᴍᴇssᴀɢᴇs ғʀᴏᴍ ᴀ ᴄʜᴀɴɴᴇʟ.\n"
+    "➛ /mypremium - ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴛɪᴍᴇ.\n"
+    "➛ /broadcast - ʀᴇᴘʟʏ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ʏᴏᴜʀ ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇs "
+    "(ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
+    "➛ /add_premium <user_id> <days> - ᴀᴅᴅ ᴜsᴇʀ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ (ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
+    "➛ /remove_premium <user_id> - ʀᴇᴍᴏᴠᴇ ᴘʀᴇᴍɪᴜᴍ (ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
+    "➛ /stats - ᴄʜᴇᴄᴋ sᴛᴀᴛs ᴏғ ʏᴏᴜʀ ʙᴏᴛ (ᴏᴡɴᴇʀ ᴏɴʟʏ)."
+)
+
+HELP_BUTTONS = InlineKeyboardMarkup(
+    [
+        [
+            InlineKeyboardButton("• 🔙 ʙᴀᴄᴋ •", callback_data="back"),
+            InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
+        ]
+    ]
+)
+
+@Client.on_callback_query()
+async def callback_handlers(client, query: CallbackQuery):
+    if query.data == "help":
+        await query.message.edit_text(HELP_TEXT, reply_markup=HELP_BUTTONS)
+    elif query.data == "back":
+        await start_handler(client, query.message)
+    elif query.data == "close":
+        await query.message.delete()
