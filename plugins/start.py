@@ -1,7 +1,10 @@
 import logging
+import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
-from bot import VERIFICATION_MODE, CAPTION,AUTO_DELETE,AUTO_DELETE_TIME
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
@@ -11,16 +14,13 @@ from database import (
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
-import asyncio
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 log = logging.getLogger(__name__)
 
 START_BUTTONS = InlineKeyboardMarkup(
-    [
-        [InlineKeyboardButton("Create own clone bot", url="https://t.me/File_store_clone_robot")]
-    ]
+    [[InlineKeyboardButton("Create own clone bot", url="https://t.me/File_store_clone_robot")]]
 )
+
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
     user_id = message.from_user.id
@@ -32,7 +32,7 @@ async def start_handler(client, message):
             add_user(user_id)
             log.info(f"👤 New user {user_id} added to database.")
 
-        # 2. Check Force Sub (stop flow if not joined)
+        # 2. Check Force Sub
         ok = await check_force_sub(client, user_id, message)
         if not ok:
             log.warning(f"❌ User {user_id} has not joined required channels.")
@@ -41,9 +41,9 @@ async def start_handler(client, message):
         # 3. No arguments — greet user
         if len(args) == 1:
             await message.reply_text(
-    "Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.",
-    reply_markup=START_BUTTONS
-)
+                "Hello 🤗\n\nI can store private files in Specified Channel and other users can access it from special link.",
+                reply_markup=START_BUTTONS
+            )
             return
 
         slug = args[1]
@@ -66,21 +66,19 @@ async def start_handler(client, message):
 
             sent_count = 0
             failure_reasons = {}
+            batch_sent_messages = []  # ✅ store sent files
 
-            batch_sent_messages = []  # ✅ store sent messages
-
+            # Send batch files
             for item in batch_data["messages"]:
                 try:
-                   sent = await client.copy_message(chat_id=message.chat.id,from_chat_id=int(item["chat_id"]),
-message_id=int(item["message_id"]))
-                   sent_count += 1
-                   batch_sent_messages.append(sent)   # ✅ collect for auto delete
-                   # ✅ Schedule auto delete for the whole batch
-                   notice = await message.reply_text(
-    f"🔺This File/Video will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\nPlease forward this File/Video to your Saved Messages and **Start Download there**"
-)
-                   batch_sent_messages.append(notice)
-                                          
+                    sent = await client.copy_message(
+                        chat_id=message.chat.id,
+                        from_chat_id=int(item["chat_id"]),
+                        message_id=int(item["message_id"])
+                    )
+                    sent_count += 1
+                    batch_sent_messages.append(sent)
+
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
                     log.warning(f"⚠️ FloodWait {e.value}s for user {user_id} while batch {slug}")
@@ -90,37 +88,38 @@ message_id=int(item["message_id"]))
                     failure_reasons["UserIsBlocked"] = failure_reasons.get("UserIsBlocked", 0) + 1
                 except Exception as e:
                     failure_reasons[type(e).__name__] = failure_reasons.get(type(e).__name__, 0) + 1
-                    log.warning(
-                        f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}"
-                    )
-            if AUTO_DELETE and batch_sent_messages:
-                
-                asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
+                    log.warning(f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}")
 
-            # ✅ Update counters after batch delivery
+            # ✅ Send one delete notice for the whole batch
             if sent_count > 0:
+                notice = await message.reply_text(
+                    f"🔺This Batch will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\n"
+                    f"Please forward files to your Saved Messages and **Start Download there**"
+                )
+                batch_sent_messages.append(notice)
+
+                if AUTO_DELETE:
+                    asyncio.create_task(auto_delete_batch(client, batch_sent_messages, slug, user_id))
+
                 increment_batches_sent()
                 increment_batch_messages_sent(sent_count)
-                log.info(
-                    f"📦 Batch {slug} delivered to user {user_id}: "
-                    f"{sent_count} messages sent."
-                )
+                log.info(f"📦 Batch {slug} delivered to user {user_id}: {sent_count} messages sent.")
             else:
                 log.warning(f"⚠️ Batch {slug} delivered no messages to user {user_id}.")
 
-            # Show failure breakdown if any
             if failure_reasons:
                 breakdown = "\n".join([f"• {k}: {v}" for k, v in failure_reasons.items()])
                 await message.reply_text(f"❌ Some messages failed in batch:\n{breakdown}")
+
             return
 
-        # 6. File slug — fetch from DB
+        # 6. File slug
         file_data = get_file_by_slug(slug)
         if not file_data:
             await message.reply_text("❌ File not found or has been removed.")
             return
 
-        # 7. If verification mode is ON, check premium
+        # 7. Verification check
         if VERIFICATION_MODE and not is_premium(user_id):
             await send_verification_link(client, user_id)
             return
@@ -147,17 +146,18 @@ message_id=int(item["message_id"]))
                 sent = await message.reply_video(file_id, caption=caption_text)
             elif file_type == "aud":
                 sent = await message.reply_audio(file_id, caption=caption_text)
-
-            if AUTO_DELETE:
-                notice = await message.reply_text(f"🔺This File/Video will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\nPlease forward this File/Video to your Saved Messages and **Start Download there**"
-    )
-   
-                asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))            
-                        
             else:
                 await message.reply_text("❌ Unknown file type.")
                 log.error(f"❌ Unknown file type {file_type} for slug {slug}.")
                 return
+
+            if AUTO_DELETE:
+                notice = await message.reply_text(
+                    f"🔺This File/Video will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\n"
+                    f"Please forward this File/Video to your Saved Messages and **Start Download there**"
+                )
+                asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
+
         except FloodWait as e:
             log.error(f"⏳ FloodWait {e.value}s while sending file {slug} to user {user_id}")
             await message.reply_text(f"⚠️ Please wait {e.value}s and try again.")
@@ -184,23 +184,21 @@ message_id=int(item["message_id"]))
             f"⚠️ An unexpected error occurred. Please try again later.\n"
             f"🔥 Error in /start handler for user {user_id}: {e}"
         )
-        
 
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+# ------------------ Auto Delete Helpers ------------------ #
 
 async def auto_delete(client, messages, slug, file_name, user_id, delay=AUTO_DELETE_TIME):
     """Delete file + notice after delay and send 'Get File' button."""
     try:
         await asyncio.sleep(delay)
 
-        # Delete both file and notice
         for msg in messages:
             try:
                 await msg.delete()
             except Exception:
                 pass
 
-        # Send "Get File" button
         await client.send_message(
             chat_id=user_id,
             text=f"🗑️ This file was auto-deleted.\n\n📂 **{file_name}**",
@@ -218,14 +216,12 @@ async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_T
     try:
         await asyncio.sleep(delay)
 
-        # Delete all batch messages
         for msg in messages:
             try:
                 await msg.delete()
             except Exception:
                 pass
 
-        # Send one "batch deleted" message
         await client.send_message(
             chat_id=user_id,
             text=f"🗑️ This batch was auto-deleted.\n\n📦 **Batch: {slug}**",
@@ -235,10 +231,5 @@ async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_T
         )
 
         log.info(f"🗑️ Auto-deleted batch {slug} for user {user_id}")
-
     except Exception as e:
         log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
-
-
-        
-        
