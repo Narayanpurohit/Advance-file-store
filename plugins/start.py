@@ -252,7 +252,6 @@ async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_T
     except Exception as e:
         log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
         
-Is it of if i add this code in button of my start code 
 
 HELP_TEXT = (
     "ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ. ᴏɴʟʏ ᴀᴅᴍɪɴs ᴄᴀɴ sᴛᴏʀᴇ ғɪʟᴇs "
