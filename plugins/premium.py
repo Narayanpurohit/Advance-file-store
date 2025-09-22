@@ -13,17 +13,20 @@ async def cmd_add_premium(client, message):
     try:
         parts = message.text.split()
         if len(parts) != 3:
-            await message.reply_text("Usage: `/add_premium <user_id> <days>`", quote=True)
+            await message.reply_text("⚠️ ᴜsᴀɢᴇ: `/add_premium <user_id> <days>`", quote=True)
             return
 
         user_id = int(parts[1])
         days = int(parts[2])
 
         add_premium_days(user_id, days)
-        await message.reply_text(f"✅ Added premium for {days} day(s) to user `{user_id}`.", quote=True)
+        await message.reply_text(
+            f"✅ ᴀᴅᴅᴇᴅ ᴘʀᴇᴍɪᴜᴍ ғᴏʀ **{days} ᴅᴀʏ(s)** ᴛᴏ ᴜsᴇʀ `{user_id}`.",
+            quote=True
+        )
 
     except Exception as e:
-        await message.reply_text(f"❌ Error: `{e}`", quote=True)
+        await message.reply_text(f"❌ ᴇʀʀᴏʀ: `{e}`", quote=True)
 
 
 @Client.on_message(filters.command("remove_premium") & filters.user(ADMINS))
@@ -35,15 +38,18 @@ async def cmd_remove_premium(client, message):
     try:
         parts = message.text.split()
         if len(parts) != 2:
-            await message.reply_text("Usage: `/remove_premium <user_id>`", quote=True)
+            await message.reply_text("⚠️ ᴜsᴀɢᴇ: `/remove_premium <user_id>`", quote=True)
             return
 
         user_id = int(parts[1])
         remove_premium(user_id)
-        await message.reply_text(f"❌ Premium removed from user `{user_id}`.", quote=True)
+        await message.reply_text(
+            f"❌ ᴘʀᴇᴍɪᴜᴍ ʀᴇᴍᴏᴠᴇᴅ ғʀᴏᴍ ᴜsᴇʀ `{user_id}`.",
+            quote=True
+        )
 
     except Exception as e:
-        await message.reply_text(f"❌ Error: `{e}`", quote=True)
+        await message.reply_text(f"❌ ᴇʀʀᴏʀ: `{e}`", quote=True)
 
 
 @Client.on_message(filters.command("mypremium") & filters.private)
@@ -57,12 +63,12 @@ async def cmd_my_premium(client, message):
         expiry = get_premium_expiry(user_id)
 
         if not expiry:
-            await message.reply_text("❌ You do not have premium access.", quote=True)
+            await message.reply_text("❌ ʏᴏᴜ ᴅᴏ ɴᴏᴛ ʜᴀᴠᴇ ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴄᴇss.", quote=True)
             return
 
         now = datetime.datetime.utcnow()
         if expiry < now:
-            await message.reply_text("❌ Your premium has expired.", quote=True)
+            await message.reply_text("❌ ʏᴏᴜʀ ᴘʀᴇᴍɪᴜᴍ ʜᴀs ᴇxᴘɪʀᴇᴅ.", quote=True)
             return
 
         remaining = expiry - now
@@ -71,9 +77,9 @@ async def cmd_my_premium(client, message):
         minutes = (remaining.seconds % 3600) // 60
 
         await message.reply_text(
-            f"✅ Your premium expires in **{days} days, {hours} hours, {minutes} minutes**.",
+            f"✅ ʏᴏᴜʀ ᴘʀᴇᴍɪᴜᴍ ᴇxᴘɪʀᴇs ɪɴ **{days} ᴅᴀʏs, {hours} ʜᴏᴜʀs, {minutes} ᴍɪɴᴜᴛᴇs**.",
             quote=True
         )
 
     except Exception as e:
-        await message.reply_text(f"❌ Error: `{e}`", quote=True)
+        await message.reply_text(f"❌ ᴇʀʀᴏʀ: `{e}`", quote=True)
