@@ -48,8 +48,8 @@ def add_user(user_id: int):
         "CAPTION": "",
         "PREMIUM_POINTS": 0,
         "LOG_CHANNEL_ID":0,
-        "AUTO_DELETE" = True,
-        "AUTO_DELETE_TIME" = 1200,
+        "AUTO_DELETE":True,
+        "AUTO_DELETE_TIME":1200,
     }
 
     users_col.insert_one(default_user)
