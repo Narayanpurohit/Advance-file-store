@@ -12,6 +12,7 @@ from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
 import asyncio
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 log = logging.getLogger(__name__)
 
