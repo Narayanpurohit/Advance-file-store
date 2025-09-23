@@ -84,35 +84,40 @@ async def back_to_points_callback(client, callback_query):
     
 
 
-@Client.on_message(filters.command("addpoints") & filters.private)
-async def add_points_handler(client, message):
-    if message.from_user.id not in CODE2_ADMINS:
-        await message.reply_text("🚫 ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ.")
-        return
 
-    args = message.text.split()
-    if len(args) != 3:
-        await message.reply_text("⚠️ ᴜꜱᴀɢᴇ:\n`/addpoints <user_id> <points>`")
-        return
 
+@Client.on_message(filters.command("addpoints") & filters.user(CODE2_ADMINS))
+async def add_points(client, message):
     try:
+        args = message.text.split()
+        if len(args) != 3:
+            return await message.reply_text("Usage: /addpoints <user_id> <amount>")
+
         user_id = int(args[1])
-        points_to_add = int(args[2])
-    except ValueError:
-        await message.reply_text("⚠️ ᴜꜱᴇʀ_ɪᴅ ᴀɴᴅ ᴘᴏɪɴᴛꜱ ᴍᴜꜱᴛ ʙᴇ ɴᴜᴍʙᴇʀꜱ.")
-        return
+        amount = int(args[2])
 
-    result = users_col.find_one_and_update(
-        {"USER_ID": user_id},
-        {"$inc": {"PREMIUM_POINTS": points_to_add}},
-        upsert=True,
-        return_document=True
-    )
+        user = users_col.find_one({"USER_ID": user_id})
+        if not user:
+            return await message.reply_text("❌ User not found.")
 
-    new_points = result.get("PREMIUM_POINTS", 0)
+        # Convert PREMIUM_POINTS to int if it is a string
+        if isinstance(user.get("PREMIUM_POINTS"), str):
+            users_col.update_one(
+                {"USER_ID": user_id},
+                [{"$set": {"PREMIUM_POINTS": {"$toInt": "$PREMIUM_POINTS"}}}]
+            )
 
-    await message.reply_text(
-        f"✅ ᴀᴅᴅᴇᴅ **{points_to_add} ᴘᴏɪɴᴛꜱ** ᴛᴏ ᴜꜱᴇʀ `{user_id}`.\n"
-        f"🌟 ɴᴇᴡ ʙᴀʟᴀɴᴄᴇ: **{new_points} ᴘᴏɪɴᴛꜱ**"
-    )
+        # Add points
+        result = users_col.find_one_and_update(
+            {"USER_ID": user_id},
+            {"$inc": {"PREMIUM_POINTS": amount}},
+            return_document=True
+        )
 
+        await message.reply_text(
+            f"✅ Added **{amount} points** to user `{user_id}`.\n"
+            f"⭐ New total: **{result.get('PREMIUM_POINTS', 0)} points**"
+        )
+
+    except Exception as e:
+        await message.reply_text(f"⚠️ Error: {e}")
