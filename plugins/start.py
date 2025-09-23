@@ -61,7 +61,8 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text(START_MSG.format(mention=message.from_user.mention), reply_markup=START_BUTTONS)            return
+            await message.reply_text(START_MSG.format(mention=message.from_user.mention), reply_markup=START_BUTTONS)            
+            return
 
         slug = args[1]
 
