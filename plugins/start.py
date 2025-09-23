@@ -283,7 +283,8 @@ async def callback_handlers(client, query: CallbackQuery):
     if query.data == "help":
         await query.message.edit_text(HELP_TEXT, reply_markup=HELP_BUTTONS)
     elif query.data == "back":
-        await query.message.edit_text(START_MSG.format(mention=query.from_user.mention), reply_markup=START_BUTTONS)    elif query.data == "close":
+        await query.message.edit_text(START_MSG.format(mention=query.from_user.mention), reply_markup=START_BUTTONS)    
+    elif query.data == "close":
         await query.message.delete()
         
         
