@@ -107,9 +107,6 @@ async def show_users_list(query, prefix, users):
 
 @Client.on_callback_query(filters.regex(r"show_free_users_\d+"))
 async def show_free_users(client, query):
-    if query.from_user.id not in ADMINS:
-        return await query.answer("🚫 Not allowed", show_alert=True)
-
     users = list(users_col.find({
         "$or": [
             {"premium_until": {"$exists": False}},
@@ -126,8 +123,8 @@ async def show_free_users(client, query):
 
 @Client.on_callback_query(filters.regex(r"show_premium_users_\d+"))
 async def show_premium_users(client, query):
-    if query.from_user.id not in ADMINS:
-        return await query.answer("🚫 Not allowed", show_alert=True)
+     
+         
 
     now = datetime.datetime.utcnow()
     users = list(users_col.find({"premium_until": {"$gt": now}}))
@@ -141,16 +138,16 @@ async def show_premium_users(client, query):
 
 @Client.on_callback_query(filters.regex("back_stats"))
 async def back_stats(client, query):
-    if query.from_user.id not in ADMINS:
-        return await query.answer("🚫 Not allowed", show_alert=True)
+     
+         
 
     await query.message.edit_text(get_stats_text(), reply_markup=get_main_buttons())
 
 
 @Client.on_callback_query(filters.regex("close_stats"))
 async def close_stats(client, query):
-    if query.from_user.id not in ADMINS:
-        return await query.answer("🚫 Not allowed", show_alert=True)
+     
+         
 
     await query.message.delete()
 
