@@ -19,7 +19,7 @@ def human_readable_size(size_bytes):
         size_bytes /= 1024
     return f"{size_bytes:.2f} TB"
 
-@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
+@Client.on_message(filters.private & (filters.document | filters.video | filters.audio) & filters.user(ADMINS))
 async def save_file(client, message):
     if message.document:
         file_id = message.document.file_id
