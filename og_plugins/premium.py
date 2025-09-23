@@ -12,7 +12,7 @@ async def premium_handler(client, message):
 
     buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("💰 ʙᴜʏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛꜱ", callback_data="buy_points")]
+            [InlineKeyboardButton("• ʙᴜʏ ᴘᴏɪɴᴛꜱ •", callback_data="buy_points")]
         ]
     )
 
@@ -24,7 +24,7 @@ async def premium_handler(client, message):
 @Client.on_callback_query(filters.regex("buy_points"))
 async def buy_points_callback(client, callback_query):
     text = """💰💳 ʜᴇʏ ᴘʀᴇᴍɪᴜᴍ ᴘʟᴀɴꜱ 💲
-• ꜰɪʟᴇ ꜱᴛᴏʀᴇ ʙᴏᴛ ꜰᴇᴀᴛᴜʀᴇ
+**• ꜰɪʟᴇ ꜱᴛᴏʀᴇ ʙᴏᴛ ꜰᴇᴀᴛᴜʀᴇ**
 
 ࣭ ⭑⚝ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ  
 ࣭ ⭑⚝ ᴄᴜꜱᴛᴏᴍ ꜱʜᴏʀᴛɴᴇʀ ꜱᴜᴘᴘᴏʀᴛ  
@@ -54,10 +54,10 @@ async def buy_points_callback(client, callback_query):
     buttons = InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("📸 ꜱᴇɴᴅ ꜱᴄʀᴇᴇɴꜱʜᴏᴛꜱ", url="https://t.me/jn_dev")
+                InlineKeyboardButton("• ꜱᴇɴᴅ ꜱᴄʀᴇᴇɴꜱʜᴏᴛꜱ •", url="https://t.me/jn_dev")
             ],
             [
-                InlineKeyboardButton("🔙 ʙᴀᴄᴋ", callback_data="back_to_points")
+                InlineKeyboardButton("• ʙᴀᴄᴋ •", callback_data="back_to_points")
             ]
         ]
     )
