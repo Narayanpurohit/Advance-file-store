@@ -10,7 +10,7 @@ async def premium_handler(client, message):
 
     buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("💰 Buy Points", callback_data="buy_points")]
+            [InlineKeyboardButton("💰 Buy PREMIUM_POINTS", callback_data="buy_points")]
         ]
     )
 
