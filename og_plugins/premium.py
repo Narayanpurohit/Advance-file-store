@@ -72,7 +72,7 @@ async def back_to_points_callback(client, callback_query):
 
     buttons = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("💰 ʙᴜʏ ᴘᴏɪɴᴛꜱ", callback_data="buy_points")]
+            [InlineKeyboardButton("• ʙᴜʏ ᴘᴏɪɴᴛꜱ •", callback_data="buy_points")]
         ]
     )
 
