@@ -1,7 +1,7 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db_config import users_col
-from config import ADMINS
+from config import CODE2_ADMINS
 
 
 @Client.on_message(filters.command("points") & filters.private)
@@ -35,16 +35,16 @@ async def buy_points_callback(client, callback_query):
 ࣭ ⭑⚝ ꜱᴜᴘᴘᴏʀᴛ ʙʀᴏᴀᴅᴄᴀꜱᴛ  
 ࣭ ⭑⚝ ᴜꜱᴇʀ ꜱᴛᴀᴛꜱ  
 
-”🎉 ᴀʟʟ ᴘʀɪᴄᴇ ʟɪꜱᴛ 🎉”
+”🎉 ᴀʟʟ ᴘʀɪᴄᴇ ʟɪꜱᴛ 🎉
 
 🔅 𝟮𝟬𝟬𝟬 ᴘᴛꜱ : **𝟰𝟬 ʀꜱ**  
 🔅 𝟰𝟬𝟬𝟬 ᴘᴛꜱ : **𝟴𝟬 ʀꜱ**  
-🔅 𝟭𝟬𝟬𝟬𝟬 ᴘᴛꜱ : **𝟭𝟮𝟬 ʀꜱ**  
+🔅 𝟭𝟬𝟬𝟬𝟬 ᴘᴛꜱ : **𝟭𝟮𝟬 ʀꜱ**  ”
 
 ᴄᴏᴘʏ ᴛʜɪꜱ ᴜᴘɪ ɪᴅ  
 ᴜᴘɪ ɪᴅ ➢
 
-ᴛᴀᴘ ᴛᴏ ᴄᴏᴘʏ  
+**ᴛᴀᴘ ᴛᴏ ᴄᴏᴘʏ  **
 
 ꜰᴏʀ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ'ꜱ ꜰᴇᴀᴛᴜʀᴇꜱ ʟɪꜱᴛ /ʜᴇʟᴘ  
 
