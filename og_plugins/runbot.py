@@ -10,7 +10,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-MIN_POINTS = 10
+
 
 @Client.on_message(filters.command("runbot") & filters.private)
 async def runbot_handler(client, message):
@@ -21,6 +21,9 @@ async def runbot_handler(client, message):
     user = users_col.find_one({"USER_ID": user_id}) or {}
 
     premium_points = int(user.get("PREMIUM_POINTS", 0))
+    files_sent = int(user.get("files_sent", 0))
+    batch_messages_sent = int(user.get("batch_messages_sent", 0))
+    MIN_POINTS = files_sent + batch_messages_sent
     if premium_points < MIN_POINTS:
         await message.reply_text(f"❌ You need at least {MIN_POINTS} premium points. You have {premium_points}.")
         return
