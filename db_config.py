@@ -31,7 +31,7 @@ def add_user(user_id: int):
         "points": 0,
         "created_at": datetime.utcnow(),
         "files_sent": 0,
-        "batch_messages_sent": 0
+        "batch_messages_sent": 0,
 
         # --- Default Variables for Code 2 ---
         "ENABLE_FSUB": False,
