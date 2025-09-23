@@ -1,7 +1,7 @@
 import random
 import string
 from pyrogram import Client, filters
-from bot import MONGO_URI, CAPTION,DB_NAME
+from bot import MONGO_URI, CAPTION,DB_NAME,ADMINS
 from pymongo import MongoClient
 
 mongo_client = MongoClient(MONGO_URI)
