@@ -86,7 +86,7 @@ async def back_to_points_callback(client, callback_query):
 
 @Client.on_message(filters.command("addpoints") & filters.private)
 async def add_points_handler(client, message):
-    if message.from_user.id not in ADMINS:
+    if message.from_user.id not in CODE2_ADMINS:
         await message.reply_text("🚫 ʏᴏᴜ ᴀʀᴇ ɴᴏᴛ ᴀᴜᴛʜᴏʀɪᴢᴇᴅ ᴛᴏ ᴜꜱᴇ ᴛʜɪꜱ ᴄᴏᴍᴍᴀɴᴅ.")
         return
 
