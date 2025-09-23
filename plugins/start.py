@@ -61,8 +61,7 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text(START_MSG, reply_markup=START_BUTTONS)
-            return
+            await message.reply_text(START_MSG.format(mention=message.from_user.mention), reply_markup=START_BUTTONS)            return
 
         slug = args[1]
 
@@ -283,8 +282,7 @@ async def callback_handlers(client, query: CallbackQuery):
     if query.data == "help":
         await query.message.edit_text(HELP_TEXT, reply_markup=HELP_BUTTONS)
     elif query.data == "back":
-        await query.message.edit_text(START_MSG, reply_markup=START_BUTTONS)
-    elif query.data == "close":
+        await query.message.edit_text(START_MSG.format(mention=query.from_user.mention), reply_markup=START_BUTTONS)    elif query.data == "close":
         await query.message.delete()
         
         
