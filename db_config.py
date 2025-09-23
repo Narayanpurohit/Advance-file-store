@@ -2,7 +2,8 @@
 import os
 from pymongo import MongoClient
 from datetime import datetime
-
+import logging
+log = logging.getLogger(__name__)
 
 CODE2_MONGO_URI = os.getenv("CODE2_MONGO_URI", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
 CODE2_DB_NAME = os.getenv("CODE2_DB_NAME", "clone_maker")
