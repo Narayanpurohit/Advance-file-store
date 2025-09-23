@@ -3,6 +3,7 @@ import random
 import string
 from pyrogram import Client, filters
 from database import save_batch
+from bot import ADMINS
 
 log = logging.getLogger(__name__)
 
@@ -12,7 +13,7 @@ def generate_slug(length: int = 16) -> str:
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-@Client.on_message(filters.command("batch") & filters.private)
+@Client.on_message(filters.command("batch") & filters.private & filters.user(ADMINS))
 async def batch_handler(client, message):
     try:
         args = message.text.split()
