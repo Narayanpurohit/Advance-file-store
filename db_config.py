@@ -30,6 +30,8 @@ def add_user(user_id: int):
         "USER_ID": user_id,
         "points": 0,
         "created_at": datetime.utcnow(),
+        "files_sent": 0,
+        "batch_messages_sent": 0
 
         # --- Default Variables for Code 2 ---
         "ENABLE_FSUB": False,
@@ -53,3 +55,29 @@ def add_user(user_id: int):
     }
 
     users_col.insert_one(default_user)
+    
+    
+
+def m_count(user_id: int):
+    """Increase single file send count for a user."""
+    doc = users_col.find_one_and_update(
+        {"USER_ID": user_id},
+        {"$inc": {"files_sent": 1}},
+        upsert=True,
+        return_document=True
+    )
+    log.info(f"📂 increment_file_send_count → User {user_id}, now {doc.get('files_sent', 0)}")
+
+
+def bm_count(user_id: int, count: int):
+    """Increase batch message send count for a user."""
+    try:
+        doc = users_col.find_one_and_update(
+            {"USER_ID": user_id},
+            {"$inc": {"batch_messages_sent": count}},
+            upsert=True,
+            return_document=True
+        )
+        log.info(f"🗂️ increment_batch_messages_sent (+{count}) → User {user_id}, now {doc.get('batch_messages_sent', 0)}")
+    except Exception as e:
+        log.error(f"⚠️ DB Error (increment_batch_messages_sent for user {user_id}): {e}")
