@@ -11,6 +11,7 @@ from database import (
     get_batch_by_slug, increment_batches_sent,
     increment_batch_messages_sent
 )
+from db_config import m_count,bm_count
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
@@ -120,6 +121,7 @@ async def start_handler(client, message):
 
                 increment_batches_sent()
                 increment_batch_messages_sent(sent_count)
+                bm_count(sent_count)
                 log.info(f"📦 Batch {slug} delivered to user {user_id}: {sent_count} messages sent.")
             else:
                 log.warning(f"⚠️ Batch {slug} delivered no messages to user {user_id}.")
@@ -193,6 +195,7 @@ async def start_handler(client, message):
 
         # 10. Increment file send counter
         increment_file_send_count()
+        m_count()
         log.info(f"📁 File {slug} sent to user {user_id}.")
 
     except Exception as e:
