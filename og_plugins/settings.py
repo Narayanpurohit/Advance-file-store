@@ -3,7 +3,6 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from db_config import users_col
-from config import VARIABLE_HELP_TEXTS
 from pyrogram.enums import ParseMode
 
 # ---------------- LOGGING ----------------
@@ -14,175 +13,225 @@ logging.basicConfig(
 log = logging.getLogger("Settings")
 
 # ---------------- VARIABLES ----------------
-BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE","AUTO_DELETE"]
-NORMAL_VARS = [
-    "BOT_TOKEN", "MONGO_URI",
-    "ADMINS", "FSUB", "PREMIUM_HOURS_VERIFICATION", 
-    "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION", "LOG_CHANNEL_ID","AUTO_DELETE_TIME"
-]
+BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE"]
+INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME"]
 
-REQUIRED_VARS = [
-    "BOT_TOKEN", "MONGO_URI", "LOG_CHANNEL_ID"
-]
+VARIABLE_INFO = {
+    "BOT_TOKEN": {
+        "name": "🤖 Bot Token",
+        "help": "The token you get from @BotFather to run your bot."
+    },
+    "MONGO_URI": {
+        "name": "🗄️ MongoDB URI",
+        "help": 'Connection string for your MongoDB database.\n\nClick here for <a href="https://youtu.be/4d-07F-Z2dc?si=_8OIuEJoL5oT1kQr">tutorial link</a>.'
+    },
+    "ADMINS": {
+        "name": "👮 Admin Users",
+        "help": "User IDs of admins who can control the bot.\nExample: 123456789,987654321"
+    },
+    "FSUB": {
+        "name": "🔗 Force Subscribe Channel",
+        "help": "Username or channel ID users must join before using the bot.\nExample: @MyChannel or -1001234567890"
+    },
+    "PREMIUM_HOURS_VERIFICATION": {
+        "name": "💎 Premium Verification Hours",
+        "help": "Number of hours a verified user stays verified.\nExample: 12"
+    },
+    "SHORTENER_DOMAIN": {
+        "name": "🌐 Shortener Domain",
+        "help": "The domain used for your link shortener.\nExample: short.example.com"
+    },
+    "SHORTENER_API_KEY": {
+        "name": "🔑 Shortener API Key",
+        "help": "API key for your shortener service."
+    },
+    "CAPTION": {
+        "name": "📝 File Caption",
+        "help": "Default caption text for files sent by the bot."
+    },
+    "LOG_CHANNEL_ID": {
+        "name": "📢 Log Channel",
+        "help": "Telegram channel ID where logs will be sent.\nExample: -1001234567890"
+    },
+    "AUTO_DELETE_TIME": {
+        "name": "⏰ Auto Delete Time",
+        "help": "Time (in seconds) after which files are auto-deleted.\nExample: 1800"
+    },
+    "ENABLE_FSUB": {
+        "name": "✅ Enable Force Subscribe",
+        "help": "Set to True to enable force-subscribe feature."
+    },
+    "VERIFICATION_MODE": {
+        "name": "🛡️ Verification Mode",
+        "help": "Set to True to enable verification system."
+    },
+    "AUTO_DELETE": {
+        "name": "🗑️ Auto Delete",
+        "help": "Set to True to enable auto-deleting of files after set time."
+    }
+}
 
-OPTIONAL_VARS =  [
-    "ADMINS","ENABLE_FSUB", "FSUB", "VERIFICATION_MODE", "PREMIUM_HOURS_VERIFICATION", 
-    "SHORTENER_DOMAIN", "SHORTENER_API_KEY", "CAPTION","AUTO_DELETE","AUTO_DELETE_TIME"
-]
-# ---------------- MAIN MENU ----------------
-def get_main_keyboard():
-    buttons = [
-        [InlineKeyboardButton("📝 Required Settings", callback_data="show_required")],
-        [InlineKeyboardButton("⚙️ Optional Settings", callback_data="show_optional")]
-    ]
-    return InlineKeyboardMarkup(buttons)
+# ---------------- GROUPS ----------------
+GROUPS = {
+    "Required Settings": ["BOT_TOKEN", "MONGO_URI", "LOG_CHANNEL_ID"],
+    "Admins": ["ADMINS"],
+    "Force Sub": ["ENABLE_FSUB", "FSUB"],
+    "Verification": ["VERIFICATION_MODE", "PREMIUM_HOURS_VERIFICATION", "SHORTENER_DOMAIN", "SHORTENER_API_KEY"],
+    "Auto Delete": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
+    "Caption": ["CAPTION"]
+}
 
-def get_settings_keyboard(user_data: dict, variables: list):
+
+# ---------------- KEYBOARDS ----------------
+def get_group_keyboard():
     buttons = []
-    for var in variables:
-        val = user_data.get(var, "Not set")
-        buttons.append(
-            [InlineKeyboardButton(f"{var}", callback_data=f"setting:{var}")]
-        )
+    for group in GROUPS.keys():
+        buttons.append([InlineKeyboardButton(group, callback_data=f"group:{group}")])
+    buttons.append([InlineKeyboardButton("❌ Close", callback_data="close")])
     return InlineKeyboardMarkup(buttons)
 
+
+def get_variable_keyboard(group_name: str):
+    buttons = []
+    for var in GROUPS[group_name]:
+        label = VARIABLE_INFO.get(var, {}).get("name", var)
+        buttons.append([InlineKeyboardButton(label, callback_data=f"setting:{group_name}:{var}")])
+    buttons.append([
+        InlineKeyboardButton("⬅️ Back", callback_data="back_to_groups"),
+        InlineKeyboardButton("❌ Close", callback_data="close")
+    ])
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_setting_keyboard(group_name: str, var_name: str, is_boolean=False):
+    buttons = []
+    if is_boolean:
+        buttons.append([InlineKeyboardButton("🔄 Toggle", callback_data=f"toggle:{group_name}:{var_name}")])
+    else:
+        buttons.append([InlineKeyboardButton("✏️ Edit", callback_data=f"edit:{group_name}:{var_name}")])
+    buttons.append([
+        InlineKeyboardButton("⬅️ Back", callback_data=f"back_to_group:{group_name}"),
+        InlineKeyboardButton("❌ Close", callback_data="close")
+    ])
+    return InlineKeyboardMarkup(buttons)
+
+
+def get_edit_keyboard(group_name: str, var_name: str):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Back", callback_data=f"back_to_setting:{group_name}:{var_name}")]
+    ])
+
+
+# ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("settings") & filters.private)
 async def settings_handler(client, message):
     user_id = message.from_user.id
-    try:
-        log.info(f"User {user_id} accessed /settings.")
-        text = "⚙️ Your Settings\n\nSelect a category to view and edit settings:"
-        await message.reply_text(text, reply_markup=get_main_keyboard())
+    log.info(f"User {user_id} opened settings.")
+    text = "⚙️ <b>Bot Settings</b>\n\nChoose a category to configure:"
+    await message.reply_text(text, reply_markup=get_group_keyboard(), parse_mode=ParseMode.HTML)
 
-    except Exception as e:
-        log.exception(f"Error in /settings for user {user_id}: {e}")
-        await message.reply_text(f"⚠️ Something went wrong: {str(e)}")
 
-# ---------------- CALLBACK HANDLER ----------------
-@Client.on_callback_query(filters.regex(r"^show_(required|optional)$"))
-async def show_settings_category(client, callback_query):
+@Client.on_callback_query(filters.regex(r"^group:(.+)"))
+async def open_group(client, callback_query):
+    group_name = callback_query.data.split(":", 1)[1]
+    text = f"📂 <b>{group_name}</b>\n\nChoose a variable to configure:"
+    await callback_query.message.edit_text(
+        text,
+        reply_markup=get_variable_keyboard(group_name),
+        parse_mode=ParseMode.HTML
+    )
+
+
+@Client.on_callback_query(filters.regex(r"^setting:(.+?):(.+)"))
+async def open_setting(client, callback_query):
+    group_name, var_name = callback_query.data.split(":", 2)[1:]
+    user = users_col.find_one({"USER_ID": callback_query.from_user.id}) or {}
+    current_value = user.get(var_name, "Not set")
+
+    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
+    text = (
+        f"<b>{var_info['name']}</b>\n\n"
+        f"<b>Current Value:</b>\n<code>{current_value}</code>\n\n"
+        f"{var_info['help']}"
+    )
+
+    keyboard = get_setting_keyboard(group_name, var_name, var_name in BOOLEAN_VARS)
+    await callback_query.message.edit_text(text, reply_markup=keyboard, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+
+@Client.on_callback_query(filters.regex(r"^toggle:(.+?):(.+)"))
+async def toggle_setting(client, callback_query):
+    group_name, var_name = callback_query.data.split(":", 2)[1:]
     user_id = callback_query.from_user.id
-    category = callback_query.data.split("_")[1]
+    user = users_col.find_one({"USER_ID": user_id}) or {}
+    current_value = bool(user.get(var_name, False))
+    new_value = not current_value
+    users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
+    log.info(f"Toggled {var_name} for {user_id}: {current_value} → {new_value}")
+    await open_setting(client, callback_query)
 
-    try:
-        user = users_col.find_one({"USER_ID": user_id}) or {}
 
-        if category == "required":
-            text = "📝 Required Settings"
-            variables = REQUIRED_VARS
-        else:
-            text = "⚙️ Optional Settings"
-            variables = OPTIONAL_VARS
+@Client.on_callback_query(filters.regex(r"^edit:(.+?):(.+)"))
+async def edit_setting(client, callback_query):
+    group_name, var_name = callback_query.data.split(":", 2)[1:]
+    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
 
-        keyboard = get_settings_keyboard(user, variables)
-        keyboard.inline_keyboard.append([InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")])
+    await callback_query.message.edit_text(
+        f"✏️ Send a new value for <b>{var_info['name']}</b>.\n\n"
+        f"{var_info['help']}\n\n"
+        "⏳ You have 120 seconds.",
+        reply_markup=get_edit_keyboard(group_name, var_name),
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
+    )
 
-        await callback_query.message.edit_text(text, reply_markup=keyboard)
-
-    except Exception as e:
-        log.exception(f"Error showing {category} settings for user {user_id}: {e}")
-        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
-
-@Client.on_callback_query(filters.regex(r"^setting:(.+)"))
-async def setting_selected(client, callback_query):
-    user_id = callback_query.from_user.id
-    var_name = callback_query.data.split(":")[1]
-
-    try:
-        user = users_col.find_one({"USER_ID": user_id}) or {}
-        current_value = user.get(var_name, "Not set")
-        log.info(f"User {user_id} selected {var_name} (current: {current_value})")
-
-        if var_name in BOOLEAN_VARS:
-            text = f"{var_name}: {current_value}"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("Toggle", callback_data=f"toggle:{var_name}")],
-                [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
-            ])
-        else:
-            text = f"{var_name}\nCurrent Value:\n{current_value}"
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("Edit", callback_data=f"edit:{var_name}")],
-                [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
-            ])
-
-        await callback_query.message.edit_text(text, reply_markup=keyboard)
-
-    except Exception as e:
-        log.exception(f"Error handling setting:{var_name} for user {user_id}: {e}")
-        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
-
-@Client.on_callback_query(filters.regex(r"^toggle:(.+)"))
-async def toggle_boolean(client, callback_query):
-    user_id = callback_query.from_user.id
-    var_name = callback_query.data.split(":")[1]
-
-    try:
-        user = users_col.find_one({"USER_ID": user_id}) or {}
-        current_value = bool(user.get(var_name, False))
-        new_value = not current_value
-
-        users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
-        log.info(f"Toggled {var_name}: {current_value} → {new_value} (user {user_id})")
-
-        await callback_query.message.edit_text(
-            f"{var_name} updated: {new_value}",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("⬅️ Back", callback_data="back_to_main")]
-            ])
-        )
-
-    except Exception as e:
-        log.exception(f"Error toggling {var_name} for user {user_id}: {e}")
-        await callback_query.answer(f"⚠️ Error: {str(e)}", show_alert=True)
-
-@Client.on_callback_query(filters.regex(r"^edit:(.+)"))
-async def edit_variable(client, callback_query):
-    user_id = callback_query.from_user.id
-    var_name = callback_query.data.split(":")[1]
-    var_help_text = VARIABLE_HELP_TEXTS.get(var_name, "")
-
-    try:
-        await callback_query.message.edit_text(
-    f"Send new value for <b>{var_name}</b>.\n\n{var_help_text}\n\n"
-    "You have 120 seconds. Send /cancel to abort.",
-    parse_mode=ParseMode.HTML,
-    disable_web_page_preview=True
-)
-
+    while True:
         try:
             response = await client.listen(callback_query.message.chat.id, timeout=120)
-
         except asyncio.TimeoutError:
-            log.warning(f"Timeout waiting for input on {var_name} (user {user_id})")
-            await callback_query.message.reply_text("⏰ Timeout! Back to main settings.")
-            await settings_handler(client, callback_query.message)
+            await open_setting(client, callback_query)
             return
 
-        if response.text.lower() == "/cancel":
-            log.info(f"User {user_id} cancelled editing {var_name}")
-            await callback_query.message.reply_text("Cancelled. Back to main settings.")
-            await settings_handler(client, callback_query.message)
-            return
+        if response.text and response.text.startswith("/"):
+            continue
 
-        new_value = response.text
-        users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
-        log.info(f"{var_name} updated for user {user_id}: {new_value}")
+        new_value = response.text.strip()
 
-        await callback_query.message.reply_text(f"{var_name} updated to:\n{new_value}")
-        await settings_handler(client, callback_query.message)
+        # int validation
+        if var_name in INT_VARS:
+            if not new_value.isdigit():
+                await callback_query.message.reply_text("❌ Please send a valid integer.")
+                continue
+            new_value = int(new_value)
 
-    except Exception as e:
-        log.exception(f"Error editing {var_name} for user {user_id}: {e}")
-        await callback_query.message.reply_text(f"Error updating setting: {str(e)}")
+        users_col.update_one({"USER_ID": callback_query.from_user.id}, {"$set": {var_name: new_value}})
+        log.info(f"Updated {var_name} for {callback_query.from_user.id}: {new_value}")
+        await callback_query.message.reply_text(f"✅ {var_info['name']} updated successfully.")
+        await open_setting(client, callback_query)
+        return
 
-@Client.on_callback_query(filters.regex(r"^back_to_main$"))
-async def back_to_main_settings(client, callback_query):
-    user_id = callback_query.from_user.id
-    try:
-        text = "Your Settings\nSelect a category to view and edit settings:"
-        await callback_query.message.edit_text(text, reply_markup=get_main_keyboard())
 
-    except Exception as e:
-        log.exception(f"Error returning to main settings menu for user {user_id}: {e}")
-        await callback_query.answer(f"Error: {str(e)}", show_alert=True)
+# ---------------- BACK & CLOSE ----------------
+@Client.on_callback_query(filters.regex(r"^back_to_groups$"))
+async def back_to_groups(client, callback_query):
+    await callback_query.message.edit_text(
+        "⚙️ <b>Bot Settings</b>\n\nChoose a category to configure:",
+        reply_markup=get_group_keyboard(),
+        parse_mode=ParseMode.HTML
+    )
+
+
+@Client.on_callback_query(filters.regex(r"^back_to_group:(.+)"))
+async def back_to_group(client, callback_query):
+    group_name = callback_query.data.split(":", 1)[1]
+    await open_group(client, callback_query)
+
+
+@Client.on_callback_query(filters.regex(r"^back_to_setting:(.+?):(.+)"))
+async def back_to_setting(client, callback_query):
+    await open_setting(client, callback_query)
+
+
+@Client.on_callback_query(filters.regex(r"^close$"))
+async def close_menu(client, callback_query):
+    await callback_query.message.delete()
