@@ -5,6 +5,7 @@ from bot import ENABLE_FSUB, FSUB
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
 log = logging.getLogger(__name__)
+FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
 
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
     """
@@ -15,8 +16,7 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         return True  # Skip check if disabled
 
     not_joined = []
-    FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
-
+    
 
     for btn_name, channel_id in FSUB.items():
         try:
