@@ -19,6 +19,7 @@ async def runbot_handler(client, message):
     docker_client = docker.from_env()
 
     user = users_col.find_one({"USER_ID": user_id}) or {}
+    logger.info(f"FSUB variable extracted from DB: {user.get('FSUB')}")
 
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     files_sent = int(user.get("files_sent", 0))
