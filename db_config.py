@@ -43,7 +43,7 @@ def add_user(user_id: int):
         "MONGO_URI": "",
         "DB_NAME": "filestorebot",
         "ADMINS": [],
-        "FSUB_CHANNELS": "",
+        "FSUB": "",
         "PREMIUM_HOURS_VERIFICATION": 12,
         "VERIFY_SLUG_TTL_HOURS": 8,
         "SHORTENER_DOMAIN": "",
