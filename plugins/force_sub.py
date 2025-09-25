@@ -6,7 +6,6 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQ
 
 log = logging.getLogger(__name__)
 
-
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
     """
     Check if user has joined all required FSUB channels.
@@ -16,6 +15,8 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         return True  # Skip check if disabled
 
     not_joined = []
+    FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
+
 
     for btn_name, channel_id in FSUB.items():
         try:
