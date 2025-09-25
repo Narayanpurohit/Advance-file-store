@@ -1,6 +1,7 @@
 import logging
 from pyrogram import Client
 import config
+import pyromod.listen
 
 logging.basicConfig(
     level=logging.INFO,
