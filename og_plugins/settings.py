@@ -29,7 +29,7 @@ VARIABLE_INFO = {
     "AUTO_DELETE_TIME": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇ", "help": "ᴛɪᴍᴇ (sᴇᴄᴏɴᴅs) ғᴏʀ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ."},
     "ENABLE_FSUB": {"name": "ᴇɴᴀʙʟᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴛᴏɢɢʟᴇ ғᴏʀᴄᴇ-sᴜʙ."},
     "VERIFICATION_MODE": {"name": "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ", "help": "ᴛᴏɢɢʟᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ sʏsᴛᴇᴍ."},
-    "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ғᴇᴀᴛᴜʀᴇ."}
+    "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ ғᴇᴀᴛᴜʀᴇ."}
 }
 
 # ---------------- GROUPS ----------------
@@ -97,6 +97,9 @@ def get_edit_keyboard(group_key: str, var_name: str):
         [InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_key}:{var_name}")]
     ])
 
+# ---------------- ACTIVE LISTENERS ----------------
+active_edit_listeners = {}
+
 # ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("settings") & filters.private)
 async def settings_handler(client, message):
@@ -143,13 +146,23 @@ async def toggle_setting(client, cq):
 async def edit_setting(client, cq):
     group_key, var_name = cq.data.split(":", 2)[1:]
     var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
+
     await cq.message.edit_text(
         f"✎ Send new value for <b>{var_info['name']}</b>.\n\n{var_info['help']}\n\n⏳ 120s timeout.",
         reply_markup=get_edit_keyboard(group_key, var_name),
         parse_mode=ParseMode.HTML
     )
+
+    # Cancel previous listener if exists
+    if cq.message.chat.id in active_edit_listeners:
+        active_edit_listeners[cq.message.chat.id].cancel()
+
+    # Start new listener
+    task = asyncio.create_task(client.listen(cq.message.chat.id, timeout=120))
+    active_edit_listeners[cq.message.chat.id] = task
+
     try:
-        response = await client.listen(cq.message.chat.id, timeout=120)
+        response = await task
         new_value = int(response.text.strip()) if var_name in INT_VARS else response.text.strip()
         users_col.update_one({"USER_ID": cq.from_user.id}, {"$set": {var_name: new_value}})
         await cq.message.reply_text(
@@ -157,12 +170,21 @@ async def edit_setting(client, cq):
             parse_mode=ParseMode.HTML
         )
     except asyncio.TimeoutError:
-        await cq.message.reply_text("⏳ Edit timed out.")
+        await cq.message.reply_text("⏳ Edit timed out.", parse_mode=ParseMode.HTML)
+    except asyncio.CancelledError:
+        pass  # cancelled by back/close
+    finally:
+        active_edit_listeners.pop(cq.message.chat.id, None)
+
     await open_setting(client, cq)
 
 # ---------------- BACK & CLOSE ----------------
 @Client.on_callback_query(filters.regex(r"^back_to_groups$"))
 async def back_to_groups(client, cq):
+    # cancel active listener
+    listener = active_edit_listeners.pop(cq.message.chat.id, None)
+    if listener:
+        listener.cancel()
     await cq.message.edit_text(
         "⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄᴀᴛᴇɢᴏʀʏ:",
         reply_markup=get_group_keyboard(),
@@ -171,6 +193,9 @@ async def back_to_groups(client, cq):
 
 @Client.on_callback_query(filters.regex(r"^back_to_group:(.+)"))
 async def back_to_group(client, cq):
+    listener = active_edit_listeners.pop(cq.message.chat.id, None)
+    if listener:
+        listener.cancel()
     group_key = cq.data.split(":", 1)[1]
     group_name = next(k for k, v in GROUP_KEYS.items() if v == group_key)
     await cq.message.edit_text(
@@ -181,6 +206,9 @@ async def back_to_group(client, cq):
 
 @Client.on_callback_query(filters.regex(r"^back_to_setting:(.+?):(.+)"))
 async def back_to_setting(client, cq):
+    listener = active_edit_listeners.pop(cq.message.chat.id, None)
+    if listener:
+        listener.cancel()
     group_key, var_name = cq.data.split(":", 2)[1:]
     user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
     current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
@@ -195,4 +223,7 @@ async def back_to_setting(client, cq):
 
 @Client.on_callback_query(filters.regex(r"^close$"))
 async def close_menu(client, cq):
+    listener = active_edit_listeners.pop(cq.message.chat.id, None)
+    if listener:
+        listener.cancel()
     await cq.message.delete()
