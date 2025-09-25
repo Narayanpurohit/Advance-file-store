@@ -3,7 +3,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ParseMode
-from pyromod.listen import Client as ListenClient  # pyromod integration
+from pyromod.listen import Client as ListenClient
 from db_config import users_col
 
 # ---------------- LOGGING ----------------
@@ -12,6 +12,16 @@ logging.basicConfig(
     format="%(asctime)s - [%(levelname)s] - %(name)s - %(message)s"
 )
 log = logging.getLogger("Settings")
+
+# ---------------- SAFE KEYS ----------------
+GROUP_KEYS = {
+    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": "required",
+    "⍟ ᴀᴅᴍɪɴs": "admins",
+    "⊛ ғᴏʀᴄᴇ sᴜʙ": "fsub",
+    "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": "verification",
+    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": "autodelete",
+    "○ ᴄᴀᴘᴛɪᴏɴ": "caption"
+}
 
 # ---------------- VARIABLES ----------------
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE"]
@@ -27,7 +37,7 @@ VARIABLE_INFO = {
     "SHORTENER_API_KEY": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴀᴘɪ ᴋᴇʏ", "help": "ᴀᴘɪ ᴋᴇʏ ғᴏʀ ʏᴏᴜʀ sʜᴏʀᴛᴇɴᴇʀ."},
     "CAPTION": {"name": "ғɪʟᴇ ᴄᴀᴘᴛɪᴏɴ", "help": "ᴅᴇғᴀᴜʟᴛ ᴄᴀᴘᴛɪᴏɴ ғᴏʀ ғɪʟᴇs."},
     "AUTO_DELETE_TIME": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇ", "help": "ᴛɪᴍᴇ (sᴇᴄᴏɴᴅs) ғᴏʀ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ."},
-    "ENABLE_FSUB": {"name": "ᴇɴᴀʙʟᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴛᴏɢɢʟᴇ ғᴏʀᴄᴇ-sᴜʙ."},
+    "ENABLE_FSUB": {"name": "ᴇɴᴀᴛᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴛᴏɢɢʟᴇ ғᴏʀᴄᴇ-sᴜʙ."},
     "VERIFICATION_MODE": {"name": "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ", "help": "ᴛᴏɢɢʟᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ sʏsᴛᴇᴍ."},
     "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴛᴏɢɢʟᴇ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ғᴇᴀᴛᴜʀᴇ."}
 }
@@ -51,30 +61,31 @@ VERIFICATION_SUB = [
 
 # ---------------- KEYBOARDS ----------------
 def get_group_keyboard():
-    buttons = [[InlineKeyboardButton(group, callback_data=f"group:{group}")] for group in GROUPS.keys()]
+    buttons = [[InlineKeyboardButton(group, callback_data=f"group:{GROUP_KEYS[group]}")] for group in GROUPS.keys()]
     buttons.append([InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
     return InlineKeyboardMarkup(buttons)
 
-def get_variable_keyboard(group_name: str):
-    if group_name == "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ":
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_name}:{var}")]
+def get_variable_keyboard(group_key: str):
+    if group_key == "verification":
+        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_key}:{var}")]
                    for var in VERIFICATION_SUB]
     else:
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_name}:{var}")]
+        group_name = next(k for k, v in GROUP_KEYS.items() if v == group_key)
+        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_key}:{var}")]
                    for var in GROUPS[group_name]]
     buttons.append([InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data="back_to_groups"),
                     InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
     return InlineKeyboardMarkup(buttons)
 
-def get_setting_keyboard(group_name: str, var_name: str, is_boolean=False):
-    buttons = [[InlineKeyboardButton("✧ ᴛᴏɢɢʟᴇ", callback_data=f"toggle:{group_name}:{var_name}")]] if is_boolean else \
-              [[InlineKeyboardButton("✎ ᴇᴅɪᴛ", callback_data=f"edit:{group_name}:{var_name}")]]
-    buttons.append([InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_group:{group_name}"),
+def get_setting_keyboard(group_key: str, var_name: str, is_boolean=False):
+    buttons = [[InlineKeyboardButton("✧ ᴛᴏɢɢʟᴇ", callback_data=f"toggle:{group_key}:{var_name}")]] if is_boolean else \
+              [[InlineKeyboardButton("✎ ᴇᴅɪᴛ", callback_data=f"edit:{group_key}:{var_name}")]]
+    buttons.append([InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_group:{group_key}"),
                     InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
     return InlineKeyboardMarkup(buttons)
 
-def get_edit_keyboard(group_name: str, var_name: str):
-    return InlineKeyboardMarkup([[InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_name}:{var_name}")]])
+def get_edit_keyboard(group_key: str, var_name: str):
+    return InlineKeyboardMarkup([[InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_key}:{var_name}")]])
 
 # ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("settings") & filters.private)
@@ -84,23 +95,24 @@ async def settings_handler(client, message):
 
 @Client.on_callback_query(filters.regex(r"^group:(.+)"))
 async def open_group(client, cq):
-    group_name = cq.data.split(":", 1)[1]
+    group_key = cq.data.split(":", 1)[1]
+    group_name = next(k for k, v in GROUP_KEYS.items() if v == group_key)
     await cq.message.edit_text(f"📂 <b>{group_name}</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴠᴀʀɪᴀʙʟᴇ:",
-                               reply_markup=get_variable_keyboard(group_name), parse_mode=ParseMode.HTML)
+                               reply_markup=get_variable_keyboard(group_key), parse_mode=ParseMode.HTML)
 
 @Client.on_callback_query(filters.regex(r"^setting:(.+?):(.+)"))
 async def open_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
     current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
     var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
     text = f"<b>{var_info['name']}</b>\n\n<b>ᴄᴜʀʀᴇɴᴛ:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
-    await cq.message.edit_text(text, reply_markup=get_setting_keyboard(group_name, var_name, var_name in BOOLEAN_VARS),
+    await cq.message.edit_text(text, reply_markup=get_setting_keyboard(group_key, var_name, var_name in BOOLEAN_VARS),
                                parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
 @Client.on_callback_query(filters.regex(r"^toggle:(.+?):(.+)"))
 async def toggle_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     user_id = cq.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
     new_value = not bool(user.get(var_name, False))
@@ -109,11 +121,11 @@ async def toggle_setting(client, cq):
 
 @Client.on_callback_query(filters.regex(r"^edit:(.+?):(.+)"))
 async def edit_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
     await cq.message.edit_text(
         f"✎ Send new value for <b>{var_info['name']}</b>.\n\n{var_info['help']}\n\n⏳ 120s timeout.",
-        reply_markup=get_edit_keyboard(group_name, var_name),
+        reply_markup=get_edit_keyboard(group_key, var_name),
         parse_mode=ParseMode.HTML
     )
     try:
