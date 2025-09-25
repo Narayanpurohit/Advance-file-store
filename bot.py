@@ -24,7 +24,7 @@ ENABLE_FSUB = os.getenv("ENABLE_FSUB") == "True"
 VERIFICATION_MODE = os.getenv("VERIFICATION_MODE") == "True"
 MONGO_URI = os.getenv("MONGO_URI", "")
 DB_NAME = os.getenv("DB_NAME", "")
-FSUB_CHANNELS = os.getenv("FSUB_CHANNELS", "")
+FSUB = os.getenv("FSUB", "")
 PREMIUM_HOURS_VERIFICATION = int(os.getenv("PREMIUM_HOURS_VERIFICATION", ""))
 VERIFY_SLUG_TTL_HOURS = int(os.getenv("VERIFY_SLUG_TTL_HOURS", ""))
 SHORTENER_DOMAIN = os.getenv("SHORTENER_DOMAIN", "")
