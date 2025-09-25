@@ -58,7 +58,7 @@ async def runbot_handler(client, message):
         "VERIFICATION_MODE": str(user.get("VERIFICATION_MODE", False)),
         "MONGO_URI": user.get("MONGO_URI", ""),
         "DB_NAME": user.get("DB_NAME", ""),
-        "FSUB_CHANNELS": user.get("FSUB_CHANNELS", ""),
+        "FSUB": user.get("FSUB", ""),
         "PREMIUM_HOURS_VERIFICATION": str(user.get("PREMIUM_HOURS_VERIFICATION", "")),
         "VERIFY_SLUG_TTL_HOURS": str(user.get("VERIFY_SLUG_TTL_HOURS", "")),
         "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
