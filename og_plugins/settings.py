@@ -3,7 +3,7 @@ import asyncio
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.enums import ParseMode
-from pyromod.listen import Client as ListenClient  # pyromod integration
+import pyromod.listen  # enable client.listen
 from db_config import users_col
 
 # ---------------- LOGGING ----------------
@@ -12,9 +12,6 @@ logging.basicConfig(
     format="%(asctime)s - [%(levelname)s] - %(name)s - %(message)s"
 )
 log = logging.getLogger("Settings")
-
-# ---------------- LISTENER TRACKER ----------------
-active_listeners = {}  # chat_id -> asyncio.Task
 
 # ---------------- VARIABLES ----------------
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE"]
@@ -36,6 +33,15 @@ VARIABLE_INFO = {
 }
 
 # ---------------- GROUPS ----------------
+GROUP_KEYS = {
+    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": "required",
+    "⍟ ᴀᴅᴍɪɴs": "admins",
+    "⊛ ғᴏʀᴄᴇ sᴜʙ": "fsub",
+    "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": "verification",
+    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": "autodelete",
+    "○ ᴄᴀᴘᴛɪᴏɴ": "caption"
+}
+
 GROUPS = {
     "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "MONGO_URI"],
     "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
@@ -54,56 +60,79 @@ VERIFICATION_SUB = [
 
 # ---------------- KEYBOARDS ----------------
 def get_group_keyboard():
-    buttons = [[InlineKeyboardButton(group, callback_data=f"group:{group}")] for group in GROUPS.keys()]
+    buttons = [
+        [InlineKeyboardButton(group, callback_data=f"group:{GROUP_KEYS[group]}")]
+        for group in GROUPS.keys()
+    ]
     buttons.append([InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
     return InlineKeyboardMarkup(buttons)
 
-def get_variable_keyboard(group_name: str):
+def get_variable_keyboard(group_key: str):
+    group_name = next(name for name, key in GROUP_KEYS.items() if key == group_key)
     if group_name == "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ":
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_name}:{var}")]
-                   for var in VERIFICATION_SUB]
+        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •",
+                   callback_data=f"setting:{group_key}:{var}")] for var in VERIFICATION_SUB]
     else:
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •", callback_data=f"setting:{group_name}:{var}")]
-                   for var in GROUPS[group_name]]
-    buttons.append([InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data="back_to_groups"),
-                    InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
+        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •",
+                   callback_data=f"setting:{group_key}:{var}")] for var in GROUPS[group_name]]
+    buttons.append([
+        InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data="back_to_groups"),
+        InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")
+    ])
     return InlineKeyboardMarkup(buttons)
 
-def get_setting_keyboard(group_name: str, var_name: str, is_boolean=False):
-    buttons = [[InlineKeyboardButton("✧ ᴛᴏɢɢʟᴇ", callback_data=f"toggle:{group_name}:{var_name}")]] if is_boolean else \
-              [[InlineKeyboardButton("✎ ᴇᴅɪᴛ", callback_data=f"edit:{group_name}:{var_name}")]]
-    buttons.append([InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_group:{group_name}"),
-                    InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
+def get_setting_keyboard(group_key: str, var_name: str, is_boolean=False):
+    if is_boolean:
+        buttons = [[InlineKeyboardButton("✧ ᴛᴏɢɢʟᴇ", callback_data=f"toggle:{group_key}:{var_name}")]]
+    else:
+        buttons = [[InlineKeyboardButton("✎ ᴇᴅɪᴛ", callback_data=f"edit:{group_key}:{var_name}")]]
+    buttons.append([
+        InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_group:{group_key}"),
+        InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")
+    ])
     return InlineKeyboardMarkup(buttons)
 
-def get_edit_keyboard(group_name: str, var_name: str):
-    return InlineKeyboardMarkup([[InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_name}:{var_name}")]])
+def get_edit_keyboard(group_key: str, var_name: str):
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_key}:{var_name}")]
+    ])
 
 # ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("settings") & filters.private)
 async def settings_handler(client, message):
-    await message.reply_text("⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nSelect a category:", 
-                             reply_markup=get_group_keyboard(), parse_mode=ParseMode.HTML)
+    await message.reply_text(
+        "⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄᴀᴛᴇɢᴏʀʏ:",
+        reply_markup=get_group_keyboard(),
+        parse_mode=ParseMode.HTML
+    )
 
 @Client.on_callback_query(filters.regex(r"^group:(.+)"))
 async def open_group(client, cq):
-    group_name = cq.data.split(":", 1)[1]
-    await cq.message.edit_text(f"📂 <b>{group_name}</b>\n\nSelect a variable:",
-                               reply_markup=get_variable_keyboard(group_name), parse_mode=ParseMode.HTML)
+    group_key = cq.data.split(":", 1)[1]
+    group_name = next(name for name, key in GROUP_KEYS.items() if key == group_key)
+    await cq.message.edit_text(
+        f"📂 <b>{group_name}</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴠᴀʀɪᴀʙʟᴇ:",
+        reply_markup=get_variable_keyboard(group_key),
+        parse_mode=ParseMode.HTML
+    )
 
 @Client.on_callback_query(filters.regex(r"^setting:(.+?):(.+)"))
 async def open_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
-    current_value = user.get(var_name, "Not set")
+    current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
     var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
-    text = f"<b>{var_info['name']}</b>\n\n<b>Current:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
-    await cq.message.edit_text(text, reply_markup=get_setting_keyboard(group_name, var_name, var_name in BOOLEAN_VARS),
-                               parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+    text = f"<b>{var_info['name']}</b>\n\n<b>ᴄᴜʀʀᴇɴᴛ:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
+    await cq.message.edit_text(
+        text,
+        reply_markup=get_setting_keyboard(group_key, var_name, var_name in BOOLEAN_VARS),
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
+    )
 
 @Client.on_callback_query(filters.regex(r"^toggle:(.+?):(.+)"))
 async def toggle_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     user_id = cq.from_user.id
     user = users_col.find_one({"USER_ID": user_id}) or {}
     new_value = not bool(user.get(var_name, False))
@@ -112,57 +141,58 @@ async def toggle_setting(client, cq):
 
 @Client.on_callback_query(filters.regex(r"^edit:(.+?):(.+)"))
 async def edit_setting(client, cq):
-    group_name, var_name = cq.data.split(":", 2)[1:]
+    group_key, var_name = cq.data.split(":", 2)[1:]
     var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
-
     await cq.message.edit_text(
         f"✎ Send new value for <b>{var_info['name']}</b>.\n\n{var_info['help']}\n\n⏳ 120s timeout.",
-        reply_markup=get_edit_keyboard(group_name, var_name),
+        reply_markup=get_edit_keyboard(group_key, var_name),
         parse_mode=ParseMode.HTML
     )
-
-    # Cancel previous listener if exists
-    if cq.message.chat.id in active_listeners:
-        active_listeners[cq.message.chat.id].cancel()
-
-    task = asyncio.create_task(client.listen(cq.message.chat.id, timeout=120))
-    active_listeners[cq.message.chat.id] = task
-
     try:
-        response = await task
+        response = await client.listen(cq.message.chat.id, timeout=120)
         new_value = int(response.text.strip()) if var_name in INT_VARS else response.text.strip()
         users_col.update_one({"USER_ID": cq.from_user.id}, {"$set": {var_name: new_value}})
-        await cq.message.reply_text(f"✅ {var_info['name']} updated: <code>{new_value}</code>", parse_mode=ParseMode.HTML)
+        await cq.message.reply_text(
+            f"✅ {var_info['name']} updated: <code>{new_value}</code>",
+            parse_mode=ParseMode.HTML
+        )
     except asyncio.TimeoutError:
-        await cq.message.reply_text("⏳ Edit timed out.", parse_mode=ParseMode.HTML)
-    except asyncio.CancelledError:
-        pass  # cancelled by back/close
-    finally:
-        active_listeners.pop(cq.message.chat.id, None)
+        await cq.message.reply_text("⏳ Edit timed out.")
     await open_setting(client, cq)
 
 # ---------------- BACK & CLOSE ----------------
-def cancel_listener(cq):
-    task = active_listeners.pop(cq.message.chat.id, None)
-    if task:
-        task.cancel()
-
 @Client.on_callback_query(filters.regex(r"^back_to_groups$"))
 async def back_to_groups(client, cq):
-    cancel_listener(cq)
-    await settings_handler(client, cq.message)
+    await cq.message.edit_text(
+        "⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄᴀᴛᴇɢᴏʀʏ:",
+        reply_markup=get_group_keyboard(),
+        parse_mode=ParseMode.HTML
+    )
 
 @Client.on_callback_query(filters.regex(r"^back_to_group:(.+)"))
 async def back_to_group(client, cq):
-    cancel_listener(cq)
-    await open_group(client, cq)
+    group_key = cq.data.split(":", 1)[1]
+    group_name = next(k for k, v in GROUP_KEYS.items() if v == group_key)
+    await cq.message.edit_text(
+        f"📂 <b>{group_name}</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴠᴀʀɪᴀʙʟᴇ:",
+        reply_markup=get_variable_keyboard(group_key),
+        parse_mode=ParseMode.HTML
+    )
 
 @Client.on_callback_query(filters.regex(r"^back_to_setting:(.+?):(.+)"))
 async def back_to_setting(client, cq):
-    cancel_listener(cq)
-    await open_setting(client, cq)
+    group_key, var_name = cq.data.split(":", 2)[1:]
+    user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
+    current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
+    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
+    text = f"<b>{var_info['name']}</b>\n\n<b>ᴄᴜʀʀᴇɴᴛ:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
+    await cq.message.edit_text(
+        text,
+        reply_markup=get_setting_keyboard(group_key, var_name, var_name in BOOLEAN_VARS),
+        parse_mode=ParseMode.HTML,
+        disable_web_page_preview=True
+    )
 
 @Client.on_callback_query(filters.regex(r"^close$"))
 async def close_menu(client, cq):
-    cancel_listener(cq)
     await cq.message.delete()
