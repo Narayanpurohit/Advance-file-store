@@ -19,6 +19,7 @@ INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME"]
 
 VARIABLE_INFO = {
     "BOT_TOKEN": {"name": "ʙᴏᴛ ᴛᴏᴋᴇɴ", "help": "ᴛʜᴇ ᴛᴏᴋᴇɴ ʏᴏᴜ ɢᴇᴛ ғʀᴏᴍ @ʙᴏᴛғᴀᴛʜᴇʀ."},
+    "DB_NAME": {"name": "Db name", "help": "this is unique code."},
     "MONGO_URI": {"name": "ᴍᴏɴɢᴏᴅʙ ᴜʀɪ", "help": "ᴄᴏɴɴᴇᴄᴛɪᴏɴ sᴛʀɪɴɢ ғᴏʀ ᴍᴏɴɢᴏᴅʙ."},
     "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ᴏғ ᴀᴅᴍɪɴs."},
     "FSUB": {"name": "ғᴏʀᴄᴇ sᴜʙ ᴄʜᴀɴɴᴇʟ", "help": "ᴜsᴇʀɴᴀᴍᴇ/ɪᴅ ᴏғ ᴄʜᴀɴɴᴇʟ ғᴏʀ ғsᴜʙ."},
@@ -43,7 +44,7 @@ GROUP_KEYS = {
 }
 
 GROUPS = {
-    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "MONGO_URI"],
+    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "MONGO_URI","DB_NAME],
     "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
     "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
