@@ -5,7 +5,7 @@ import logging
 log = logging.getLogger(__name__)
 
 # 🛡️ Replace with your admin IDs
-from config import ADMINS  # <--- change this to your Telegram user IDs
+from config import CODE2_ADMINS as ADMINS  # <--- change this to your Telegram user IDs
 
 
 @Client.on_message(filters.command("delete") & filters.private)
