@@ -21,11 +21,23 @@ def user_exists(user_id: int) -> bool:
     """Check if a user exists in the DB."""
     return users_col.find_one({"USER_ID": user_id}) is not None
 
+def generate_slug(length=5):
+    """Generate random 5-letter lowercase slug."""
+    return ''.join(random.choices(string.ascii_lowercase, k=length))
+
+
+def is_slug_unique(slug):
+    """Ensure slug is unique across users."""
+    return users_col.find_one({"DB_NAME": slug}) is None
 
 def add_user(user_id: int):
     """Add a new user with all default variables if not exists."""
     if user_exists(user_id):
         return
+    while True:
+        slug = generate_slug()
+        if is_slug_unique(slug):
+            break
 
     default_user = {
         "USER_ID": user_id,
@@ -41,7 +53,7 @@ def add_user(user_id: int):
         "API_ID": "15191874",
         "API_HASH": "3037d39233c6fad9b80d83bb8a339a07",
         "MONGO_URI": "",
-        "DB_NAME": "filestorebot",
+        "DB_NAME": slug,
         "ADMINS": [],
         "FSUB": "",
         "PREMIUM_HOURS_VERIFICATION": 12,
