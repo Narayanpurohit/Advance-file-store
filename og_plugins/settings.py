@@ -44,7 +44,7 @@ GROUP_KEYS = {
 }
 
 GROUPS = {
-    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "MONGO_URI","DB_NAME],
+    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "MONGO_URI","DB_NAME"],
     "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
     "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
