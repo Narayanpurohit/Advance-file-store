@@ -5,9 +5,30 @@ from pyrogram.errors import UserNotParticipant, ChatAdminRequired
 from bot import ENABLE_FSUB, FSUB
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
+
+import re
+import logging
+
 log = logging.getLogger(__name__)
-log.info(f"🔍 FSUB variable loaded: {FSUB}")
-FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
+
+# ✅ Only parse FSUB if ENABLE_FSUB is True
+if ENABLE_FSUB:
+    try:
+        if isinstance(FSUB, str):
+            pairs = re.findall(r'([^:,]+)\s*:\s*(-?\d+)', FSUB)
+            FSUB = {name.strip(): int(value) for name, value in pairs}
+        elif not FSUB:
+            FSUB = {}
+    except Exception as e:
+        log.error(f"⚠️ Error parsing FSUB: {e}")
+        FSUB = {}
+
+    log.info(f"🔍 FSUB loaded successfully: {FSUB}")
+else:
+    log.info("ℹ️ ENABLE_FSUB is False — skipping FSUB parsing.")
+    
+    
+    
 
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
     """
