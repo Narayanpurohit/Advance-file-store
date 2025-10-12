@@ -5,8 +5,8 @@ from pyrogram.errors import UserNotParticipant, ChatAdminRequired
 from bot import ENABLE_FSUB, FSUB
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-log.info(f"🔍 FSUB variable loaded: {FSUB}")
 log = logging.getLogger(__name__)
+log.info(f"🔍 FSUB variable loaded: {FSUB}")
 FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
 
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
