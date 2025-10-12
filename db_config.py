@@ -54,7 +54,7 @@ def add_user(user_id: int):
         "BOT_TOKEN": "",
         "API_ID": "15191874",
         "API_HASH": "3037d39233c6fad9b80d83bb8a339a07",
-        "MONGO_URI": "",
+        "MONGO_URI": "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0",
         "DB_NAME": slug,
         "ADMINS": [],
         "FSUB": "",
