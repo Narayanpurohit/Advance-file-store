@@ -5,6 +5,7 @@ from pyrogram.errors import UserNotParticipant, ChatAdminRequired
 from bot import ENABLE_FSUB, FSUB
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
+log.info(f"🔍 FSUB variable loaded: {FSUB}")
 log = logging.getLogger(__name__)
 FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
 
