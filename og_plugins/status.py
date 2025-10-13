@@ -27,7 +27,7 @@ async def status_handler(client, message):
     try:
         container = docker_client.containers.get(container_name)
     except docker.errors.NotFound:
-        await message.reply_text("❌ You don’t have any active deployment.")
+        await message.reply_text("❌ ʏᴏᴜ ᴅᴏɴ’ᴛ ʜᴀᴠᴇ ᴀɴʏ ᴀᴄᴛɪᴠᴇ ᴅᴇᴘʟᴏʏᴍᴇɴᴛ.")
         return
 
     container.reload()
@@ -41,20 +41,15 @@ async def status_handler(client, message):
             uptime_seconds = (datetime.utcnow() - started_dt).total_seconds()
             hours, remainder = divmod(int(uptime_seconds), 3600)
             minutes, seconds = divmod(remainder, 60)
-            uptime = f"{hours}h {minutes}m {seconds}s"
+            uptime = f"{hours}ʰ {minutes}ᵐ {seconds}ˢ"
         except Exception as e:
             logger.error(f"Error calculating uptime: {e}")
 
-    # Fetch DB status for comparison
-    user = users_col.find_one({"USER_ID": user_id}) or {}
-    db_status = user.get("BOT_STATUS", "unknown")
-
+    # Build small caps text
     text = (
-        f"📊 **Deployment Status**\n\n"
-        f"🆔 **Container ID:** `{container.short_id}`\n"
-        f"⚙️ **Docker Status:** `{status}`\n"
-        f"💾 **DB Status:** `{db_status}`\n"
-        f"⏱ **Uptime:** `{uptime}`\n"
+        f"📊 ᴅᴇᴘʟᴏʏᴍᴇɴᴛ sᴛᴀᴛᴜs\n\n"
+        f"⚙️ ᴅᴏᴄᴋᴇʀ sᴛᴀᴛᴜs: `{status}`\n"
+        f"⏱ ᴜᴘᴛɪᴍᴇ: `{uptime}`\n"
     )
 
     await message.reply_text(text)
