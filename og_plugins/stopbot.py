@@ -1,6 +1,10 @@
+import docker
+import logging
 from pyrogram import Client, filters
 from db_config import users_col
-import docker
+
+logger = logging.getLogger(__name__)
+
 
 @Client.on_message(filters.command("stopbot") & filters.private)
 async def stopbot_handler(client, message):
@@ -8,20 +12,30 @@ async def stopbot_handler(client, message):
     container_name = f"userbot_{user_id}"
     docker_client = docker.from_env()
 
+    await message.reply_text("🛑 Attempting to stop your deployed bot...")
+
     try:
+        # Try to find the container by name
         container = docker_client.containers.get(container_name)
-        container.stop()
-        container.remove()
-
-        users_col.update_one(
-            {"USER_ID": user_id},
-            {"$set": {"BOT_STATUS": "stopped", "DOCKER_CONTAINER_ID": None}}
-        )
-
-        await message.reply_text("🛑 Your bot has been stopped and the container removed successfully.")
-
     except docker.errors.NotFound:
-        await message.reply_text("⚠️ No running container found for your user.")
+        await message.reply_text("❌ You don’t have any active deployment to stop.")
+        return
+
+    try:
+        container.reload()
+        status = container.status
+
+        if status == "running":
+            container.stop()
+            await message.reply_text("✅ Bot stopped successfully (container preserved).")
+            users_col.update_one(
+                {"USER_ID": user_id},
+                {"$set": {"BOT_STATUS": "stopped"}}
+            )
+            logger.info(f"🛑 Container {container_name} stopped for user {user_id}")
+        else:
+            await message.reply_text(f"⚠️ Bot is not currently running. Current status: `{status}`")
 
     except Exception as e:
-        await message.reply_text(f"⚠️ Error stopping your bot:\n`{str(e)}`")
+        logger.error(f"Error while stopping container {container_name}: {e}")
+        await message.reply_text(f"❌ Failed to stop bot: `{str(e)}`")
