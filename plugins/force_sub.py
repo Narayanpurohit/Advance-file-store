@@ -11,18 +11,20 @@ import logging
 
 log = logging.getLogger(__name__)
 
-# ✅ Only parse FSUB if ENABLE_FSUB is True
 if ENABLE_FSUB:
     try:
-        FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
+        if isinstance(FSUB, str):
+            # Parse plain text like: "Channel 1 : -1002121710549 , Channel 2 : -1002555795391"
+            pairs = re.findall(r'([^:,]+)\s*:\s*(-?\d+)', FSUB)
+            FSUB = {name.strip(): int(value) for name, value in pairs}
+        elif not FSUB:
+            FSUB = {}
+        log.info(f"🔍 FSUB loaded successfully: {FSUB}")
     except Exception as e:
         log.error(f"⚠️ Error parsing FSUB: {e}")
-
-    log.info(f"🔍 FSUB loaded successfully: {FSUB}")
+        FSUB = {}
 else:
     log.info("ℹ️ ENABLE_FSUB is False — skipping FSUB parsing.")
-    
-    
     
 
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
