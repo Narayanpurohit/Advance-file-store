@@ -14,14 +14,9 @@ log = logging.getLogger(__name__)
 # ✅ Only parse FSUB if ENABLE_FSUB is True
 if ENABLE_FSUB:
     try:
-        if isinstance(FSUB, str):
-            pairs = re.findall(r'([^:,]+)\s*:\s*(-?\d+)', FSUB)
-            FSUB = {name.strip(): int(value) for name, value in pairs}
-        elif not FSUB:
-            FSUB = {}
+        FSUB = json.loads(FSUB) if isinstance(FSUB, str) else FSUB
     except Exception as e:
         log.error(f"⚠️ Error parsing FSUB: {e}")
-        FSUB = {}
 
     log.info(f"🔍 FSUB loaded successfully: {FSUB}")
 else:
