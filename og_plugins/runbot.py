@@ -41,14 +41,21 @@ async def runbot_handler(client, message):
     admins_list = user.get("ADMINS", [])
     logger.info(f"ADMINS variable extracted from DB: {admins_list}")
 
+    # ✅ Updated deployment logic (no deletion)
     try:
         existing = docker_client.containers.get(container_name)
-        logger.info(f"⚠️ Found existing container {container_name}, removing it...")
-        existing.stop()
-        existing.remove()
-        logger.info(f"✅ Existing container {container_name} removed.")
+        existing.reload()
+        logger.info(f"⚙️ Found existing container {container_name} with status: {existing.status}")
+
+        if existing.status == "running":
+            logger.info(f"🛑 Stopping running container {container_name} before redeploy...")
+            existing.stop()
+            logger.info(f"✅ Container {container_name} stopped successfully.")
+        else:
+            logger.info(f"ℹ️ Container {container_name} not running. Proceeding with redeployment.")
     except docker.errors.NotFound:
-        logger.info(f"✅ No existing container named {container_name}")
+        existing = None
+        logger.info(f"✅ No existing container named {container_name}. Creating new one...")
 
     env_vars = {
         "DEPLOY_USER_ID": str(user_id),
@@ -68,18 +75,23 @@ async def runbot_handler(client, message):
         "ADMINS": user.get("ADMINS", ""),
         "AUTO_DELETE": str(user.get("AUTO_DELETE", False)),
         "AUTO_DELETE_TIME": str(user.get("AUTO_DELETE_TIME", ""))
-
-        
     }
 
-    container = docker_client.containers.run(
-        image="userbot_image",
-        environment=env_vars,
-        detach=True,
-        name=container_name,
-        restart_policy={"Name": "on-failure"},
-        network_mode="bridge"
-    )
+    # ✅ Start container (reuse name, no remove)
+    try:
+        container = docker_client.containers.run(
+            image="userbot_image",
+            environment=env_vars,
+            detach=True,
+            name=container_name,
+            restart_policy={"Name": "on-failure"},
+            network_mode="bridge"
+        )
+    except docker.errors.APIError as e:
+        # Happens if name already exists (stopped container) — just start it
+        logger.warning(f"⚠️ Container with name {container_name} already exists, trying to start existing one.")
+        container = existing
+        container.start()
 
     users_col.update_one(
         {"USER_ID": user_id},
