@@ -1,107 +1,91 @@
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram.enums import ParseMode
 
-# ============================
-# /start COMMAND
-# ============================
+SUPPORT_CHAT = "https://t.me/jn_family"
+
+# ---------------- KEYBOARDS ----------------
+def get_start_keyboard():
+    buttons = [
+        [
+            InlineKeyboardButton("🖍️ Help", callback_data="help"),
+            InlineKeyboardButton("✨ Features", callback_data="features")
+        ],
+        [
+            InlineKeyboardButton("💬 Support Chat", url=SUPPORT_CHAT)
+        ]
+    ]
+    return InlineKeyboardMarkup(buttons)
+
+def get_back_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("⬅️ Back", callback_data="back_to_start")]
+    ])
+
+# ---------------- MESSAGES ----------------
+START_TEXT = "ʜᴇʏ {mention}👋,\n\nɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs\n\nᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ *Help* ʙᴜᴛᴛᴏɴ."
+
+HELP_TEXT = """*🖍️ Help Menu*
+
+✨ This is a permanent file store clone maker bot ✨
+
+🛠️ How to create your bot:
+1️⃣ Check and buy enough points to deploy via /points  
+2️⃣ Go to settings and add your bot token  
+3️⃣ Send /runbot command  
+4️⃣ Want to change anything? Edit in settings and re-use /runbot command
+"""
+
+FEATURES_TEXT = """*✨ Features Menu ✨*
+
+🚀 Clone Maker Bot lets you create your own file store bot in just a few taps — no coding, no hosting 💫
+
+💎 *Pay only for what you use*  
+Points are only used when you send or store files – all other tools are free 🎁
+
+⚙️ *Key Features*
+• 1-tap bot creation 🪄
+• Fully customizable settings ⚙️
+• Force sub & verification modes 
+• Free broadcasts & system messages 🆓
+• Real-time stats 📊
+• Auto-delete, captions, and more ✨
+
+💬 Simple. Fair. Powerful.  
+Create your bot now and pay only for what you *use* 🚀
+"""
+
+# ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
-    mention = message.from_user.mention
-    start_text = f"""
-ʜᴇʏ {mention}👋,
-
-ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs
-
-ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ ʜᴇʟᴘ ᴏʀ ғᴇᴀᴛᴜʀᴇs
-"""
-    keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("🖍️ Help", callback_data="help_menu"),
-                InlineKeyboardButton("✨ Features", callback_data="features_menu")
-            ],
-            [
-                InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")
-            ]
-        ]
+    mention = f"[{message.from_user.first_name}](tg://user?id={message.from_user.id})"
+    await message.reply_text(
+        START_TEXT.format(mention=mention),
+        reply_markup=get_start_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
     )
 
-    await message.reply_text(start_text, reply_markup=keyboard, parse_mode="HTML")
-
-# ============================
-# Help Menu Callback
-# ============================
-@Client.on_callback_query(filters.regex(r"help_menu"))
-async def help_menu(client, cq):
-    help_text = """
-🖍️ <b>ʜᴇʟᴘ ᴍᴇɴᴜ</b>
-
-✨ <b>ᴛʜɪs ɪs ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ</b> ✨
-
-🛠️ <b>ʜᴏᴡ ᴛᴏ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ</b>:
-
-1️⃣ ᴄʜᴇᴄᴋ ᴀɴᴅ ʙᴜʏ ᴇɴᴏᴜɢʜ ᴘᴏɪɴᴛs ᴛᴏ ᴅᴇᴘʟᴏʏ via /points  
-2️⃣ ɢᴏ ᴛᴏ sᴇᴛᴛɪɴɢs ᴀɴᴅ ᴀᴅᴅ ʏᴏᴜʀ ʙᴏᴛ ᴛᴏᴋᴇɴ  
-3️⃣ sᴇɴᴅ /runbot ᴄᴏᴍᴍᴀɴᴅ  
-4️⃣ ᴡᴀɴᴛ ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɴʏᴛʜɪɴɢ, ᴇᴅɪᴛ ɪɴ sᴇᴛᴛɪɴɢs ᴀɴᴅ ʀᴇ-ᴜsᴇ /runbot
-"""
-    back_keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Back", callback_data="start_menu")]]
+@Client.on_callback_query(filters.regex(r"^help$"))
+async def help_cb(client, cq):
+    await cq.message.edit_text(
+        HELP_TEXT,
+        reply_markup=get_back_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
     )
 
-    await cq.message.edit_text(help_text, reply_markup=back_keyboard, parse_mode="HTML")
-
-# ============================
-# Features Menu Callback
-# ============================
-@Client.on_callback_query(filters.regex(r"features_menu"))
-async def features_menu(client, cq):
-    features_text = """
-✨ <b>ғᴇᴀᴛᴜʀᴇs ᴍᴇɴᴜ</b> ✨
-
-🚀 <b>ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ</b> ʟᴇᴛs ʏᴏᴜ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ɪɴ ᴊᴜsᴛ ᴀ ғᴇᴡ ᴛᴀᴘs — ɴᴏ ᴄᴏᴅɪɴɢ, ɴᴏ ʜᴏsᴛɪɴɢ 💫
-
-💎 <b>ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᴜsᴇ</b>
-ᴘᴏɪɴᴛs ᴀʀᴇ ᴏɴʟʏ ᴜsᴇᴅ ᴡʜᴇɴ ʏᴏᴜ sᴇɴᴅ ᴏʀ sᴛᴏʀᴇ ғɪʟᴇs – ᴀʟʟ ᴏᴛʜᴇʀ ᴛᴏᴏʟs ᶠʳᵉᴇ 🎁
-
-⚙️ <b>ᴋᴇʏ ғᴇᴀᴛᴜʀᴇs</b>
-• 1ᴛᴀᴘ ʙᴏᴛ ᴄʀᴇᴀᴛɪᴏɴ 🪄
-• ғᴜʟʟʏ ᴄᴜsᴛᴏᴍɪᴢᴀʙʟᴇ sᴇᴛᴛɪɴɢs ⚙️
-• ғᴏʀᴄᴇ sᴜʙ & ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇs 
-• ғʀᴇᴇ ʙʀᴏᴀᴅᴄᴀsᴛs & sʏsᴛᴇᴍ ᴍᴇssᴀɢᴇs 🆓
-• ʀᴇᴀʟ-ᴛɪᴍᴇ sᴛᴀᴛs 📊
-• ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ, ᴄᴀᴘᴛɪᴏɴs, ᴀɴᴅ ᴍᴏʀᴇ ✨
-
-💬 <b>sɪᴍᴘʟᴇ. ғᴀɪʀ. ᴘᴏᴡᴇʀғᴜʟ.</b>
-ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ ɴᴏᴡ ᴀɴᴅ ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᵘˢᵉ 🚀
-"""
-    back_keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("⬅️ Back", callback_data="start_menu")]]
+@Client.on_callback_query(filters.regex(r"^features$"))
+async def features_cb(client, cq):
+    await cq.message.edit_text(
+        FEATURES_TEXT,
+        reply_markup=get_back_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
     )
-    await cq.message.edit_text(features_text, reply_markup=back_keyboard, parse_mode="HTML")
 
-# ============================
-# Back to Start Menu Callback
-# ============================
-@Client.on_callback_query(filters.regex(r"start_menu"))
-async def back_to_start(client, cq):
-    mention = cq.from_user.mention
-    start_text = f"""
-ʜᴇʏ {mention}👋,
-
-ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs
-
-ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ ʜᴇʟᴘ ᴏʀ ғᴇᴀᴛᴜʀᴇs
-"""
-    keyboard = InlineKeyboardMarkup(
-        [
-            [
-                InlineKeyboardButton("🖍️ Help", callback_data="help_menu"),
-                InlineKeyboardButton("✨ Features", callback_data="features_menu")
-            ],
-            [
-                InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")
-            ]
-        ]
+@Client.on_callback_query(filters.regex(r"^back_to_start$"))
+async def back_cb(client, cq):
+    mention = f"[{cq.from_user.first_name}](tg://user?id={cq.from_user.id})"
+    await cq.message.edit_text(
+        START_TEXT.format(mention=mention),
+        reply_markup=get_start_keyboard(),
+        parse_mode=ParseMode.MARKDOWN
     )
-    await cq.message.edit_text(start_text, reply_markup=keyboard, parse_mode="HTML")
