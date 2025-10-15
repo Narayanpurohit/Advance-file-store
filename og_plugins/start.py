@@ -25,34 +25,35 @@ def get_back_keyboard():
 # ---------------- MESSAGES ----------------
 START_TEXT = "ʜᴇʏ {mention}👋,\n\nɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs\n\nᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ *Help* ʙᴜᴛᴛᴏɴ."
 
-HELP_TEXT = """*🖍️ Help Menu*
+HELP_TEXT = """🖍️ ʜᴇʟᴘ ᴍᴇɴᴜ
 
-✨ This is a permanent file store clone maker bot ✨
+✨ ᴛʜɪs ɪs ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ ✨
 
-🛠️ How to create your bot:
-1️⃣ Check and buy enough points to deploy via /points  
-2️⃣ Go to settings and add your bot token  
-3️⃣ Send /runbot command  
-4️⃣ Want to change anything? Edit in settings and re-use /runbot command
+🛠️ ʜᴏᴡ ᴛᴏ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ:
+
+1️⃣ ᴄʜᴇᴄᴋ ᴀɴᴅ ʙᴜʏ ᴇɴᴏᴜɢʜ ᴘᴏɪɴᴛs ᴛᴏ ᴅᴇᴘʟᴏʏ ᴠɪᴀ /ᴘᴏɪɴᴛs  
+2️⃣ ɢᴏ ᴛᴏ sᴇᴛᴛɪɴɢs ᴀɴᴅ ᴀᴅᴅ ʏᴏᴜʀ ʙᴏᴛ ᴛᴏᴋᴇɴ  
+3️⃣ sᴇɴᴅ /ʀᴜɴʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅ  
+4️⃣ ᴡᴀɴᴛ ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɴʏᴛʜɪɴɢ, ᴇᴅɪᴛ ɪɴ sᴇᴛᴛɪɴɢs ᴀɴᴅ ʀᴇ-ᴜsᴇ /ʀᴜɴʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅ
 """
 
-FEATURES_TEXT = """*✨ Features Menu ✨*
+FEATURES_TEXT = """**✨ ғᴇᴀᴛᴜʀᴇs ᴍᴇɴᴜ ✨**
 
-🚀 Clone Maker Bot lets you create your own file store bot in just a few taps — no coding, no hosting 💫
+🚀 ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ ʟᴇᴛs ʏᴏᴜ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ɪɴ ᴊᴜsᴛ ᴀ ғᴇᴡ ᴛᴀᴘs — ɴᴏ ᴄᴏᴅɪɴɢ, ɴᴏ ʜᴏsᴛɪɴɢ 💫
 
-💎 *Pay only for what you use*  
-Points are only used when you send or store files – all other tools are free 🎁
+**💎 ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᴜsᴇ**
+ᴘᴏɪɴᴛs ᴀʀᴇ ᴏɴʟʏ ᴜsᴇᴅ ᴡʜᴇɴ ʏᴏᴜʀ ʙᴏᴛ sᴇɴᴅ ғɪʟᴇs – ᴀʟʟ ᴏᴛʜᴇʀ ᴛᴏᴏʟs ᴀʀᴇ **ғʀᴇᴇ** 🎁
 
-⚙️ *Key Features*
-• 1-tap bot creation 🪄
-• Fully customizable settings ⚙️
-• Force sub & verification modes 
-• Free broadcasts & system messages 🆓
-• Real-time stats 📊
-• Auto-delete, captions, and more ✨
+**⚙️ ᴋᴇʏ ғᴇᴀᴛᴜʀᴇs**
+• 1 ᴛᴀᴘ ʙᴏᴛ ᴄʀᴇᴀᴛɪᴏɴ 🪄
+• ғᴜʟʟʏ ᴄᴜsᴛᴏᴍɪᴢᴀʙʟᴇ sᴇᴛᴛɪɴɢs ⚙️
+• ғᴏʀᴄᴇ sᴜʙ & ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇs 
+• ғʀᴇᴇ ʙʀᴏᴀᴅᴄᴀsᴛs & sʏsᴛᴇᴍ ᴍᴇssᴀɢᴇs 🆓
+• ʀᴇᴀʟ-ᴛɪᴍᴇ sᴛᴀᴛs 📊
+• ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ, ᴄᴀᴘᴛɪᴏɴs, ᴀɴᴅ ᴍᴏʀᴇ ✨
 
-💬 Simple. Fair. Powerful.  
-Create your bot now and pay only for what you *use* 🚀
+💬 sɪᴍᴘʟᴇ. ғᴀɪʀ. ᴘᴏᴡᴇʀғᴜʟ.
+ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ ɴᴏᴡ ᴀɴᴅ ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᴜsᴇ 🚀
 """
 
 # ---------------- HANDLERS ----------------
