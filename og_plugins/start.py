@@ -1,105 +1,107 @@
 from pyrogram import Client, filters
-from db_config import add_user, user_exists
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import logging
 
-log = logging.getLogger("Start")
-
+# ============================
+# /start COMMAND
+# ============================
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
-    user_id = message.from_user.id
-    username = message.from_user.username or "N/A"
+    mention = message.from_user.mention
+    start_text = f"""
+ʜᴇʏ {mention}👋,
 
-    # Add user to DB if not exists
-    try:
-        if not user_exists(user_id):
-            add_user(user_id)
-            log.info(f"New user {user_id} ({username}) added to DB.")
-        else:
-            log.info(f"Existing user {user_id} ({username}) accessed /start.")
-    except Exception as e:
-        log.exception(f"Error adding/checking user {user_id}: {e}")
+ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs
 
-    # Welcome message
-    text = f"""
-ʜᴇʏ {message.from_user.mention} 👋,
-
-ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs.
-
-ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ, ᴜsᴇ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ 👇
+ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ ʜᴇʟᴘ ᴏʀ ғᴇᴀᴛᴜʀᴇs
 """
-
-    # Inline keyboard
     keyboard = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🖍️ Help", callback_data="help_menu")],
-            [InlineKeyboardButton("✨ Features", callback_data="features_menu")],
-            [InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")]
+            [
+                InlineKeyboardButton("🖍️ Help", callback_data="help_menu"),
+                InlineKeyboardButton("✨ Features", callback_data="features_menu")
+            ],
+            [
+                InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")
+            ]
         ]
     )
 
-    await message.reply_text(text, reply_markup=keyboard)
+    await message.reply_text(start_text, reply_markup=keyboard, parse_mode="HTML")
 
-# ===============================
-# Callback for Help Menu
-# ===============================
+# ============================
+# Help Menu Callback
+# ============================
 @Client.on_callback_query(filters.regex(r"help_menu"))
 async def help_menu(client, cq):
     help_text = """
-🖍️ ʜᴇʟᴘ ᴍᴇɴᴜ
+🖍️ <b>ʜᴇʟᴘ ᴍᴇɴᴜ</b>
 
-✨ ᴛʜɪs ɪs ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ ✨
+✨ <b>ᴛʜɪs ɪs ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ</b> ✨
 
-🛠️ ʜᴏᴡ ᴛᴏ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ:
+🛠️ <b>ʜᴏᴡ ᴛᴏ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ</b>:
 
-1️⃣  ᴄʜᴇᴄᴋ ᴀɴᴅ ʙᴜʏ ᴇɴᴏᴜɢʜ ᴘᴏɪɴᴛs ᴛᴏ ᴅᴇᴘʟᴏʏ ᴠɪᴀ /ᴘᴏɪɴᴛs  
-2️⃣  ɢᴏ ᴛᴏ sᴇᴛᴛɪɴɢs ᴀɴᴅ ᴀᴅᴅ ʏᴏᴜʀ ʙᴏᴛ ᴛᴏᴋᴇɴ  
-3️⃣  sᴇɴᴅ /ʀᴜɴʙᴏᴛ ᴄᴏᴍᴍᴀɴᴅ  
-4️⃣  ᴡᴀɴᴛ ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɴʏᴛʜɪɴɢ? ᴇᴅɪᴛ ɪɴ sᴇᴛᴛɪɴɢs ᴀɴᴅ ʀᴇ-ᴜsᴇ /ʀᴜɴʙᴏᴛ
+1️⃣ ᴄʜᴇᴄᴋ ᴀɴᴅ ʙᴜʏ ᴇɴᴏᴜɢʜ ᴘᴏɪɴᴛs ᴛᴏ ᴅᴇᴘʟᴏʏ via /points  
+2️⃣ ɢᴏ ᴛᴏ sᴇᴛᴛɪɴɢs ᴀɴᴅ ᴀᴅᴅ ʏᴏᴜʀ ʙᴏᴛ ᴛᴏᴋᴇɴ  
+3️⃣ sᴇɴᴅ /runbot ᴄᴏᴍᴍᴀɴᴅ  
+4️⃣ ᴡᴀɴᴛ ᴛᴏ ᴄʜᴀɴɢᴇ ᴀɴʏᴛʜɪɴɢ, ᴇᴅɪᴛ ɪɴ sᴇᴛᴛɪɴɢs ᴀɴᴅ ʀᴇ-ᴜsᴇ /runbot
 """
     back_keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("⬅️ Back", callback_data="start_menu")]]
     )
-    await cq.message.edit_text(help_text, reply_markup=back_keyboard, disable_web_page_preview=True)
 
-# ===============================
-# Callback for Features Menu
-# ===============================
+    await cq.message.edit_text(help_text, reply_markup=back_keyboard, parse_mode="HTML")
+
+# ============================
+# Features Menu Callback
+# ============================
 @Client.on_callback_query(filters.regex(r"features_menu"))
 async def features_menu(client, cq):
     features_text = """
-📝 ғᴇᴀᴛᴜʀᴇs ᴏғ ᴍʏ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ:
+✨ <b>ғᴇᴀᴛᴜʀᴇs ᴍᴇɴᴜ</b> ✨
 
-✨ ᴜsᴇʀs ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ᴛʜᴇʏ ᴜsᴇ (sᴇɴᴅ ғɪʟᴇs)  
-🎯 ᴏᴛʜᴇʀ ᴄᴏᴍᴍᴀɴᴅs ᴀʀᴇ ғʀᴇᴇ:
-   - /ʀᴜɴʙᴏᴛ
-   - /sᴇᴛᴛɪɴɢs
-   - /ʙʀᴏᴀᴅᴄᴀsᴛ  
-🛡️ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ᴄʜᴀʀɢᴇ ᴜsᴇʀs ғᴏʀ ғɪʟᴇ ᴜsᴀɢᴇ  
+🚀 <b>ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ʙᴏᴛ</b> ʟᴇᴛs ʏᴏᴜ ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ ɪɴ ᴊᴜsᴛ ᴀ ғᴇᴡ ᴛᴀᴘs — ɴᴏ ᴄᴏᴅɪɴɢ, ɴᴏ ʜᴏsᴛɪɴɢ 💫
+
+💎 <b>ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᴜsᴇ</b>
+ᴘᴏɪɴᴛs ᴀʀᴇ ᴏɴʟʏ ᴜsᴇᴅ ᴡʜᴇɴ ʏᴏᴜ sᴇɴᴅ ᴏʀ sᴛᴏʀᴇ ғɪʟᴇs – ᴀʟʟ ᴏᴛʜᴇʀ ᴛᴏᴏʟs ᶠʳᵉᴇ 🎁
+
+⚙️ <b>ᴋᴇʏ ғᴇᴀᴛᴜʀᴇs</b>
+• 1ᴛᴀᴘ ʙᴏᴛ ᴄʀᴇᴀᴛɪᴏɴ 🪄
+• ғᴜʟʟʏ ᴄᴜsᴛᴏᴍɪᴢᴀʙʟᴇ sᴇᴛᴛɪɴɢs ⚙️
+• ғᴏʀᴄᴇ sᴜʙ & ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇs 
+• ғʀᴇᴇ ʙʀᴏᴀᴅᴄᴀsᴛs & sʏsᴛᴇᴍ ᴍᴇssᴀɢᴇs 🆓
+• ʀᴇᴀʟ-ᴛɪᴍᴇ sᴛᴀᴛs 📊
+• ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ, ᴄᴀᴘᴛɪᴏɴs, ᴀɴᴅ ᴍᴏʀᴇ ✨
+
+💬 <b>sɪᴍᴘʟᴇ. ғᴀɪʀ. ᴘᴏᴡᴇʀғᴜʟ.</b>
+ᴄʀᴇᴀᴛᴇ ʏᴏᴜʀ ʙᴏᴛ ɴᴏᴡ ᴀɴᴅ ᴘᴀʏ ᴏɴʟʏ ғᴏʀ ᴡʜᴀᴛ ʏᴏᴜ ᵘˢᵉ 🚀
 """
     back_keyboard = InlineKeyboardMarkup(
         [[InlineKeyboardButton("⬅️ Back", callback_data="start_menu")]]
     )
-    await cq.message.edit_text(features_text, reply_markup=back_keyboard, disable_web_page_preview=True)
+    await cq.message.edit_text(features_text, reply_markup=back_keyboard, parse_mode="HTML")
 
-# ===============================
-# Callback to return to Start Menu
-# ===============================
+# ============================
+# Back to Start Menu Callback
+# ============================
 @Client.on_callback_query(filters.regex(r"start_menu"))
-async def start_menu(client, cq):
-    user = cq.from_user
-    text = f"""
-ʜᴇʏ {user.mention} 👋,
+async def back_to_start(client, cq):
+    mention = cq.from_user.mention
+    start_text = f"""
+ʜᴇʏ {mention}👋,
 
-ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴀɴᴇɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs.
+ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ᴄʟᴏɴᴇ ᴍᴀᴋᴇʀ ᴡɪᴛʜ ᴀᴍᴀᴢɪɴɢ ᴀᴅᴠᴀɴᴄᴇ ғᴇᴀᴛᴜʀᴇs
 
-ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ, ᴜsᴇ ᴛʜᴇ ʙᴜᴛᴛᴏɴs ʙᴇʟᴏᴡ 👇
+ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ ᴄʟɪᴄᴋ ʜᴇʟᴘ ᴏʀ ғᴇᴀᴛᴜʀᴇs
 """
     keyboard = InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("🖍️ Help", callback_data="help_menu")],
-            [InlineKeyboardButton("✨ Features", callback_data="features_menu")],
-            [InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")]
+            [
+                InlineKeyboardButton("🖍️ Help", callback_data="help_menu"),
+                InlineKeyboardButton("✨ Features", callback_data="features_menu")
+            ],
+            [
+                InlineKeyboardButton("💬 Support Chat", url="https://t.me/jn_family")
+            ]
         ]
     )
-    await cq.message.edit_text(text, reply_markup=keyboard)
+    await cq.message.edit_text(start_text, reply_markup=keyboard, parse_mode="HTML")
