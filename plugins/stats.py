@@ -89,15 +89,12 @@ def get_user_list(users, page):
     return "\n".join(user_ids)
 
 
+from pyrogram import Client, filters
 
 @Client.on_message(filters.command("stats"))
 async def stats_handler(client, message):
     try:
-        # Check if user is admin
-        if message.from_user.id not in ADMINS:
-            return await message.reply_text("❌ You need admin access to use this command.")
-
-        # Normal stats logic for admins
+        # Directly show stats (no admin filter or check)
         await message.reply_text(get_stats_text(), reply_markup=get_main_buttons())
 
     except Exception as e:
@@ -110,7 +107,6 @@ async def show_users_list(query, prefix, users):
     page = int(query.data.split("_")[-1])
     text = f"**{prefix.replace('_',' ').title()} List**\n\n" + get_user_list(users, page)
     await query.message.edit_text(text, reply_markup=get_list_buttons(page, total_pages, prefix))
-    
     
     
 @Client.on_callback_query(filters.regex(r"show_free_users_\d+"))
