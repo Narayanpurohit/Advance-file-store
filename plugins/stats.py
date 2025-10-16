@@ -94,6 +94,7 @@ from pyrogram import Client, filters
 @Client.on_message(filters.command("stats"))
 async def stats_handler(client, message):
     try:
+        log.info(f"👑 ADMINS list: {ADMINS}, User ID: {message.from_user.id}")
         # Check if user is admin
         if message.from_user.id not in ADMINS:
             return await message.reply_text("❌ You need admin access to use this command.")
