@@ -41,7 +41,9 @@ async def stopbot_handler(client, message):
         await message.reply_text(f"❌ Failed to stop bot: `{str(e)}`")
         
         
-        @Client.on_message(filters.command("deletebot") & filters.private)
+
+
+@Client.on_message(filters.command("deletebot") & filters.private)
 async def deletebot_handler(client, message):
     user_id = message.from_user.id
     container_name = f"userbot_{user_id}"
