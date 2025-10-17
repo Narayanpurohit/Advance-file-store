@@ -41,7 +41,7 @@ async def runbot_handler(client, message):
     admins_list = user.get("ADMINS", [])
     logger.info(f"ADMINS variable extracted from DB: {admins_list}")
 
-    # ✅ Updated deployment logic (no deletion)
+    # ✅ Updated deployment logic (clean session before redeploy)
     try:
         existing = docker_client.containers.get(container_name)
         existing.reload()
@@ -53,6 +53,18 @@ async def runbot_handler(client, message):
             logger.info(f"✅ Container {container_name} stopped successfully.")
         else:
             logger.info(f"ℹ️ Container {container_name} not running. Proceeding with redeployment.")
+
+        # 🧹 Clean old session files before restart
+        try:
+            logger.info(f"🧹 Removing session files from container {container_name}...")
+            exec_result = existing.exec_run("find . -type f \\( -name '*.session' -o -name '*.session-journal' \\) -delete")
+            if exec_result.exit_code == 0:
+                logger.info(f"✅ Session files deleted successfully.")
+            else:
+                logger.warning(f"⚠️ Could not delete session files, exit code {exec_result.exit_code}")
+        except Exception as e:
+            logger.warning(f"⚠️ Failed to clean session files: {e}")
+
     except docker.errors.NotFound:
         existing = None
         logger.info(f"✅ No existing container named {container_name}. Creating new one...")
