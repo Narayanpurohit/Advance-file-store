@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 
 START_BUTTONS = InlineKeyboardMarkup(
     [
-        [InlineKeyboardButton("• 🤖 ᴄʀᴇᴀᴛᴇ ᴏᴡɴ ᴄʟᴏɴᴇ ʙᴏᴛ •", url="https://t.me/Zoro1001bot")],
+        [InlineKeyboardButton("• ᴄʀᴇᴀᴛᴇ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ📁 •", url="https://t.me/Zoro1001bot")],
         [
             InlineKeyboardButton("• 📚 ʜᴇʟᴘ •", callback_data="help"),
             InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
