@@ -26,7 +26,7 @@ async def runbot_handler(client, message):
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     files_sent = int(user.get("files_sent", 0))
     batch_messages_sent = int(user.get("batch_messages_sent", 0))
-    MIN_POINTS = files_sent + batch_messages_sent
+    MIN_POINTS = files_sent + batch_messages_sent +1
     if premium_points < MIN_POINTS:
         await message.reply_text(
             f"❌ You need at least {MIN_POINTS} premium points. You have {premium_points}."
