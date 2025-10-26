@@ -3,18 +3,22 @@ import random
 import string
 from pyrogram import Client, filters
 from database import save_batch
-from bot import ADMINS
+from bot import ADMINS, PUBLIC_BOT
 
 log = logging.getLogger(__name__)
-
 
 def generate_slug(length: int = 16) -> str:
     """Generate a unique random slug."""
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-
-@Client.on_message(filters.command("batch") & filters.private & filters.user(ADMINS))
+@Client.on_message(filters.command("batch") & filters.private)
 async def batch_handler(client, message):
+    user_id = message.from_user.id
+
+    # Access control based on PUBLIC_BOT
+    if not PUBLIC_BOT and user_id not in ADMINS:
+        return await message.reply_text("❌don't send message directly this is only file store bot")
+
     try:
         args = message.text.split()
 
