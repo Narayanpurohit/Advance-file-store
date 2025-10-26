@@ -1,7 +1,7 @@
 import random
 import string
 from pyrogram import Client, filters
-from bot import MONGO_URI, CAPTION,DB_NAME,ADMINS
+from bot import MONGO_URI, CAPTION, DB_NAME, ADMINS, PUBLIC_BOT
 from pymongo import MongoClient
 
 mongo_client = MongoClient(MONGO_URI)
@@ -19,8 +19,14 @@ def human_readable_size(size_bytes):
         size_bytes /= 1024
     return f"{size_bytes:.2f} TB"
 
-@Client.on_message(filters.private & (filters.document | filters.video | filters.audio) & filters.user(ADMINS))
+@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
 async def save_file(client, message):
+    user_id = message.from_user.id
+
+    # Access control based on PUBLIC_BOT
+    if not PUBLIC_BOT and user_id not in ADMINS:
+        return await message.reply_text("❌don't send message directly this is only file store bot")
+
     if message.document:
         file_id = message.document.file_id
         file_name = message.document.file_name
