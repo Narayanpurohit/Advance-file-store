@@ -2,31 +2,42 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton,CallbackQuery
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME
+from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
     get_batch_by_slug, increment_batches_sent,
     increment_batch_messages_sent
 )
-from db_config import m_count,bm_count
+from db_config import m_count, bm_count
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub   # ✅ import ForceSub
 from utils import human_readable_size
 
 log = logging.getLogger(__name__)
 
-START_BUTTONS = InlineKeyboardMarkup(
-    [
-        [InlineKeyboardButton("• ᴄʀᴇᴀᴛᴇ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ📁 •", url="https://t.me/Zoro1001bot")],
-        [
-            InlineKeyboardButton("• 📚 ʜᴇʟᴘ •", callback_data="help"),
-            InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
-        ],
-    ]
-)
+def get_start_buttons():
+    if CLONE_BUTTON:
+        return InlineKeyboardMarkup(
+            [
+                [InlineKeyboardButton("• ᴄʀᴇᴀᴛᴇ ᴏᴡɴ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ📁 •", url="https://t.me/Zoro1001bot")],
+                [
+                    InlineKeyboardButton("• 📚 ʜᴇʟᴘ •", callback_data="help"),
+                    InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
+                ],
+            ]
+        )
+    else:
+        return InlineKeyboardMarkup(
+            [
+                [
+                    InlineKeyboardButton("• 📚 ʜᴇʟᴘ •", callback_data="help"),
+                    InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
+                ],
+            ]
+        )
 
 START_MSG = (
     "ʜᴇʏ {mention}👋,\n\n"
@@ -36,23 +47,18 @@ START_MSG = (
     "ᴛᴏ ᴋɴᴏᴡ ᴍᴏʀᴇ, ᴄʟɪᴄᴋ ᴛʜᴇ ʜᴇʟᴘ ʙᴜᴛᴛᴏɴ 👇"
 )
 
-
-
-
 @Client.on_message(filters.command("start") & filters.private)
 async def start_handler(client, message):
     user_id = message.from_user.id
     args = message.text.split()
     mention = message.from_user.mention
-    
-  
 
     try:
         # 1. Add new user if not exists
         if not user_exists(user_id):
             add_user(user_id)
             log.info(f"👤 New user {user_id} added to database.")
-
+            if LOG_CHANNEL: await client.send_message(LOG_CHANNEL, f"🦋 #newuser 🦋,\n\nID : {user_id}\nName : {message.from_user.first_name}")
         # 2. Check Force Sub
         ok = await check_force_sub(client, user_id, message)
         if not ok:
@@ -61,7 +67,7 @@ async def start_handler(client, message):
 
         # 3. No arguments — greet user
         if len(args) == 1:
-            await message.reply_text(START_MSG.format(mention=message.from_user.mention), reply_markup=START_BUTTONS)            
+            await message.reply_text(START_MSG.format(mention=mention), reply_markup=get_start_buttons())
             return
 
         slug = args[1]
@@ -84,19 +90,19 @@ async def start_handler(client, message):
 
             sent_count = 0
             failure_reasons = {}
-            batch_sent_messages = []  # ✅ store sent files
+            batch_sent_messages = []
 
-            # Send batch files
+            # ✅ Batch send with optional protection
             for item in batch_data["messages"]:
                 try:
                     sent = await client.copy_message(
                         chat_id=message.chat.id,
                         from_chat_id=int(item["chat_id"]),
-                        message_id=int(item["message_id"])
+                        message_id=int(item["message_id"]),
+                        protect_content=PROTECT_CONTENT
                     )
                     sent_count += 1
                     batch_sent_messages.append(sent)
-
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
                     log.warning(f"⚠️ FloodWait {e.value}s for user {user_id} while batch {slug}")
@@ -108,7 +114,6 @@ async def start_handler(client, message):
                     failure_reasons[type(e).__name__] = failure_reasons.get(type(e).__name__, 0) + 1
                     log.warning(f"⚠️ Failed to send item in batch {slug} for user {user_id}: {e}")
 
-            # ✅ Send one delete notice for the whole batch
             if sent_count > 0:
                 notice = await message.reply_text(
                     f"🔺This Batch will be deleted in **{AUTO_DELETE_TIME // 60} Minutes** 🫥\n\n"
@@ -154,17 +159,17 @@ async def start_handler(client, message):
             caption=orig_caption
         )
 
-        # 9. Send file
+        # 9. Send file (with or without protection)
         file_type = file_data.get("file_type")
         file_id = file_data.get("file_id")
 
         try:
             if file_type == "doc":
-                sent = await message.reply_document(file_id, caption=caption_text)
+                sent = await message.reply_document(file_id, caption=caption_text, protect_content=PROTECT_CONTENT)
             elif file_type == "vid":
-                sent = await message.reply_video(file_id, caption=caption_text)
+                sent = await message.reply_video(file_id, caption=caption_text, protect_content=PROTECT_CONTENT)
             elif file_type == "aud":
-                sent = await message.reply_audio(file_id, caption=caption_text)
+                sent = await message.reply_audio(file_id, caption=caption_text, protect_content=PROTECT_CONTENT)
             else:
                 await message.reply_text("❌ Unknown file type.")
                 log.error(f"❌ Unknown file type {file_type} for slug {slug}.")
@@ -193,7 +198,6 @@ async def start_handler(client, message):
             await message.reply_text("⚠️ Failed to send file. Try again later.")
             return
 
-        # 10. Increment file send counter
         increment_file_send_count()
         m_count(user_id)
         log.info(f"📁 File {slug} sent to user {user_id}.")
@@ -204,90 +208,3 @@ async def start_handler(client, message):
             f"⚠️ An unexpected error occurred. Please try again later.\n"
             f"🔥 Error in /start handler for user {user_id}: {e}"
         )
-
-
-# ------------------ Auto Delete Helpers ------------------ #
-
-async def auto_delete(client, messages, slug, file_name, user_id, delay=AUTO_DELETE_TIME):
-    """Delete file + notice after delay and send 'Get File' button."""
-    try:
-        await asyncio.sleep(delay)
-
-        for msg in messages:
-            try:
-                await msg.delete()
-            except Exception:
-                pass
-
-        await client.send_message(
-            chat_id=user_id,
-            text=f"🗑️ This file was auto-deleted.\n\n📂 **{file_name}**",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📥 Get File", url=f"https://t.me/{client.me.username}?start={slug}")]
-            ])
-        )
-        log.info(f"🗑️ Auto-deleted file {slug} for user {user_id}")
-    except Exception as e:
-        log.warning(f"⚠️ Failed auto-delete for {slug} user {user_id}: {e}")
-
-
-async def auto_delete_batch(client, messages, slug, user_id, delay=AUTO_DELETE_TIME):
-    """Delete all batch messages after delay and notify user once."""
-    try:
-        await asyncio.sleep(delay)
-
-        for msg in messages:
-            try:
-                await msg.delete()
-            except Exception:
-                pass
-
-        await client.send_message(
-            chat_id=user_id,
-            text=f"🗑️ This batch was auto-deleted.\n\n📦 **Batch: {slug}**",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📥 Get Batch", url=f"https://t.me/{client.me.username}?start={slug}")]
-            ])
-        )
-
-        log.info(f"🗑️ Auto-deleted batch {slug} for user {user_id}")
-    except Exception as e:
-        log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
-        
-
-HELP_TEXT = (
-    "ɪ ᴀᴍ ᴀ ᴘᴇʀᴍᴇɴᴀɴᴛ ғɪʟᴇ sᴛᴏʀᴇ ʙᴏᴛ. ᴏɴʟʏ ᴀᴅᴍɪɴs ᴄᴀɴ sᴛᴏʀᴇ ғɪʟᴇs "
-    "ᴡɪᴛʜᴏᴜᴛ ᴍᴇ ʙᴇɪɴɢ ᴀᴅᴍɪɴ. ᴀɴᴅ ʏᴏᴜ ᴄᴀɴ ᴀᴄᴄᴇss sᴛᴏʀᴇᴅ ғɪʟᴇs "
-    "ʙʏ ᴜsɪɴɢ sʜᴀʀᴇᴀʙʟᴇ ʟɪɴᴋ ɢɪᴠᴇɴ ʙʏ ᴍᴇ.\n\n"
-    "📚 ᴀᴠᴀɪʟᴀʙʟᴇ ᴄᴏᴍᴍᴀɴᴅ:\n\n"
-    "➛ /start - ᴄʜᴇᴄᴋ ɪ ᴀᴍ ᴀʟɪᴠᴇ.\n"
-    "➛ sᴇɴᴅ ғɪʟᴇ - ᴛᴏ sᴛᴏʀᴇ ᴀ sɪɴɢʟᴇ ᴍᴇssᴀɢᴇ ᴏʀ ғɪʟᴇ.\n"
-    "➛ /batch - ᴛᴏ sᴛᴏʀᴇ ᴍᴜᴛɪᴘʟᴇ ᴍᴇssᴀɢᴇs ғʀᴏᴍ ᴀ ᴄʜᴀɴɴᴇʟ.\n"
-    "➛ /mypremium - ᴄʜᴇᴄᴋ ʏᴏᴜʀ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴛɪᴍᴇ.\n"
-    "➛ /broadcast - ʀᴇᴘʟʏ ᴛʜɪs ᴄᴏᴍᴍᴀɴᴅ ᴛᴏ ʏᴏᴜʀ ʙʀᴏᴀᴅᴄᴀsᴛ ᴍᴇssᴀɢᴇs "
-    "(ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
-    "➛ /add_premium <user_id> <days> - ᴀᴅᴅ ᴜsᴇʀ ᴛᴏ ᴘʀᴇᴍɪᴜᴍ (ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
-    "➛ /remove_premium <user_id> - ʀᴇᴍᴏᴠᴇ ᴘʀᴇᴍɪᴜᴍ (ᴏᴡɴᴇʀ ᴏɴʟʏ).\n"
-    "➛ /stats - ᴄʜᴇᴄᴋ sᴛᴀᴛs ᴏғ ʏᴏᴜʀ ʙᴏᴛ (ᴏᴡɴᴇʀ ᴏɴʟʏ)."
-)
-
-HELP_BUTTONS = InlineKeyboardMarkup(
-    [
-        [
-            InlineKeyboardButton("• 🔙 ʙᴀᴄᴋ •", callback_data="back"),
-            InlineKeyboardButton("• ✖️ ᴄʟᴏsᴇ •", callback_data="close"),
-        ]
-    ]
-)
-
-@Client.on_callback_query()
-async def callback_handlers(client, query: CallbackQuery):
-    if query.data == "help":
-        await query.message.edit_text(HELP_TEXT, reply_markup=HELP_BUTTONS)
-    elif query.data == "back":
-        await query.message.edit_text(START_MSG.format(mention=query.from_user.mention), reply_markup=START_BUTTONS)    
-    elif query.data == "close":
-        await query.message.delete()
-        
-        
-        
