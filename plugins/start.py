@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON
+from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON, LOG_CHANNEL
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
