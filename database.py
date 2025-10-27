@@ -1,13 +1,14 @@
 from datetime import datetime, timedelta
 from pymongo import MongoClient, ReturnDocument
-from bot import MONGO_URI, DB_NAME
+from bot import get_str
 import secrets
 import string
 import logging
 
 # ---------------- LOGGER ----------------
 log = logging.getLogger(__name__)
-
+MONGO_URI = get_str("MONGO_URI")
+DB_NAME = get_str("DB_NAME")
 # ---------------- DB CONNECTION ----------------
 mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
