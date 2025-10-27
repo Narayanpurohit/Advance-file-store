@@ -3,7 +3,7 @@ import logging
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import users_col, stats_col, files_col
-from bot import CODE2_MONGO_URI, CODE2_DB_NAME # ADMINS must be a list of user IDs
+from bot import CODE2_MONGO_URI, CODE2_DB_NAME,USER_ID # ADMINS must be a list of user IDs
 from pymongo import MongoClient
 
 log = logging.getLogger(__name__)
