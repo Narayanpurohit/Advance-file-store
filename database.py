@@ -20,6 +20,12 @@ batch_col = db["batches"]
 slugs_col = db["slugs"]
 
 
+# ---------------- USER DATA FETCH ----------------
+def get_user_data(user_id: int):
+    """Fetch full user document from DB; return empty dict if not found."""
+    user = users_col.find_one({"user_id": user_id})
+    return user or {}
+
 # ---------------- USERS ----------------
 def user_exists(user_id: int) -> bool:
     return users_col.find_one({"user_id": user_id}) is not None
