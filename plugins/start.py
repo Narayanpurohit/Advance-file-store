@@ -65,6 +65,8 @@ async def start_handler(client, message):
                     #LOG_CHANNEL,
                     #f"🦋 #ɴᴇᴡᴜsᴇʀ 🦋,\n\nɪᴅ : {user_id}\nɴᴀᴍᴇ : {message.from_user.first_name}"
                 #)
+        log.info(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} points.")
+        print(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} points.")
 
         # 2. ᴄʜᴇᴄᴋ ғᴏʀᴄᴇ sᴜʙ
         ok = await check_force_sub(client, user_id, message)
