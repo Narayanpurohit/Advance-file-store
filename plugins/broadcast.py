@@ -6,7 +6,7 @@ import traceback
 
 #from bot import #ADMINS
 from database import get_all_users, get_total_users
-
+ADMINS=()
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
 async def broadcast_handler(client, message):
     if not message.reply_to_message:
