@@ -85,7 +85,12 @@ async def runbot_handler(client, message):
         "CAPTION": user.get("CAPTION", ""),
         "ADMINS": user.get("ADMINS", ""),
         "AUTO_DELETE": str(user.get("AUTO_DELETE", False)),
-        "AUTO_DELETE_TIME": str(user.get("AUTO_DELETE_TIME", ""))
+        "AUTO_DELETE_TIME": str(user.get("AUTO_DELETE_TIME", "")),
+        "PUBLIC_BOT": str(user.get("PUBLIC_BOT", True)),
+        "PROTECT_CONTENT": str(user.get("PROTECT_CONTENT", False)),
+        "CLONE_BUTTON": str(user.get("CLONE_BUTTON", True)),
+        "LOG_CHANNEL": user.get("LOG_CHANNEL", "")
+        
     }
 
     # ✅ Create and run new container
