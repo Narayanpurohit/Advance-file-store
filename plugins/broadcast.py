@@ -4,7 +4,7 @@ import asyncio
 from collections import defaultdict
 import traceback
 
-from bot import #ADMINS
+#from bot import #ADMINS
 from database import get_all_users, get_total_users
 
 @Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
