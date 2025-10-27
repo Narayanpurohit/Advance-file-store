@@ -4,7 +4,7 @@ from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 
-from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON, LOG_CHANNEL
+from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON, LOG_CHANNEL,PREMIUM_POINTS
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
@@ -90,12 +90,11 @@ async def start_handler(client, message):
                 return
 
             user_data = get_user_data(user_id)
-            premium_points = user_data.get("PREMIUM_POINTS", 0)
             files_sent = user_data.get("files_sent", 0)
             batch_messages_sent = user_data.get("batch_messages_sent", 0)
             total_used = files_sent + batch_messages_sent
 
-            if premium_points <= total_used:
+            if PREMIUM_POINTS <= total_used:
                 await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴅᴍɪɴ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
                 return
 
