@@ -1,15 +1,16 @@
 from pyrogram import Client, filters
-#from bot import ADMINS
+from bot import get_admins
 from database import add_premium_days, remove_premium, get_premium_expiry
 import datetime
 
-ADMINS=()
+
 @Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
 async def cmd_add_premium(client, message):
     """
     Admin: /add_premium <user_id> <days>
     Gives premium for the specified number of days.
     """
+    ADMINS = get_admins()
     try:
         parts = message.text.split()
         if len(parts) != 3:
