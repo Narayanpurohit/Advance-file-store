@@ -3,7 +3,7 @@ import random
 import string
 from pyrogram import Client, filters
 from database import save_batch
-from bot import ADMINS, PUBLIC_BOT
+from bot import PUBLIC_BOT, #ADMINS
 
 log = logging.getLogger(__name__)
 
