@@ -8,7 +8,7 @@ mongo_client = MongoClient(MONGO_URI)
 db = mongo_client[DB_NAME]
 files_col = db["files"]
 stats_col = db["stats"]
-
+ADMINS=()
 def random_slug(prefix):
     return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
