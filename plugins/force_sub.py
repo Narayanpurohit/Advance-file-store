@@ -1,42 +1,45 @@
-import json
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired
-from bot import ENABLE_FSUB, FSUB
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-
-
-import re
-import logging
+from bot import get_bool, get_list
 
 log = logging.getLogger(__name__)
 
-if ENABLE_FSUB:
-    try:
-        if isinstance(FSUB, str):
-            # Parse plain text like: "Channel 1 : -1002121710549 , Channel 2 : -1002555795391"
-            pairs = re.findall(r'([^:,]+)\s*:\s*(-?\d+)', FSUB)
-            FSUB = {name.strip(): int(value) for name, value in pairs}
-        elif not FSUB:
-            FSUB = {}
-        log.info(f"🔍 FSUB loaded successfully: {FSUB}")
-    except Exception as e:
-        log.error(f"⚠️ Error parsing FSUB: {e}")
-        FSUB = {}
-else:
-    log.info("ℹ️ ENABLE_FSUB is False — skipping FSUB parsing.")
-    
+# ===================== DYNAMIC FSUB LOADING =====================
+def load_fsub():
+    """Fetch ENABLE_FSUB and FSUB fresh from DB each time."""
+    ENABLE_FSUB = get_bool("ENABLE_FSUB")
+    raw_fsub = get_list("FSUB")  # can be list or comma-separated string
 
+    FSUB = {}
+    if ENABLE_FSUB and raw_fsub:
+        try:
+            # If string like "Channel1:-100123456, Channel2:-100654321"
+            if isinstance(raw_fsub, list):
+                for item in raw_fsub:
+                    if ":" in item:
+                        name, cid = item.split(":", 1)
+                        FSUB[name.strip()] = int(cid.strip())
+            log.info(f"🔍 FSUB loaded successfully: {FSUB}")
+        except Exception as e:
+            log.error(f"⚠️ Error parsing FSUB: {e}")
+            FSUB = {}
+    else:
+        FSUB = {}
+        log.info("ℹ️ ENABLE_FSUB is False or FSUB empty — skipping FSUB parsing.")
+    
+    return ENABLE_FSUB, FSUB
+
+
+# ===================== FORCE SUB CHECK =====================
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
-    """
-    Check if user has joined all required FSUB channels.
-    If not, send them join buttons + 'I Joined' button.
-    """
+    ENABLE_FSUB, FSUB = load_fsub()
+
     if not ENABLE_FSUB:
-        return True  # Skip check if disabled
+        return True  # skip check if disabled
 
     not_joined = []
-    
 
     for btn_name, channel_id in FSUB.items():
         try:
@@ -48,11 +51,11 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         except ChatAdminRequired:
             log.error(f"❌ Bot is not admin in channel {channel_id}, cannot check membership!")
             await message.reply_text(
-                "⚠️ ғᴏʀᴄᴇ-sᴜʙ ᴍɪsᴄᴏɴғɪɢᴜʀᴇᴅ: ʙᴏᴛ ᴍᴜsᴛ ʙᴇ ᴀᴅᴍɪɴ ɪɴ ᴄʜᴀɴɴᴇʟ!"
+                "⚠️ Bot must be admin in all FSUB channels!"
             )
             return False
         except Exception as e:
-            log.error(f"⚠️ Error checking fsub for channel {channel_id}: {e}")
+            log.error(f"⚠️ Error checking FSUB for channel {channel_id}: {e}")
             return False
 
     if not not_joined:
@@ -69,7 +72,6 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
             log.error(f"⚠️ Failed to create invite link for {channel_id}: {e}")
             row.append(InlineKeyboardButton(f"• {btn_name} •", url="https://t.me"))
         
-        # 2 buttons per row
         if i % 2 == 0:
             buttons.append(row)
             row = []
@@ -77,22 +79,21 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
     if row:
         buttons.append(row)
 
-    # Add "I Joined" button
-    buttons.append([InlineKeyboardButton("• ✅ ɪ ᴊᴏɪɴᴇᴅ •", callback_data="fsub_check")])
+    buttons.append([InlineKeyboardButton("• ✅ I Joined •", callback_data="fsub_check")])
 
     await message.reply_text(
-        "⚠️ ʏᴏᴜ ᴍᴜsᴛ ᴊᴏɪɴ ᴛʜᴇ ғᴏʟʟᴏᴡɪɴɢ ᴄʜᴀɴɴᴇʟ(s) ʙᴇғᴏʀᴇ ᴜsɪɴɢ ᴛʜɪs ʙᴏᴛ:",
+        "⚠️ You must join the following channel(s) before using this bot:",
         reply_markup=InlineKeyboardMarkup(buttons)
     )
     return False
 
 
-# Callback for "I Joined" button
+# ===================== CALLBACK =====================
 @Client.on_callback_query(filters.regex("fsub_check"))
 async def recheck_force_sub(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     ok = await check_force_sub(client, user_id, callback_query.message)
     if ok:
         await callback_query.message.edit_text(
-            "✅ ᴛʜᴀɴᴋs! ʏᴏᴜ’ᴠᴇ ᴜɴʟᴏᴄᴋᴇᴅ ᴛʜᴇ ʙᴏᴛ ғᴇᴀᴛᴜʀᴇs.\n\nsᴇɴᴅ /start ᴀɢᴀɪɴ."
+            "✅ Thanks! You’ve unlocked the bot features.\n\nSend /start again."
         )
