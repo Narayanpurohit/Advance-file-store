@@ -58,11 +58,11 @@ async def start_handler(client, message):
         if not user_exists(user_id):
             add_user(user_id)
             log.info(f"👤 ɴᴇᴡ ᴜsᴇʀ {user_id} ᴀᴅᴅᴇᴅ ᴛᴏ ᴅᴀᴛᴀʙᴀsᴇ.")
-            if LOG_CHANNEL:
-                await client.send_message(
-                    LOG_CHANNEL,
-                    f"🦋 #ɴᴇᴡᴜsᴇʀ 🦋,\n\nɪᴅ : {user_id}\nɴᴀᴍᴇ : {message.from_user.first_name}"
-                )
+            #if LOG_CHANNEL:
+                #await client.send_message(
+                    #LOG_CHANNEL,
+                    #f"🦋 #ɴᴇᴡᴜsᴇʀ 🦋,\n\nɪᴅ : {user_id}\nɴᴀᴍᴇ : {message.from_user.first_name}"
+                #)
 
         # 2. ᴄʜᴇᴄᴋ ғᴏʀᴄᴇ sᴜʙ
         ok = await check_force_sub(client, user_id, message)
@@ -140,16 +140,16 @@ async def start_handler(client, message):
                 increment_batch_messages_sent(sent_count)
                 bm_count(user_id, sent_count)
 
-                if LOG_CHANNEL:
-                    await client.send_message(
-                        LOG_CHANNEL,
-                        f"📦 #ʙᴀᴛᴄʜsᴇɴᴛ\n\n"
-                        f"👤 ᴜsᴇʀ: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
-                        f"🗂️ ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs: {sent_count}\n"
-                        f"🔖 sʟᴜɢ: {slug}\n\n"
-                        f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
-                        f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
-                    )
+                #if LOG_CHANNEL:
+                    #await client.send_message(
+                        #LOG_CHANNEL,
+                        #f"📦 #ʙᴀᴛᴄʜsᴇɴᴛ\n\n"
+                        #f"👤 ᴜsᴇʀ: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                        #f"🗂️ ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs: {sent_count}\n"
+                        #f"🔖 sʟᴜɢ: {slug}\n\n"
+                        #f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
+                        #f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
+                    #)
 
             if failure_reasons:
                 breakdown = "\n".join([f"• {k}: {v}" for k, v in failure_reasons.items()])
@@ -206,18 +206,18 @@ async def start_handler(client, message):
                 )
                 asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
 
-            if LOG_CHANNEL:
-                await client.send_message(
-                    LOG_CHANNEL,
-                    f"📦 #ꜰɪʟᴇsᴇɴᴛ\n\n"
-                    f"👤 ᴜsᴇʀ: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
-                    f"📁 ꜰɪʟᴇ: {file_name}\n"
-                    f"💾 sɪᴢᴇ: {human_readable_size(file_size)}\n"
-                    f"📂 ᴛʏᴘᴇ: {file_type}\n"
-                    f"🔖 sʟᴜɢ: {slug}\n\n"
-                    f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
-                    f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
-                )
+            #if LOG_CHANNEL:
+                #await client.send_message(
+                    #LOG_CHANNEL,
+                    #f"📦 #ꜰɪʟᴇsᴇɴᴛ\n\n"
+                    #f"👤 ᴜsᴇʀ: [{message.from_user.first_name}](tg://user?id={message.from_user.id})\n"
+                    #f"📁 ꜰɪʟᴇ: {file_name}\n"
+                    #f"💾 sɪᴢᴇ: {human_readable_size(file_size)}\n"
+                    #f"📂 ᴛʏᴘᴇ: {file_type}\n"
+                    #f"🔖 sʟᴜɢ: {slug}\n\n"
+                    #f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
+                    #f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
+                #)
 
         except FloodWait as e:
             await message.reply_text(f"⚠️ ᴡᴀɪᴛ {e.value}s ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
