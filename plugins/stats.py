@@ -31,7 +31,7 @@ for x in raw_admins:
 # Always include deployer + global admin
 FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
 
-logger.info(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
+print(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
 
 
 def get_total_users():
