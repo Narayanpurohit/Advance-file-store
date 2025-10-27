@@ -77,23 +77,6 @@ PREMIUM_POINTS = get_int(user_data.get("PREMIUM_POINTS"))
 #FINAL_ADMINS = list(set(ADMINS + [6789146594]))
 
 # Handle ADMINS properly
-raw_admins = user_data.get("ADMINS", [])
-
-if isinstance(raw_admins, str):
-    # Convert "123,456,789" → [123, 456, 789]
-    raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
-
-ADMINS = []
-for x in raw_admins:
-    try:
-        ADMINS.append(int(x))
-    except (TypeError, ValueError):
-        pass
-
-# Always include deployer + global admin
-FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
-
-logger.info(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
 
 
 # ===================== INITIALIZE BOT =====================
@@ -108,7 +91,6 @@ app = Client(
 # ===================== START BOT =====================
 if __name__ == "__main__":
     logger.info("🚀 Starting deployed bot...")
-    logger.info(f"ADMINS: {FINAL_ADMINS}")
     logger.info(f"ENABLE_FSUB: {ENABLE_FSUB}, VERIFICATION_MODE: {VERIFICATION_MODE}")
 
     app.start()
