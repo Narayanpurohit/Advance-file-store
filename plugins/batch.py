@@ -3,10 +3,10 @@ import random
 import string
 from pyrogram import Client, filters
 from database import save_batch
-from bot import PUBLIC_BOT#, ADMINS
+from bot import get_admins
 
 log = logging.getLogger(__name__)
-ADMINS=()
+
 def generate_slug(length: int = 16) -> str:
     """Generate a unique random slug."""
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
@@ -14,6 +14,7 @@ def generate_slug(length: int = 16) -> str:
 @Client.on_message(filters.command("batch") & filters.private)
 async def batch_handler(client, message):
     user_id = message.from_user.id
+    ADMINS = get_admins()
 
     # Access control based on PUBLIC_BOT
     if not PUBLIC_BOT and user_id not in ADMINS:
