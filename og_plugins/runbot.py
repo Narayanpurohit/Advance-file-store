@@ -3,14 +3,13 @@ import logging
 from pyrogram import Client, filters
 from db_config import users_col
 import asyncio
+import os
 
-# Setup logging
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
 logger = logging.getLogger(__name__)
-
 
 @Client.on_message(filters.command("runbot") & filters.private)
 async def runbot_handler(client, message):
@@ -18,82 +17,51 @@ async def runbot_handler(client, message):
     container_name = f"userbot_{user_id}"
     docker_client = docker.from_env()
 
-    # Get user data
+    # Fetch user record
     user = users_col.find_one({"USER_ID": user_id}) or {}
-    logger.info(f"FSUB variable extracted from DB: {user.get('FSUB')}")
-
-    # Premium points validation
     premium_points = int(user.get("PREMIUM_POINTS", 0))
     files_sent = int(user.get("files_sent", 0))
     batch_messages_sent = int(user.get("batch_messages_sent", 0))
-    MIN_POINTS = files_sent + batch_messages_sent +1
+    MIN_POINTS = files_sent + batch_messages_sent + 1
+
     if premium_points < MIN_POINTS:
         await message.reply_text(
             f"❌ You need at least {MIN_POINTS} premium points. You have {premium_points}."
         )
         return
 
-    # Check required vars
+    # Check bot credentials in DB
     required_vars = ["BOT_TOKEN", "API_ID", "API_HASH"]
-    missing_vars = [var for var in required_vars if not user.get(var)]
+    missing_vars = [v for v in required_vars if not user.get(v)]
     if missing_vars:
-        await message.reply_text(f"⚠️ Please configure: `{', '.join(missing_vars)}`")
+        await message.reply_text(f"⚠️ Missing: `{', '.join(missing_vars)}`")
         return
 
     await message.reply_text("🚀 Deployment started...")
 
-    user = users_col.find_one({"USER_ID": user_id}) or {}
-    admins_list = user.get("ADMINS", [])
-    logger.info(f"ADMINS variable extracted from DB: {admins_list}")
-
-    # ✅ Handle existing container
+    # Stop & remove existing container if found
     try:
         existing = docker_client.containers.get(container_name)
         existing.reload()
-        logger.info(f"⚙️ Found existing container {container_name} with status: {existing.status}")
-
         if existing.status == "running":
-            logger.info(f"🛑 Stopping running container {container_name}...")
+            logger.info(f"🛑 Stopping old container {container_name}...")
             existing.stop()
-            logger.info(f"✅ Container {container_name} stopped.")
-
-        logger.info(f"🗑️ Removing existing container {container_name}...")
         existing.remove(force=True)
         logger.info(f"✅ Old container {container_name} removed.")
     except docker.errors.NotFound:
-        logger.info(f"✅ No existing container named {container_name}. Proceeding with fresh deployment.")
+        pass
     except Exception as e:
-        logger.error(f"⚠️ Error while removing old container: {e}")
+        logger.error(f"⚠️ Error removing old container: {e}")
         await message.reply_text(f"⚠️ Error removing old container: {e}")
         return
 
-    # ✅ Environment variables for new deployment
+    # Pass only essential variables
     env_vars = {
         "DEPLOY_USER_ID": str(user_id),
-        "API_ID": str(user.get("API_ID")),
-        "API_HASH": user.get("API_HASH"),
-        "BOT_TOKEN": user.get("BOT_TOKEN"),
-        "ENABLE_FSUB": str(user.get("ENABLE_FSUB", False)),
-        "VERIFICATION_MODE": str(user.get("VERIFICATION_MODE", False)),
-        "MONGO_URI": user.get("MONGO_URI", ""),
-        "DB_NAME": user.get("DB_NAME", ""),
-        "FSUB": user.get("FSUB", ""),
-        "PREMIUM_HOURS_VERIFICATION": str(user.get("PREMIUM_HOURS_VERIFICATION", "")),
-        "VERIFY_SLUG_TTL_HOURS": str(user.get("VERIFY_SLUG_TTL_HOURS", "")),
-        "SHORTENER_DOMAIN": user.get("SHORTENER_DOMAIN", ""),
-        "SHORTENER_API_KEY": user.get("SHORTENER_API_KEY", ""),
-        "CAPTION": user.get("CAPTION", ""),
-        "ADMINS": user.get("ADMINS", ""),
-        "AUTO_DELETE": str(user.get("AUTO_DELETE", False)),
-        "AUTO_DELETE_TIME": str(user.get("AUTO_DELETE_TIME", "")),
-        "PUBLIC_BOT": str(user.get("PUBLIC_BOT", True)),
-        "PROTECT_CONTENT": str(user.get("PROTECT_CONTENT", False)),
-        "CLONE_BUTTON": str(user.get("CLONE_BUTTON", True)),
-        "LOG_CHANNEL": user.get("LOG_CHANNEL", "")
-        
+        "CODE2_MONGO_URI": os.getenv("CODE2_MONGO_URI"),
+        "CODE2_DB_NAME": os.getenv("CODE2_DB_NAME"),
     }
 
-    # ✅ Create and run new container
     try:
         container = docker_client.containers.run(
             image="userbot_image",
@@ -103,10 +71,10 @@ async def runbot_handler(client, message):
             restart_policy={"Name": "on-failure"},
             network_mode="bridge"
         )
-        logger.info(f"✅ New container {container_name} created successfully.")
+        logger.info(f"✅ Container {container_name} started successfully.")
     except Exception as e:
-        logger.error(f"❌ Failed to start new container: {e}")
-        await message.reply_text(f"❌ Failed to start new container: {e}")
+        logger.error(f"❌ Failed to start container: {e}")
+        await message.reply_text(f"❌ Deployment failed: {e}")
         return
 
     # Update DB status
@@ -114,16 +82,15 @@ async def runbot_handler(client, message):
         {"USER_ID": user_id},
         {"$set": {"BOT_STATUS": "running", "DOCKER_CONTAINER_ID": container.id}}
     )
-    logger.info(f"✅ Container {container_name} started with ID {container.id}")
 
-    # ✅ Stream logs and detect deployment success
+    # Stream logs for success detection
     logs = container.logs(stream=True)
     deployment_success = False
     log_lines = []
 
     try:
         async for line in _docker_log_stream(logs):
-            text_line = line.decode('utf-8').strip()
+            text_line = line.decode("utf-8").strip()
             log_lines.append(text_line)
 
             if "Bot is now running and ready" in text_line:
@@ -132,15 +99,13 @@ async def runbot_handler(client, message):
                 break
 
         if not deployment_success:
-            log_file_path = f"./logs_{user_id}.txt"
-            with open(log_file_path, "w") as f:
+            log_path = f"./logs_{user_id}.txt"
+            with open(log_path, "w") as f:
                 f.write("\n".join(log_lines))
-            await message.reply_document(log_file_path, caption="❌ Deployment failed. See logs.")
+            await message.reply_document(log_path, caption="❌ Deployment failed. See logs.")
     except Exception as e:
-        await message.reply_text(f"⚠️ Error while streaming logs: {str(e)}")
+        await message.reply_text(f"⚠️ Error streaming logs: {str(e)}")
 
-
-# Helper to async stream docker logs
 async def _docker_log_stream(logs):
     for log in logs:
         yield log
