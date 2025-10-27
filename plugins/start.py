@@ -93,10 +93,10 @@ async def start_handler(client, message):
             premium_points = user_data.get("PREMIUM_POINTS", 0)
             files_sent = user_data.get("files_sent", 0)
             batch_messages_sent = user_data.get("batch_messages_sent", 0)
-
             total_used = files_sent + batch_messages_sent
+
             if premium_points <= total_used:
-                await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴅᴍɪɴ ᴀᴄᴄᴏᴜɴᴛ ᴅᴏᴇsɴ’ᴛ ʜᴀᴠᴇ ᴇɴᴏᴜɢʜ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ᴛᴏ sᴇɴᴅ ᴛʜɪs ʙᴀᴛᴄʜ.")
+                await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴅᴍɪɴ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
                 return
 
             if VERIFICATION_MODE and not is_premium(user_id):
@@ -107,7 +107,6 @@ async def start_handler(client, message):
             failure_reasons = {}
             batch_sent_messages = []
 
-            # ✅ sᴇɴᴅ ʙᴀᴛᴄʜ ᴡɪᴛʜ ᴘʀᴏᴛᴇᴄᴛɪᴏɴ
             for item in batch_data["messages"]:
                 try:
                     sent = await client.copy_message(
@@ -149,28 +148,29 @@ async def start_handler(client, message):
                         f"🗂️ ᴛᴏᴛᴀʟ ᴍᴇssᴀɢᴇs: {sent_count}\n"
                         f"🔖 sʟᴜɢ: {slug}\n\n"
                         f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
-                        f"💎 ᴘᴏɪɴᴛs ᴀᴠᴀɪʟᴀʙʟᴇ: {premium_points - total_used}"
+                        f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
                     )
 
             if failure_reasons:
                 breakdown = "\n".join([f"• {k}: {v}" for k, v in failure_reasons.items()])
-                await message.reply_text(f"❌ sᴏᴍᴇ ᴍᴇssᴀɢᴇs ꜰᴀɪʟᴇᴅ ɪɴ ʙᴀᴛᴄʜ:\n{breakdown}")
+                await message.reply_text(f"❌ sᴏᴍᴇ ᴍᴇssᴀɢᴇs ꜰᴀɪʟᴇᴅ:\n{breakdown}")
             return
 
         # 6. ꜰɪʟᴇ sʟᴜɢ
         file_data = get_file_by_slug(slug)
         if not file_data:
-            await message.reply_text("❌ ꜰɪʟᴇ ɴᴏᴛ ꜰᴏᴜɴᴅ ᴏʀ ʜᴀs ʙᴇᴇɴ ʀᴇᴍᴏᴠᴇᴅ.")
+            await message.reply_text("❌ ꜰɪʟᴇ ɴᴏᴛ ꜰᴏᴜɴᴅ ᴏʀ ʀᴇᴍᴏᴠᴇᴅ.")
             return
 
-        # 7. ᴄʜᴇᴄᴋ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs
+        # 7. ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ᴄʜᴇᴄᴋ
         user_data = get_user_data(user_id)
         premium_points = user_data.get("PREMIUM_POINTS", 0)
         files_sent = user_data.get("files_sent", 0)
         batch_messages_sent = user_data.get("batch_messages_sent", 0)
+        total_used = files_sent + batch_messages_sent
 
-        if premium_points <= (files_sent + batch_messages_sent):
-            await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴅᴍɪɴ ᴀᴄᴄᴏᴜɴᴛ ᴅᴏᴇsɴ’ᴛ ʜᴀᴠᴇ ᴇɴᴏᴜɢʜ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ᴛᴏ sᴇɴᴅ ᴛʜɪs ꜰɪʟᴇ.")
+        if premium_points <= total_used:
+            await message.reply_text("⚠️ ɴᴏ ᴇɴᴏᴜɢʜ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs.")
             return
 
         # 8. ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴄʜᴇᴄᴋ
@@ -182,12 +182,7 @@ async def start_handler(client, message):
         file_name = file_data.get("file_name", "")
         file_size = file_data.get("file_size", 0)
         orig_caption = file_data.get("caption", "")
-
-        caption_text = CAPTION.format(
-            filename=file_name,
-            filesize=human_readable_size(file_size),
-            caption=orig_caption
-        )
+        caption_text = CAPTION.format(filename=file_name, filesize=human_readable_size(file_size), caption=orig_caption)
 
         # 10. sᴇɴᴅ ꜰɪʟᴇ
         file_type = file_data.get("file_type")
@@ -206,12 +201,11 @@ async def start_handler(client, message):
 
             if AUTO_DELETE:
                 notice = await message.reply_text(
-                    f"🔺ᴛʜɪs ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ **{AUTO_DELETE_TIME // 60} ᴍɪɴᴜᴛᴇs** 🫥\n\n"
-                    f"ᴘʟᴇᴀsᴇ ꜰᴏʀᴡᴀʀᴅ ᴛʜɪs ꜰɪʟᴇ/ᴠɪᴅᴇᴏ ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴀɴᴅ **sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ**"
+                    f"🔺ᴛʜɪs ꜰɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ **{AUTO_DELETE_TIME // 60} ᴍɪɴᴜᴛᴇs** 🫥\n\n"
+                    f"ꜰᴏʀᴡᴀʀᴅ ᴛᴏ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴛᴏ ᴋᴇᴇᴘ ɪᴛ."
                 )
                 asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
 
-            # 🪵 sᴇɴᴅ ʟᴏɢ ɪғ ᴇɴᴀʙʟᴇᴅ
             if LOG_CHANNEL:
                 await client.send_message(
                     LOG_CHANNEL,
@@ -221,25 +215,25 @@ async def start_handler(client, message):
                     f"💾 sɪᴢᴇ: {human_readable_size(file_size)}\n"
                     f"📂 ᴛʏᴘᴇ: {file_type}\n"
                     f"🔖 sʟᴜɢ: {slug}\n\n"
-                    f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {files_sent + batch_messages_sent}\n"
-                    f"💎 ᴘᴏɪɴᴛs ᴀᴠᴀɪʟᴀʙʟᴇ: {premium_points - (files_sent + batch_messages_sent)}"
+                    f"💠 ᴘᴏɪɴᴛs ᴜsᴇᴅ: {total_used}\n"
+                    f"💎 ʀᴇᴍᴀɪɴɪɴɢ: {premium_points - total_used}"
                 )
 
         except FloodWait as e:
-            await message.reply_text(f"⚠️ ᴘʟᴇᴀsᴇ ᴡᴀɪᴛ {e.value}s ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
+            await message.reply_text(f"⚠️ ᴡᴀɪᴛ {e.value}s ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
             return
         except PeerIdInvalid:
-            await message.reply_text("⚠️ ᴄᴀɴɴᴏᴛ sᴇɴᴅ ꜰɪʟᴇ (ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ).")
+            await message.reply_text("⚠️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ ɪᴅ.")
             return
         except UserIsBlocked:
             return
         except Exception as e:
-            await message.reply_text("⚠️ ꜰᴀɪʟᴇᴅ ᴛᴏ sᴇɴᴅ ꜰɪʟᴇ. ᴛʀʏ ᴀɢᴀɪɴ ʟᴀᴛᴇʀ.")
+            await message.reply_text("⚠️ ꜰᴀɪʟᴇᴅ ᴛᴏ sᴇɴᴅ ꜰɪʟᴇ.")
             return
 
         increment_file_send_count()
         m_count(user_id)
 
     except Exception as e:
-        await message.reply_text(
-            f"⚠️ ᴀɴ ᴜɴᴇxᴘᴇᴄᴛ
+        log.exception(f"🔥 ᴇʀʀᴏʀ ɪɴ /sᴛᴀʀᴛ: {e}")
+        await message.reply_text(f"⚠️ ᴀɴ ᴜɴᴇxᴘᴇᴄᴛᴇᴅ ᴇʀʀᴏʀ ᴏᴄᴄᴜʀʀᴇᴅ.\n\n`{e}`")
