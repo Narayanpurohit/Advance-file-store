@@ -14,10 +14,10 @@ logging.basicConfig(
 log = logging.getLogger("Settings")
 
 # ---------------- VARIABLES ----------------
-BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE"]
-INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME"]
+BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE", "PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT"]
+INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME", "LOG_CHANNEL"]
 
-VARIABLE_INFO = {
+ VARIABLE_INFO = {
     "BOT_TOKEN": {"name": "ʙᴏᴛ ᴛᴏᴋᴇɴ", "help": "ᴛʜᴇ ᴛᴏᴋᴇɴ ʏᴏᴜ ɢᴇᴛ ғʀᴏᴍ @ʙᴏᴛғᴀᴛʜᴇʀ."},
     "DB_NAME": {"name": "Data code", "help": "ᴛʜɪs ɪs ᴜɴɪǫᴜᴇ ᴄᴏᴅᴇ ᴛʜᴀᴛ sᴛᴏʀᴇs ʏᴏᴜʀ ʟɪɴᴋs ᴀɴᴅ ᴜsᴇʀ ᴅᴀᴛᴀ ɪꜰ ʏᴏᴜ ᴄʜᴀɴɢᴇ ᴀᴄᴏᴜɴᴛ sᴇᴛ ᴛʜɪs ᴄᴏᴅᴇ."},
     "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ᴏғ ᴀᴅᴍɪɴs sᴇᴘᴀʀᴀᴛᴇ ᴛʜᴇᴍ ᴡɪᴛʜ ,"},
@@ -30,6 +30,14 @@ VARIABLE_INFO = {
     "ENABLE_FSUB": {"name": "ᴇɴᴀʙʟᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴄʜᴀɴɢᴇ ғᴏʀᴄᴇ-sᴜʙ ᴍᴏᴅᴇ"},
     "VERIFICATION_MODE": {"name": "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ", "help": "ᴄʜᴀɴɢᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ."},
     "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴄʜᴀɴɢᴇ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ ᴍᴏᴅᴇ."}
+    "LOG_CHANNEL": {"name": "ʟᴏɢ ᴄʜᴀɴɴᴇʟ", "help": "ꜱᴇᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɴᴅ ᴍᴀᴋᴇ ꜱᴜʀᴇ ʙᴏᴛ ɪꜱ ᴀᴅᴍɪɴ ᴏɴ ᴄʜᴀɴɴᴇʟ."}
+    "PROTECT_CONTENT": {"name": "ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ", "help": "ʀᴇꜱᴛʀɪᴄᴛ ᴜꜱᴇʀ ꜰʀᴏᴍ ꜱᴀᴠɪɴɢ ᴄᴏɴᴛᴇɴᴛ."}
+    "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."}
+    "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
+    
+    
+    
+    
 }
 
 # ---------------- GROUPS ----------------
@@ -40,6 +48,7 @@ GROUP_KEYS = {
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": "verification",
     "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": "autodelete",
     "○ ᴄᴀᴘᴛɪᴏɴ": "caption"
+    "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ": "other"
 }
 
 GROUPS = {
@@ -49,6 +58,8 @@ GROUPS = {
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
     "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
     "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"]
+    "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ":["PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT", "LOG_CHANNEL"]
+    
 }
 
 VERIFICATION_SUB = [
