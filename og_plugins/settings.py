@@ -47,7 +47,7 @@ GROUP_KEYS = {
     "⊛ ғᴏʀᴄᴇ sᴜʙ": "fsub",
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": "verification",
     "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": "autodelete",
-    "○ ᴄᴀᴘᴛɪᴏɴ": "caption"
+    "○ ᴄᴀᴘᴛɪᴏɴ": "caption",
     "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ": "other"
 }
 
@@ -57,7 +57,7 @@ GROUPS = {
     "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
     "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
-    "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"]
+    "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"],
     "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ":["PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT", "LOG_CHANNEL"]
     
 }
