@@ -59,7 +59,7 @@ async def start_handler(client, message):
             add_user(user_id)
             log.info(f"👤 ɴᴇᴡ ᴜsᴇʀ {user_id} ᴀᴅᴅᴇᴅ ᴛᴏ ᴅᴀᴛᴀʙᴀsᴇ.")
             log.info(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} points.")
-            
+            print(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} points.")
             #if LOG_CHANNEL:
                 #await client.send_message(
                     #LOG_CHANNEL,
