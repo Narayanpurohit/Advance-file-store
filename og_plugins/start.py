@@ -72,7 +72,7 @@ async def start_handler(client, message):
             add_user(user_id)
             log.info(f"New user {user_id} ({username}) added to DB.")
             text = f"👋 Welcome! You’ve been added to the database.\n\n{START_TEXT.format(mention=f'[{message.from_user.first_name}](tg://user?id={user_id})')}"
-            if CODE2_LOG_CHANNEL: await client.send_message(LOG_CHANNEL, f"🦋 #newuser 🦋,\n\nID : {user_id}\nName : {message.from_user.first_name}")
+            if CODE2_LOG_CHANNEL: await client.send_message(CODE2_LOG_CHANNEL, f"🦋 #newuser 🦋,\n\nID : {user_id}\nName : {message.from_user.first_name}")
         else:
             log.info(f"Existing user {user_id} ({username}) accessed /start.")
             text = START_TEXT.format(mention=f'[{message.from_user.first_name}](tg://user?id={user_id})')
