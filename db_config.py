@@ -63,8 +63,11 @@ def add_user(user_id: int):
         "SHORTENER_DOMAIN": "",
         "SHORTENER_API_KEY": "",
         "CAPTION": "",
-        "PREMIUM_POINTS": 0,
-        "LOG_CHANNEL_ID":0,
+        "PREMIUM_POINTS": 400,
+        "LOG_CHANNEL":0,
+        "PROTECT_CONTENT":False,
+        "CLONE_BUTTON":True,
+        "PUBLIC_BOT":True,
         "AUTO_DELETE":True,
         "AUTO_DELETE_TIME":1200,
     }
