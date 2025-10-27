@@ -3,7 +3,7 @@ from pyrogram import Client, filters
 from database import add_premium_days, remove_premium, get_premium_expiry
 import datetime
 
-
+ADMINS=()
 @Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
 async def cmd_add_premium(client, message):
     """
