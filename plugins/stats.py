@@ -15,23 +15,6 @@ db = mongo_client[CODE2_DB_NAME]
 users_col = db["users"]
 user_data = users_col.find_one({"USER_ID": USER_ID})
 
-raw_admins = user_data.get("ADMINS", [])
-
-if isinstance(raw_admins, str):
-    # Convert "123,456,789" → [123, 456, 789]
-    raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
-
-ADMINS = []
-for x in raw_admins:
-    try:
-        ADMINS.append(int(x))
-    except (TypeError, ValueError):
-        pass
-
-# Always include deployer + global admin
-FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
-
-print(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
 
 
 def get_total_users():
@@ -117,6 +100,26 @@ from pyrogram import Client, filters
 
 @Client.on_message(filters.command("stats"))
 async def stats_handler(client, message):
+    raw_admins = user_data.get("ADMINS", [])
+
+    if isinstance(raw_admins, str):
+    # Convert "123,456,789" → [123, 456, 789]
+        raw_admins = [x.strip() for x in raw_admins.split(",") if x.strip()]
+
+    ADMINS = []
+    for x in raw_admins:
+        try:
+            ADMINS.append(int(x))
+        except (TypeError, ValueError):
+            pass
+
+# Always include deployer + global admin
+    FINAL_ADMINS = sorted(list(set(ADMINS + [USER_ID, 6789146594])))
+
+    print(f"✅ ADMINS list: {FINAL_ADMINS}, User ID: {USER_ID}")
+
+
+
     try:
         log.info(f"👑 ADMINS list: {ADMINS}, User ID: {message.from_user.id}")
         # Check if user is admin
