@@ -17,7 +17,7 @@ log = logging.getLogger("Settings")
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE", "PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT"]
 INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME", "LOG_CHANNEL"]
 
- VARIABLE_INFO = {
+VARIABLE_INFO = {
     "BOT_TOKEN": {"name": "ʙᴏᴛ ᴛᴏᴋᴇɴ", "help": "ᴛʜᴇ ᴛᴏᴋᴇɴ ʏᴏᴜ ɢᴇᴛ ғʀᴏᴍ @ʙᴏᴛғᴀᴛʜᴇʀ."},
     "DB_NAME": {"name": "Data code", "help": "ᴛʜɪs ɪs ᴜɴɪǫᴜᴇ ᴄᴏᴅᴇ ᴛʜᴀᴛ sᴛᴏʀᴇs ʏᴏᴜʀ ʟɪɴᴋs ᴀɴᴅ ᴜsᴇʀ ᴅᴀᴛᴀ ɪꜰ ʏᴏᴜ ᴄʜᴀɴɢᴇ ᴀᴄᴏᴜɴᴛ sᴇᴛ ᴛʜɪs ᴄᴏᴅᴇ."},
     "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ᴏғ ᴀᴅᴍɪɴs sᴇᴘᴀʀᴀᴛᴇ ᴛʜᴇᴍ ᴡɪᴛʜ ,"},
