@@ -4,11 +4,12 @@ import asyncio
 from collections import defaultdict
 import traceback
 
-#from bot import #ADMINS
+from bot import get_admins
 from database import get_all_users, get_total_users
-ADMINS=()
-@Client.on_message(filters.command("broadcast") & filters.user(ADMINS))
+
+@Client.on_message(filters.command("broadcast") )
 async def broadcast_handler(client, message):
+    ADMINS = get_admins() 
     if not message.reply_to_message:
         await message.reply_text("⚠️ Reply to a message to broadcast.")
         return
