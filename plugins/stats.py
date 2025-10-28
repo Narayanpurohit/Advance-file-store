@@ -82,7 +82,7 @@ def get_user_list(users, page):
 
 @Client.on_message(filters.command("stats"))
 async def stats_handler(client, message):
-    
+    try:
         # Check if user is admin
         ADMINS = get_admins()
         if message.from_user.id not in ADMINS:
