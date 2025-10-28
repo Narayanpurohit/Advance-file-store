@@ -18,6 +18,61 @@ from bot import get_str as get_str_var, get_int as get_int_var, get_bool as get_
 log = logging.getLogger(__name__)
 
 
+# ================= AUTO DELETE HELPERS =================
+async def auto_delete(client, messages, slug, file_name, user_id, delay=None):
+    """Delete file + notice after delay and send 'Get File' button."""
+    try:
+        if delay is None:
+            delay = get_int_var("AUTO_DELETE_TIME")
+
+        await asyncio.sleep(delay)
+
+        for msg in messages:
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+        await client.send_message(
+            chat_id=user_id,
+            text=f"🗑️ This file was auto-deleted.\n\n📂 **{file_name}**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📥 Get File", url=f"https://t.me/{client.me.username}?start={slug}")]
+            ])
+        )
+        log.info(f"🗑️ Auto-deleted file {slug} for user {user_id}")
+    except Exception as e:
+        log.warning(f"⚠️ Failed auto-delete for {slug} user {user_id}: {e}")
+
+
+async def auto_delete_batch(client, messages, slug, user_id, delay=None):
+    """Delete all batch messages after delay and notify user once."""
+    try:
+        if delay is None:
+            delay = get_int_var("AUTO_DELETE_TIME")
+
+        await asyncio.sleep(delay)
+
+        for msg in messages:
+            try:
+                await msg.delete()
+            except Exception:
+                pass
+
+        await client.send_message(
+            chat_id=user_id,
+            text=f"🗑️ This batch was auto-deleted.\n\n📦 **Batch: {slug}**",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📥 Get Batch", url=f"https://t.me/{client.me.username}?start={slug}")]
+            ])
+        )
+
+        log.info(f"🗑️ Auto-deleted batch {slug} for user {user_id}")
+    except Exception as e:
+        log.warning(f"⚠️ Failed to auto-delete batch {slug} for user {user_id}: {e}")
+
+
+
 # ================= Inline Button Section =================
 async def get_start_buttons():
     """Return dynamic start keyboard depending on CLONE_BUTTON variable."""
