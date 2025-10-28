@@ -18,7 +18,7 @@ log = logging.getLogger(__name__)
 
 # Inline buttons (use dynamic check for clone button)
 async def get_start_buttons():
-    CLONE_BUTTON = await get_bool_var("CLONE_BUTTON", default=False)
+    CLONE_BUTTON = get_bool_var("CLONE_BUTTON", default=False)
     if CLONE_BUTTON:
         return InlineKeyboardMarkup(
             [
@@ -56,13 +56,13 @@ async def start_handler(client, message):
     mention = message.from_user.mention
 
     # Always fetch latest variables from DB
-    VERIFICATION_MODE = await get_bool_var("VERIFICATION_MODE", default=False)
-    CAPTION = await get_str_var("CAPTION", default="{filename}")
-    AUTO_DELETE = await get_bool_var("AUTO_DELETE", default=True)
-    AUTO_DELETE_TIME = await get_int_var("AUTO_DELETE_TIME", default=1800)
-    PROTECT_CONTENT = await get_bool_var("PROTECT_CONTENT", default=False)
-    PREMIUM_POINTS = await get_int_var("PREMIUM_POINTS", default=50)
-    LOG_CHANNEL = await get_int_var("LOG_CHANNEL", default=0)
+    VERIFICATION_MODE = get_bool_var("VERIFICATION_MODE", default=False)
+    CAPTION = get_str_var("CAPTION", default="{filename}")
+    AUTO_DELETE = get_bool_var("AUTO_DELETE", default=True)
+    AUTO_DELETE_TIME = get_int_var("AUTO_DELETE_TIME", default=1800)
+    PROTECT_CONTENT = get_bool_var("PROTECT_CONTENT", default=False)
+    PREMIUM_POINTS = get_int_var("PREMIUM_POINTS", default=50)
+    LOG_CHANNEL = get_int_var("LOG_CHANNEL", default=0)
 
     try:
         if not user_exists(user_id):
