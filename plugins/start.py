@@ -93,13 +93,28 @@ async def start_handler(client, message):
                 await message.reply_text("❌ ʙᴀᴛᴄʜ ɴᴏᴛ ꜰᴏᴜɴᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ.")
                 return
 
+            #user_data = get_user_data(user_id)
+            #files_sent = user_data.get("files_sent", 0)
+            #batch_messages_sent = user_data.get("batch_messages_sent", 0)
+            #total_used = files_sent + batch_messages_sent
+
+            #if PREMIUM_POINTS <= total_used:
+                #await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
+                #return
+            # Fetch premium points limit directly from DB (no default)
+            allowed_points = get_int_var("PREMIUM_POINTS")
+
+            if allowed_points is None:
+                await message.reply_text("⚠️ Premium system misconfigured — missing points limit in DB.")
+                return
+
             user_data = get_user_data(user_id)
             files_sent = user_data.get("files_sent", 0)
             batch_messages_sent = user_data.get("batch_messages_sent", 0)
             total_used = files_sent + batch_messages_sent
 
-            if PREMIUM_POINTS <= total_used:
-                await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
+            if total_used >= allowed_points:
+                await message.reply_text("⚠️ You’ve used all your premium points.")
                 return
 
             if VERIFICATION_MODE and not is_premium(user_id):
