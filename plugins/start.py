@@ -12,8 +12,8 @@ from database import (
 from db_config import m_count, bm_count
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub
-from utils import human_readable_size, get_str_var, get_int_var, get_bool_var
-
+from utils import human_readable_size
+from bot import get_str_var, get_int_var, get_bool_var
 log = logging.getLogger(__name__)
 
 # Inline buttons (use dynamic check for clone button)
