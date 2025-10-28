@@ -12,7 +12,6 @@ def generate_slug(length: int = 16) -> str:
     """Generate a unique random slug."""
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-
 @Client.on_message(filters.command("batch") & filters.private)
 async def batch_handler(client, message):
     user_id = message.from_user.id
@@ -30,7 +29,11 @@ async def batch_handler(client, message):
             "or send the **message link** here."
         )
 
-        first_msg = await client.listen(message.chat.id, timeout=120)
+        try:
+            first_msg = await client.listen(message.chat.id, timeout=120)
+        except Exception:
+            await ask1.delete()
+            return await message.reply_text("❌ Timeout: You did not reply within 2 minutes.")
 
         # Determine first message details
         if first_msg.forward_from_chat:
@@ -56,7 +59,11 @@ async def batch_handler(client, message):
             "or send its **message link**."
         )
 
-        last_msg = await client.listen(message.chat.id, timeout=120)
+        try:
+            last_msg = await client.listen(message.chat.id, timeout=120)
+        except Exception:
+            await ask2.delete()
+            return await message.reply_text("❌ Timeout: You did not reply within 2 minutes.")
 
         # Determine last message details
         if last_msg.forward_from_chat:
@@ -109,4 +116,4 @@ async def batch_handler(client, message):
 
     except Exception as e:
         log.exception("Unexpected error in /batch")
-        await message.reply_text(f"⚠️ Unexpected error: {e}")
+        await message.reply_text(f"⚠️ Unexpected error occurred: `{e}`")
