@@ -4,7 +4,7 @@ import string
 from pyrogram import Client, filters
 from pyromod import listen
 from database import save_batch
-from bot import get_admins, PUBLIC_BOT
+from bot import get_admins, get_bool
 
 log = logging.getLogger(__name__)
 
@@ -17,6 +17,7 @@ def generate_slug(length: int = 16) -> str:
 async def batch_handler(client, message):
     user_id = message.from_user.id
     ADMINS = get_admins()
+    PUBLIC_BOT = get_bool("PUBLIC_BOT")
 
     # Access control
     if not PUBLIC_BOT and user_id not in ADMINS:
