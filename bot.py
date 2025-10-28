@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 # ===================== DB CONFIG =====================
 CODE2_MONGO_URI = os.getenv("CODE2_MONGO_URI")
-CODE2_DB_NAME = os.getenv("CODE2_DB_NAME")
+CODE2_DB_NAME = os.getenv("CODE2_DB_NAME","clone_maker")
 USER_ID = int(os.getenv("DEPLOY_USER_ID", 0))
 
 logger.info(f"🔧 Deploying bot for USER_ID: {USER_ID}")
