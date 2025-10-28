@@ -4,7 +4,7 @@ from database import add_premium_days, remove_premium, get_premium_expiry
 import datetime
 
 
-@Client.on_message(filters.command("add_premium") & filters.user(ADMINS))
+@Client.on_message(filters.command("add_premium") )
 async def cmd_add_premium(client, message):
     """
     Admin: /add_premium <user_id> <days>
