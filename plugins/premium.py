@@ -30,7 +30,7 @@ async def cmd_add_premium(client, message):
         await message.reply_text(f"❌ ᴇʀʀᴏʀ: `{e}`", quote=True)
 
 
-@Client.on_message(filters.command("remove_premium") & filters.user(ADMINS))
+@Client.on_message(filters.command("remove_premium") )
 async def cmd_remove_premium(client, message):
     """
     Admin: /remove_premium <user_id>
