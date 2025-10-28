@@ -1,44 +1,49 @@
 import datetime
-from bot import PREMIUM_HOURS_VERIFICATION, VERIFY_SLUG_TTL_HOURS
+from bot import get_int
 from database import create_verification_slug, use_verification_slug, add_premium_hours
 from .shortener import shorten_url
 
 
-# Handle verification when user clicks the start link
+# ===================== VARIABLE GETTERS =====================
+PREMIUM_HOURS_VERIFICATION = get_int("PREMIUM_HOURS_VERIFICATION")
+VERIFY_SLUG_TTL_HOURS = get_int("VERIFY_SLUG_TTL_HOURS")
+
+
+# ===================== HANDLE VERIFICATION =====================
 async def start_verification_flow(client, message, slug):
     try:
         record = use_verification_slug(slug)  # Returns full doc or None
     except Exception as e:
-        await message.reply_text(f"⚠️ Verification error: {e}")
+        await message.reply_text(f"⚠️ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ᴇʀʀᴏʀ:\n`{e}`")
         return
 
     if not record:
         # Handle old timestamp-based slugs with a dot (backward compatibility)
         if slug.startswith("verify_") and "." in slug:
-            await message.reply_text("❌ This old verification link has expired. Please request a new one.")
+            await message.reply_text("❌ ᴛʜɪꜱ ᴏʟᴅ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ʟɪɴᴋ ʜᴀꜱ ᴇxᴘɪʀᴇᴅ.\nᴘʟᴇᴀꜱᴇ ʀᴇǫᴜᴇꜱᴛ ᴀ ɴᴇᴡ ᴏɴᴇ.")
         else:
-            await message.reply_text("❌ Invalid or expired verification link.")
+            await message.reply_text("❌ ɪɴᴠᴀʟɪᴅ ᴏʀ ᴇxᴘɪʀᴇᴅ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ʟɪɴᴋ.")
         return
 
     # Check if slug belongs to this user
     if record.get("user_id") != message.from_user.id:
-        await message.reply_text("⚠️ This verification link is not for your account.")
+        await message.reply_text("⚠️ ᴛʜɪꜱ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ʟɪɴᴋ ɪꜱ ɴᴏᴛ ꜰᴏʀ ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ.")
         return
 
     # Give premium hours
     try:
         add_premium_hours(message.from_user.id, PREMIUM_HOURS_VERIFICATION)
         await message.reply_text(
-            f"✅ Verified! You now have premium for {PREMIUM_HOURS_VERIFICATION} hours."
+            f"✅ ᴠᴇʀɪꜰɪᴇᴅ ꜱᴜᴄᴄᴇꜱꜱꜰᴜʟʟʏ!\n\n⏰ ʏᴏᴜ ɴᴏᴡ ʜᴀᴠᴇ **{PREMIUM_HOURS_VERIFICATION} ʜᴏᴜʀꜱ** ᴏꜰ ᴘʀᴇᴍɪᴜᴍ ᴀᴄᴄᴇꜱꜱ."
         )
     except Exception as e:
-        await message.reply_text(f"⚠️ Failed to apply premium: {e}")
+        await message.reply_text(f"⚠️ ꜰᴀɪʟᴇᴅ ᴛᴏ ᴀᴘᴘʟʏ ᴘʀᴇᴍɪᴜᴍ:\n`{e}`")
 
 
-# Create and send verification link to user
+# ===================== CREATE + SEND LINK =====================
 async def send_verification_link(client, user_id):
     try:
-        slug = create_verification_slug(user_id, VERIFY_SLUG_TTL_HOURS)  # user_id stored with slug
+        slug = create_verification_slug(user_id, VERIFY_SLUG_TTL_HOURS)
         bot_link = f"https://t.me/{client.me.username}?start={slug}"
 
         # Pass bot link through shortener
@@ -47,14 +52,14 @@ async def send_verification_link(client, user_id):
         if err:
             await client.send_message(
                 user_id,
-                f"❌ Could not generate short link: {err}\n\n"
-                f"👉 Use this original link instead:\n{bot_link}"
+                f"❌ ᴄᴏᴜʟᴅ ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇ ꜱʜᴏʀᴛ ʟɪɴᴋ:\n`{err}`\n\n"
+                f"👉 ᴜꜱᴇ ᴛʜɪꜱ ᴏʀɪɢɪɴᴀʟ ʟɪɴᴋ ɪɴꜱᴛᴇᴀᴅ:\n{bot_link}"
             )
         else:
             await client.send_message(
                 user_id,
-                f"⚠️ Please verify to continue:\n\n{short_link}"
+                f"⚠️ ᴘʟᴇᴀꜱᴇ ᴠᴇʀɪꜰʏ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ:\n\n{short_link}"
             )
 
     except Exception as e:
-        await client.send_message(user_id, f"❌ Could not generate verification link: {e}")
+        await client.send_message(user_id, f"❌ ᴄᴏᴜʟᴅ ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ʟɪɴᴋ:\n`{e}`")
