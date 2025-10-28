@@ -2,9 +2,7 @@ import logging
 import asyncio
 from pyrogram import Client, filters
 from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
-
-from bot import VERIFICATION_MODE, CAPTION, AUTO_DELETE, AUTO_DELETE_TIME, PROTECT_CONTENT, CLONE_BUTTON, LOG_CHANNEL, PREMIUM_POINTS
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from database import (
     user_exists, add_user, get_file_by_slug,
     is_premium, increment_file_send_count,
@@ -14,12 +12,13 @@ from database import (
 from db_config import m_count, bm_count
 from .verification import start_verification_flow, send_verification_link
 from .force_sub import check_force_sub
-from utils import human_readable_size
+from utils import human_readable_size, get_str_var, get_int_var, get_bool_var
 
 log = logging.getLogger(__name__)
 
-
-def get_start_buttons():
+# Inline buttons (use dynamic check for clone button)
+async def get_start_buttons():
+    CLONE_BUTTON = await get_bool_var("CLONE_BUTTON", default=False)
     if CLONE_BUTTON:
         return InlineKeyboardMarkup(
             [
@@ -56,29 +55,38 @@ async def start_handler(client, message):
     args = message.text.split()
     mention = message.from_user.mention
 
+    # Always fetch latest variables from DB
+    VERIFICATION_MODE = await get_bool_var("VERIFICATION_MODE", default=False)
+    CAPTION = await get_str_var("CAPTION", default="{filename}")
+    AUTO_DELETE = await get_bool_var("AUTO_DELETE", default=True)
+    AUTO_DELETE_TIME = await get_int_var("AUTO_DELETE_TIME", default=1800)
+    PROTECT_CONTENT = await get_bool_var("PROTECT_CONTENT", default=False)
+    PREMIUM_POINTS = await get_int_var("PREMIUM_POINTS", default=50)
+    LOG_CHANNEL = await get_int_var("LOG_CHANNEL", default=0)
+
     try:
         if not user_exists(user_id):
             add_user(user_id)
-            log.info(f"👤 ɴᴇᴡ ᴜsᴇʀ {user_id} ᴀᴅᴅᴇᴅ.")
-            print(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} ᴘᴏɪɴᴛs.")
+            log.info(f"👤 New user added: {user_id}")
 
-        log.info(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} ᴘᴏɪɴᴛs.")
-        print(f"🪔 ᴜsᴇʀ {PREMIUM_POINTS} ᴘᴏɪɴᴛs.")
-
+        # Force subscription check
         ok = await check_force_sub(client, user_id, message)
         if not ok:
             return
 
         if len(args) == 1:
-            await message.reply_text(START_MSG.format(mention=mention), reply_markup=get_start_buttons())
+            buttons = await get_start_buttons()
+            await message.reply_text(START_MSG.format(mention=mention), reply_markup=buttons)
             return
 
         slug = args[1]
 
+        # Handle verification
         if slug.startswith("verify_"):
             await start_verification_flow(client, message, slug)
             return
 
+        # Handle batch links
         if slug.startswith("batch_"):
             batch_data = get_batch_by_slug(slug)
             if not batch_data:
@@ -91,7 +99,7 @@ async def start_handler(client, message):
             total_used = files_sent + batch_messages_sent
 
             if PREMIUM_POINTS <= total_used:
-                await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴅᴍɪɴ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
+                await message.reply_text("⚠️ ʏᴏᴜʀ ᴀᴄᴄᴏᴜɴᴛ ʜᴀs ɴᴏ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs ʟᴇꜰᴛ.")
                 return
 
             if VERIFICATION_MODE and not is_premium(user_id):
@@ -114,17 +122,15 @@ async def start_handler(client, message):
                     batch_sent_messages.append(sent)
                 except FloodWait as e:
                     failure_reasons["FloodWait"] = failure_reasons.get("FloodWait", 0) + 1
-                except PeerIdInvalid:
-                    failure_reasons["PeerIdInvalid"] = failure_reasons.get("PeerIdInvalid", 0) + 1
-                except UserIsBlocked:
-                    failure_reasons["UserIsBlocked"] = failure_reasons.get("UserIsBlocked", 0) + 1
+                except (PeerIdInvalid, UserIsBlocked) as e:
+                    failure_reasons[type(e).__name__] = failure_reasons.get(type(e).__name__, 0) + 1
                 except Exception as e:
                     failure_reasons[type(e).__name__] = failure_reasons.get(type(e).__name__, 0) + 1
 
             if sent_count > 0:
                 notice = await message.reply_text(
-                    f"🔺ᴛʜɪs ʙᴀᴛᴄʜ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ **{AUTO_DELETE_TIME // 60} ᴍɪɴᴜᴛᴇs** 🫥\n\n"
-                    f"ᴘʟᴇᴀsᴇ ꜰᴏʀᴡᴀʀᴅ ꜰɪʟᴇs ᴛᴏ ʏᴏᴜʀ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴀɴᴅ **sᴛᴀʀᴛ ᴅᴏᴡɴʟᴏᴀᴅ ᴛʜᴇʀᴇ**"
+                    f"🔺 This batch will be deleted in **{AUTO_DELETE_TIME // 60} minutes** 🫥\n\n"
+                    f"Forward files to your Saved Messages and start downloads there."
                 )
                 batch_sent_messages.append(notice)
 
@@ -137,12 +143,13 @@ async def start_handler(client, message):
 
             if failure_reasons:
                 breakdown = "\n".join([f"• {k}: {v}" for k, v in failure_reasons.items()])
-                await message.reply_text(f"❌ sᴏᴍᴇ ᴍᴇssᴀɢᴇs ꜰᴀɪʟᴇᴅ:\n{breakdown}")
+                await message.reply_text(f"❌ Some messages failed:\n{breakdown}")
             return
 
+        # Handle single file links
         file_data = get_file_by_slug(slug)
         if not file_data:
-            await message.reply_text("❌ ꜰɪʟᴇ ɴᴏᴛ ꜰᴏᴜɴᴅ ᴏʀ ʀᴇᴍᴏᴠᴇᴅ.")
+            await message.reply_text("❌ File not found or removed.")
             return
 
         user_data = get_user_data(user_id)
@@ -152,7 +159,7 @@ async def start_handler(client, message):
         total_used = files_sent + batch_messages_sent
 
         if premium_points <= total_used:
-            await message.reply_text("⚠️ ɴᴏ ᴇɴᴏᴜɢʜ ᴘʀᴇᴍɪᴜᴍ ᴘᴏɪɴᴛs.")
+            await message.reply_text("⚠️ No premium points left.")
             return
 
         if VERIFICATION_MODE and not is_premium(user_id):
@@ -162,7 +169,11 @@ async def start_handler(client, message):
         file_name = file_data.get("file_name", "")
         file_size = file_data.get("file_size", 0)
         orig_caption = file_data.get("caption", "")
-        caption_text = CAPTION.format(filename=file_name, filesize=human_readable_size(file_size), caption=orig_caption)
+        caption_text = CAPTION.format(
+            filename=file_name,
+            filesize=human_readable_size(file_size),
+            caption=orig_caption
+        )
 
         file_type = file_data.get("file_type")
         file_id = file_data.get("file_id")
@@ -175,27 +186,27 @@ async def start_handler(client, message):
             elif file_type == "aud":
                 sent = await message.reply_audio(file_id, caption=caption_text, protect_content=PROTECT_CONTENT)
             else:
-                await message.reply_text("❌ ᴜɴᴋɴᴏᴡɴ ꜰɪʟᴇ ᴛʏᴘᴇ.")
+                await message.reply_text("❌ Unknown file type.")
                 return
 
             if AUTO_DELETE:
                 notice = await message.reply_text(
-                    f"🔺ᴛʜɪs ꜰɪʟᴇ ᴡɪʟʟ ʙᴇ ᴅᴇʟᴇᴛᴇᴅ ɪɴ **{AUTO_DELETE_TIME // 60} ᴍɪɴᴜᴛᴇs** 🫥\n\n"
-                    f"ꜰᴏʀᴡᴀʀᴅ ᴛᴏ sᴀᴠᴇᴅ ᴍᴇssᴀɢᴇs ᴛᴏ ᴋᴇᴇᴘ ɪᴛ."
+                    f"🔺 This file will be deleted in **{AUTO_DELETE_TIME // 60} minutes** 🫥\n\n"
+                    f"Forward it to your Saved Messages to keep it."
                 )
                 asyncio.create_task(auto_delete(client, [sent, notice], slug, file_name, user_id))
 
         except FloodWait as e:
-            await message.reply_text(f"⚠️ ᴡᴀɪᴛ {e.value}s ᴀɴᴅ ᴛʀʏ ᴀɢᴀɪɴ.")
+            await message.reply_text(f"⚠️ Wait {e.value}s and try again.")
             return
         except PeerIdInvalid:
-            await message.reply_text("⚠️ ɪɴᴠᴀʟɪᴅ ᴜsᴇʀ.")
+            await message.reply_text("⚠️ Invalid user.")
             return
         except UserIsBlocked:
-            await message.reply_text("⚠️ ᴜɴʙʟᴏᴄᴋ ᴍᴇ ꜰɪʀsᴛ.")
+            await message.reply_text("⚠️ Unblock me first.")
             return
         except Exception as e:
-            await message.reply_text(f"❌ ᴇʀʀᴏʀ: {e}")
+            await message.reply_text(f"❌ Error: {e}")
             return
 
         increment_file_send_count(slug)
