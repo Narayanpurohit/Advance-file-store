@@ -3,7 +3,7 @@ import random
 import string
 from pyrogram import Client, filters
 from pyrogram.types import Message
-#from pyromod.listen import Client as PyroClient
+from pyromod.listen import Client as PyroClient
 from database import save_batch
 from bot import get_admins, get_bool
 
