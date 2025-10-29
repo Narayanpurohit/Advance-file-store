@@ -42,7 +42,6 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
 
     not_joined = []
 
-    # 🔹 Loop through each FSUB channel
     for btn_name, channel_id in FSUB.items():
         try:
             member = await client.get_chat_member(channel_id, user_id)
@@ -50,19 +49,21 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
                 not_joined.append((btn_name, channel_id))
 
         except PeerIdInvalid:
-            # ✅ Fix PeerIdInvalid automatically
+            # ✅ Fix PeerIdInvalid automatically with resolve_peer
             try:
-                await client.invoke(functions.channels.GetFullChannel(channel=channel_id))
+                peer = await client.resolve_peer(channel_id)
+                await client.invoke(functions.channels.GetFullChannel(channel=peer))
                 log.warning(f"⚠️ PeerIdInvalid fixed — refreshed channel {channel_id}")
-                # retry after refreshing
+
+                # retry check after refresh
                 member = await client.get_chat_member(channel_id, user_id)
                 if member.status in ("left", "kicked"):
                     not_joined.append((btn_name, channel_id))
             except Exception as e:
                 log.error(f"❌ Failed to refresh peer for {channel_id}: {e}")
                 await message.reply_text(
-                    "⚠️ Bot lost connection to FSUB channel and couldn't refresh it. "
-                    "Please recheck the configuration."
+                    f"⚠️ Could not refresh FSUB channel `{btn_name}` ({channel_id}).\n"
+                    f"Please ensure the bot is still admin there."
                 )
                 return False
 
@@ -89,14 +90,12 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         except Exception as e:
             log.error(f"⚠️ Failed to create invite link for {channel_id}: {e}")
             row.append(InlineKeyboardButton(f"• {btn_name} •", url="https://t.me"))
-        
+
         if i % 2 == 0:
             buttons.append(row)
             row = []
-
     if row:
         buttons.append(row)
-
     buttons.append([InlineKeyboardButton("• ✅ I Joined •", callback_data="fsub_check")])
 
     await message.reply_text(
