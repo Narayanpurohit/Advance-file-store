@@ -7,18 +7,15 @@ from database import save_batch
 from bot import get_admins, get_bool
 
 log = logging.getLogger(__name__)
-
-# Store user state
 batch_states = {}
 
-def generate_slug(length: int = 16) -> str:
-    """Generate a unique random slug."""
+def generate_slug(length: int = 16):
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 @Client.on_message(filters.command("batch") & filters.private)
 async def batch_handler(client, message):
-    """Start batch creation (step 1)."""
+    """Start batch creation process"""
     user_id = message.from_user.id
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT")
@@ -29,14 +26,13 @@ async def batch_handler(client, message):
     if user_id in batch_states:
         return await message.reply_text("⚠️ You’re already creating a batch. Please finish or wait for timeout.")
 
-    # Step 1 prompt
+    batch_states[user_id] = {"step": "first"}
     await message.reply_text(
-        "📤 **Forward the first message** from your batch channel (with forward tag),\n"
+        "📤 **Forward the first message** from your batch channel (with forward tag), "
         "or send the **message link** here.\n\n⏱ You have 2 minutes."
     )
 
-    # Set state
-    batch_states[user_id] = {"step": "first", "first_msg": None}
+    # Auto-timeout cleanup
     await asyncio.sleep(120)
     if user_id in batch_states and batch_states[user_id]["step"] == "first":
         batch_states.pop(user_id, None)
@@ -44,17 +40,18 @@ async def batch_handler(client, message):
 
 
 @Client.on_message(filters.private & ~filters.command("batch"))
-async def batch_message_listener(client, message):
-    """Handles replies for batch steps."""
+async def batch_listener(client, message):
     user_id = message.from_user.id
     if user_id not in batch_states:
-        return  # Not in batch creation flow
+        return
+
+    state = batch_states[user_id]
 
     try:
-        state = batch_states[user_id]
-
-        # Step 1: Capture first message
+        # STEP 1 — FIRST MESSAGE
         if state["step"] == "first":
+            chat_id, first_msg_id = None, None
+
             if message.forward_from_chat:
                 chat_id = message.forward_from_chat.id
                 first_msg_id = message.forward_from_message_id
@@ -73,14 +70,18 @@ async def batch_message_listener(client, message):
                 "or send its **message link**.\n\n⏱ You have 2 minutes."
             )
 
+            # Start timeout for step 2
             await asyncio.sleep(120)
             if user_id in batch_states and batch_states[user_id]["step"] == "last":
                 batch_states.pop(user_id, None)
                 await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
             return
 
-        # Step 2: Capture last message
+        # STEP 2 — LAST MESSAGE
         elif state["step"] == "last":
+            chat_id = state["chat_id"]
+            first_msg_id = state["first_msg_id"]
+
             if message.forward_from_chat:
                 last_chat_id = message.forward_from_chat.id
                 last_msg_id = message.forward_from_message_id
@@ -93,10 +94,7 @@ async def batch_message_listener(client, message):
             else:
                 return await message.reply_text("❌ Please forward a valid message or send a proper link.")
 
-            chat_id = state["chat_id"]
-            first_msg_id = state["first_msg_id"]
-
-            # Validation
+            # Validate
             if chat_id != last_chat_id:
                 batch_states.pop(user_id, None)
                 return await message.reply_text("❌ Both messages must be from the same channel.")
@@ -119,7 +117,11 @@ async def batch_message_listener(client, message):
                 return await message.reply_text("❌ No valid messages found in that range.")
 
             slug = generate_slug()
-            if save_batch(slug, messages):
+            success = save_batch(slug, messages)
+
+            batch_states.pop(user_id, None)  # remove state *before* replying
+
+            if success:
                 await message.reply_text(
                     f"✅ **Batch created successfully!**\n\n"
                     f"🔗 Link: https://t.me/{client.me.username}?start={slug}"
@@ -127,9 +129,7 @@ async def batch_message_listener(client, message):
             else:
                 await message.reply_text("⚠️ Failed to save batch. Please try again.")
 
-            batch_states.pop(user_id, None)
-
     except Exception as e:
         batch_states.pop(user_id, None)
-        log.exception(f"Batch creation error for user {user_id}: {e}")
+        log.exception(f"Batch error for user {user_id}: {e}")
         await message.reply_text(f"⚠️ Error: {e}")
