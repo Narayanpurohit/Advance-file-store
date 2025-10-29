@@ -1,21 +1,20 @@
-import asyncio
 import logging
 import random
 import string
 from pyrogram import Client, filters
+from pyrogram.types import Message
+from pyromod.listen import Client as PyroClient
 from database import save_batch
 from bot import get_admins, get_bool
 
 log = logging.getLogger(__name__)
-batch_states = {}
 
 def generate_slug(length: int = 16):
     return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
-@Client.on_message(filters.command("batch") & filters.private)
-async def batch_handler(client, message):
-    """Start batch creation process"""
+@Client.on_message(filters.private & filters.command("batch"))
+async def batch_handler(client: PyroClient, message: Message):
     user_id = message.from_user.id
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT")
@@ -23,113 +22,100 @@ async def batch_handler(client, message):
     if not PUBLIC_BOT and user_id not in ADMINS:
         return await message.reply_text("❌ This bot only stores files. You can’t use /batch directly.")
 
-    if user_id in batch_states:
-        return await message.reply_text("⚠️ You’re already creating a batch. Please finish or wait for timeout.")
-
-    batch_states[user_id] = {"step": "first"}
     await message.reply_text(
-        "📤 **Forward the first message** from your batch channel (with forward tag), "
-        "or send the **message link** here.\n\n⏱ You have 2 minutes."
+        "📤 **Forward the first message** from your DB channel (with forward tag), "
+        "or send the **message link**.\n\n⏱ Timeout: 2 minutes."
     )
 
-    # Auto-timeout cleanup
-    await asyncio.sleep(120)
-    if user_id in batch_states and batch_states[user_id]["step"] == "first":
-        batch_states.pop(user_id, None)
-        await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
-
-
-@Client.on_message(filters.private & ~filters.command("batch"))
-async def batch_listener(client, message):
-    user_id = message.from_user.id
-    if user_id not in batch_states:
-        return
-
-    state = batch_states[user_id]
-
-    try:
-        # STEP 1 — FIRST MESSAGE
-        if state["step"] == "first":
-            chat_id, first_msg_id = None, None
-
-            if message.forward_from_chat:
-                chat_id = message.forward_from_chat.id
-                first_msg_id = message.forward_from_message_id
-            elif message.text and "/c/" in message.text:
-                try:
-                    chat_id = int("-100" + message.text.split("/c/")[1].split("/")[0])
-                    first_msg_id = int(message.text.split("/")[-1])
-                except Exception:
-                    return await message.reply_text("❌ Invalid first message link provided.")
-            else:
-                return await message.reply_text("❌ Please forward a valid message or send a proper link.")
-
-            state.update({"step": "last", "chat_id": chat_id, "first_msg_id": first_msg_id})
-            await message.reply_text(
-                "📥 Great! Now forward the **last message** from your batch channel (with forward tag),\n"
-                "or send its **message link**.\n\n⏱ You have 2 minutes."
+    # Step 1 — Get First Message
+    while True:
+        try:
+            first = await client.ask(
+                chat_id=user_id,
+                text="➡️ Send the **first message** again if you haven’t yet:",
+                timeout=120
             )
+        except Exception:
+            return await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
 
-            # Start timeout for step 2
-            await asyncio.sleep(120)
-            if user_id in batch_states and batch_states[user_id]["step"] == "last":
-                batch_states.pop(user_id, None)
-                await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
-            return
+        # Detect forwarded or link
+        if first.forward_from_chat:
+            chat_id = first.forward_from_chat.id
+            first_msg_id = first.forward_from_message_id
+        elif first.text and "/c/" in first.text:
+            try:
+                chat_id = int("-100" + first.text.split("/c/")[1].split("/")[0])
+                first_msg_id = int(first.text.split("/")[-1])
+            except Exception:
+                await first.reply_text("❌ Invalid first message link. Try again.")
+                continue
+        else:
+            await first.reply_text("❌ Please forward a valid message or send a proper link.")
+            continue
+        break
 
-        # STEP 2 — LAST MESSAGE
-        elif state["step"] == "last":
-            chat_id = state["chat_id"]
-            first_msg_id = state["first_msg_id"]
+    # Step 2 — Get Last Message
+    await client.send_message(
+        user_id,
+        "📥 Now forward the **last message** from your DB channel (with forward tag),\n"
+        "or send its **message link**.\n\n⏱ Timeout: 2 minutes."
+    )
 
-            if message.forward_from_chat:
-                last_chat_id = message.forward_from_chat.id
-                last_msg_id = message.forward_from_message_id
-            elif message.text and "/c/" in message.text:
-                try:
-                    last_chat_id = int("-100" + message.text.split("/c/")[1].split("/")[0])
-                    last_msg_id = int(message.text.split("/")[-1])
-                except Exception:
-                    return await message.reply_text("❌ Invalid last message link provided.")
-            else:
-                return await message.reply_text("❌ Please forward a valid message or send a proper link.")
+    while True:
+        try:
+            last = await client.ask(
+                chat_id=user_id,
+                text="➡️ Send the **last message**:",
+                timeout=120
+            )
+        except Exception:
+            return await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
 
-            # Validate
-            if chat_id != last_chat_id:
-                batch_states.pop(user_id, None)
-                return await message.reply_text("❌ Both messages must be from the same channel.")
-            if last_msg_id < first_msg_id:
-                batch_states.pop(user_id, None)
-                return await message.reply_text("❌ Last message ID must be greater than first.")
+        if last.forward_from_chat:
+            last_chat_id = last.forward_from_chat.id
+            last_msg_id = last.forward_from_message_id
+        elif last.text and "/c/" in last.text:
+            try:
+                last_chat_id = int("-100" + last.text.split("/c/")[1].split("/")[0])
+                last_msg_id = int(last.text.split("/")[-1])
+            except Exception:
+                await last.reply_text("❌ Invalid last message link. Try again.")
+                continue
+        else:
+            await last.reply_text("❌ Please forward a valid message or send a proper link.")
+            continue
 
-            # Fetch messages
-            messages = []
-            for msg_id in range(first_msg_id, last_msg_id + 1):
-                try:
-                    msg = await client.get_messages(chat_id, msg_id)
-                    if msg:
-                        messages.append({"chat_id": chat_id, "message_id": msg.id})
-                except Exception as e:
-                    log.warning(f"Failed to fetch message {msg_id}: {e}")
+        if chat_id != last_chat_id:
+            await last.reply_text("❌ Both messages must be from the same channel.")
+            continue
+        if last_msg_id < first_msg_id:
+            await last.reply_text("❌ Last message ID must be greater than first.")
+            continue
+        break
 
-            if not messages:
-                batch_states.pop(user_id, None)
-                return await message.reply_text("❌ No valid messages found in that range.")
+    # Step 3 — Fetch messages from range
+    await client.send_message(user_id, "📦 Fetching messages... Please wait.")
+    messages = []
+    for msg_id in range(first_msg_id, last_msg_id + 1):
+        try:
+            msg = await client.get_messages(chat_id, msg_id)
+            if msg:
+                messages.append({"chat_id": chat_id, "message_id": msg.id})
+        except Exception as e:
+            log.warning(f"Failed to fetch message {msg_id}: {e}")
 
-            slug = generate_slug()
-            success = save_batch(slug, messages)
+    if not messages:
+        return await client.send_message(user_id, "❌ No valid messages found in that range.")
 
-            batch_states.pop(user_id, None)  # remove state *before* replying
+    # Step 4 — Save batch
+    slug = generate_slug()
+    success = save_batch(slug, messages)
 
-            if success:
-                await message.reply_text(
-                    f"✅ **Batch created successfully!**\n\n"
-                    f"🔗 Link: https://t.me/{client.me.username}?start={slug}"
-                )
-            else:
-                await message.reply_text("⚠️ Failed to save batch. Please try again.")
-
-    except Exception as e:
-        batch_states.pop(user_id, None)
-        log.exception(f"Batch error for user {user_id}: {e}")
-        await message.reply_text(f"⚠️ Error: {e}")
+    if success:
+        await client.send_message(
+            user_id,
+            f"✅ **Batch created successfully!**\n\n"
+            f"🔗 Link: https://t.me/{client.me.username}?start={slug}"
+        )
+    else:
+        await client.send_message(user_id, "⚠️ Failed to save batch. Please try again.")
