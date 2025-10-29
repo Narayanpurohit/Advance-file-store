@@ -3,7 +3,7 @@ import sys
 import logging
 from pyrogram import Client, idle
 from pymongo import MongoClient
-import pyromod.listen
+from pyrofork.pyromod import listen
 
 # ===================== LOGGING =====================
 logging.basicConfig(
