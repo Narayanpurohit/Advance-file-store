@@ -293,7 +293,7 @@ async def start_handler(client, message):
             await message.reply_text(f"❌ Error: {e}")
             log.exception("Error sending file:")
 
-        increment_file_send_count(slug)
+        increment_file_send_count()
         m_count(user_id)
 
     except Exception as e:
