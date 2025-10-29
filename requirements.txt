@@ -1,7 +1,6 @@
-pyrogram
+pyrofork
 tgcrypto
 pymongo
 python-dotenv
 requests
-pyromod==1.5
 asyncio
