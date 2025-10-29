@@ -1,10 +1,12 @@
 import logging
 from pyrogram import Client, filters
-from pyrogram.errors import UserNotParticipant, ChatAdminRequired
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from pyrogram.raw import functions
 from bot import get_bool, get_list
 
 log = logging.getLogger(__name__)
+
 
 # ===================== DYNAMIC FSUB LOADING =====================
 def load_fsub():
@@ -15,7 +17,6 @@ def load_fsub():
     FSUB = {}
     if ENABLE_FSUB and raw_fsub:
         try:
-            # If string like "Channel1:-100123456, Channel2:-100654321"
             if isinstance(raw_fsub, list):
                 for item in raw_fsub:
                     if ":" in item:
@@ -41,27 +42,44 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
 
     not_joined = []
 
+    # 🔹 Loop through each FSUB channel
     for btn_name, channel_id in FSUB.items():
         try:
             member = await client.get_chat_member(channel_id, user_id)
             if member.status in ("left", "kicked"):
                 not_joined.append((btn_name, channel_id))
+
+        except PeerIdInvalid:
+            # ✅ Fix PeerIdInvalid automatically
+            try:
+                await client.invoke(functions.channels.GetFullChannel(channel=channel_id))
+                log.warning(f"⚠️ PeerIdInvalid fixed — refreshed channel {channel_id}")
+                # retry after refreshing
+                member = await client.get_chat_member(channel_id, user_id)
+                if member.status in ("left", "kicked"):
+                    not_joined.append((btn_name, channel_id))
+            except Exception as e:
+                log.error(f"❌ Failed to refresh peer for {channel_id}: {e}")
+                await message.reply_text(
+                    "⚠️ Bot lost connection to FSUB channel and couldn't refresh it. "
+                    "Please recheck the configuration."
+                )
+                return False
+
         except UserNotParticipant:
             not_joined.append((btn_name, channel_id))
         except ChatAdminRequired:
             log.error(f"❌ Bot is not admin in channel {channel_id}, cannot check membership!")
-            await message.reply_text(
-                "⚠️ Bot must be admin in all FSUB channels!"
-            )
+            await message.reply_text("⚠️ Bot must be admin in all FSUB channels!")
             return False
         except Exception as e:
             log.error(f"⚠️ Error checking FSUB for channel {channel_id}: {e}")
             return False
 
     if not not_joined:
-        return True  # All good
+        return True  # ✅ All good
 
-    # Generate buttons for channels not joined
+    # 🔹 Prepare join buttons
     buttons = []
     row = []
     for i, (btn_name, channel_id) in enumerate(not_joined, start=1):
