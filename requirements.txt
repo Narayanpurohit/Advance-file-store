@@ -1,4 +1,5 @@
-pyrofork
+pyrogram
+pyromod
 tgcrypto
 pymongo
 python-dotenv
