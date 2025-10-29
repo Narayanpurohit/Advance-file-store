@@ -1,8 +1,9 @@
 import logging
 from pyrogram import Client, filters
-from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid
+from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid, FloodWait
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.raw import functions
+import asyncio
 from bot import get_bool, get_list
 
 log = logging.getLogger(__name__)
@@ -10,9 +11,8 @@ log = logging.getLogger(__name__)
 
 # ===================== DYNAMIC FSUB LOADING =====================
 def load_fsub():
-    """Fetch ENABLE_FSUB and FSUB fresh from DB each time."""
     ENABLE_FSUB = get_bool("ENABLE_FSUB")
-    raw_fsub = get_list("FSUB")  # can be list or comma-separated string
+    raw_fsub = get_list("FSUB")
 
     FSUB = {}
     if ENABLE_FSUB and raw_fsub:
@@ -33,12 +33,38 @@ def load_fsub():
     return ENABLE_FSUB, FSUB
 
 
+# ===================== SAFE CHANNEL RESOLVE =====================
+async def safe_resolve_channel(client: Client, channel_id: int):
+    """Ensure the bot session knows this channel peer."""
+    try:
+        peer = await client.resolve_peer(channel_id)
+        await client.invoke(functions.channels.GetFullChannel(channel=peer))
+        log.info(f"✅ Resolved channel peer successfully: {channel_id}")
+        return True
+    except PeerIdInvalid:
+        log.warning(f"⚠️ PeerIdInvalid for {channel_id}, trying import...")
+        try:
+            await client.invoke(functions.channels.GetChannels(id=[channel_id]))
+            log.info(f"✅ Imported channel peer successfully: {channel_id}")
+            return True
+        except Exception as e:
+            log.error(f"❌ Failed to import peer for channel {channel_id}: {e}")
+            return False
+    except FloodWait as e:
+        log.warning(f"⏳ FloodWait while resolving {channel_id}, sleeping {e.value}s...")
+        await asyncio.sleep(e.value)
+        return await safe_resolve_channel(client, channel_id)
+    except Exception as e:
+        log.error(f"❌ Unexpected error resolving peer {channel_id}: {e}")
+        return False
+
+
 # ===================== FORCE SUB CHECK =====================
 async def check_force_sub(client: Client, user_id: int, message) -> bool:
     ENABLE_FSUB, FSUB = load_fsub()
 
     if not ENABLE_FSUB:
-        return True  # skip check if disabled
+        return True  # skip if disabled
 
     not_joined = []
 
@@ -49,38 +75,37 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
                 not_joined.append((btn_name, channel_id))
 
         except PeerIdInvalid:
-            # ✅ Fix PeerIdInvalid automatically with resolve_peer
+            log.warning(f"⚠️ PeerIdInvalid while checking {channel_id}, resolving...")
+            ok = await safe_resolve_channel(client, channel_id)
+            if not ok:
+                await message.reply_text(
+                    f"⚠️ Could not access channel `{btn_name}` ({channel_id}).\n"
+                    f"Please re-add the bot as admin in that channel."
+                )
+                return False
+            # retry check
             try:
-                peer = await client.resolve_peer(channel_id)
-                await client.invoke(functions.channels.GetFullChannel(channel=peer))
-                log.warning(f"⚠️ PeerIdInvalid fixed — refreshed channel {channel_id}")
-
-                # retry check after refresh
                 member = await client.get_chat_member(channel_id, user_id)
                 if member.status in ("left", "kicked"):
                     not_joined.append((btn_name, channel_id))
             except Exception as e:
-                log.error(f"❌ Failed to refresh peer for {channel_id}: {e}")
-                await message.reply_text(
-                    f"⚠️ Could not refresh FSUB channel `{btn_name}` ({channel_id}).\n"
-                    f"Please ensure the bot is still admin there."
-                )
+                log.error(f"❌ Still failed after resolving {channel_id}: {e}")
                 return False
 
         except UserNotParticipant:
             not_joined.append((btn_name, channel_id))
         except ChatAdminRequired:
-            log.error(f"❌ Bot is not admin in channel {channel_id}, cannot check membership!")
             await message.reply_text("⚠️ Bot must be admin in all FSUB channels!")
+            log.error(f"❌ Bot not admin in {channel_id}")
             return False
         except Exception as e:
             log.error(f"⚠️ Error checking FSUB for channel {channel_id}: {e}")
             return False
 
     if not not_joined:
-        return True  # ✅ All good
+        return True  # all joined
 
-    # 🔹 Prepare join buttons
+    # 🔹 Generate buttons
     buttons = []
     row = []
     for i, (btn_name, channel_id) in enumerate(not_joined, start=1):
@@ -90,7 +115,6 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
         except Exception as e:
             log.error(f"⚠️ Failed to create invite link for {channel_id}: {e}")
             row.append(InlineKeyboardButton(f"• {btn_name} •", url="https://t.me"))
-
         if i % 2 == 0:
             buttons.append(row)
             row = []
