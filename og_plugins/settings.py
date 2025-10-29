@@ -1,240 +1,135 @@
-import logging
 import asyncio
+import logging
+import random
+import string
 from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-from pyrogram.enums import ParseMode
-import pyromod.listen  # enable client.listen
-from db_config import users_col
+from database import save_batch
+from bot import get_admins, get_bool
 
-# ---------------- LOGGING ----------------
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - [%(levelname)s] - %(name)s - %(message)s"
-)
-log = logging.getLogger("Settings")
+log = logging.getLogger(__name__)
 
-# ---------------- VARIABLES ----------------
-BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE", "PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT"]
-INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME", "LOG_CHANNEL"]
+# Store user state
+batch_states = {}
 
-VARIABLE_INFO = {
-    "BOT_TOKEN": {"name": "ʙᴏᴛ ᴛᴏᴋᴇɴ", "help": "ᴛʜᴇ ᴛᴏᴋᴇɴ ʏᴏᴜ ɢᴇᴛ ғʀᴏᴍ @ʙᴏᴛғᴀᴛʜᴇʀ."},
-    "DB_NAME": {"name": "Data code", "help": "ᴛʜɪs ɪs ᴜɴɪǫᴜᴇ ᴄᴏᴅᴇ ᴛʜᴀᴛ sᴛᴏʀᴇs ʏᴏᴜʀ ʟɪɴᴋs ᴀɴᴅ ᴜsᴇʀ ᴅᴀᴛᴀ ɪꜰ ʏᴏᴜ ᴄʜᴀɴɢᴇ ᴀᴄᴏᴜɴᴛ sᴇᴛ ᴛʜɪs ᴄᴏᴅᴇ."},
-    "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ᴏғ ᴀᴅᴍɪɴs sᴇᴘᴀʀᴀᴛᴇ ᴛʜᴇᴍ ᴡɪᴛʜ ,"},
-    "FSUB": {"name": "ғᴏʀᴄᴇ sᴜʙ ᴄʜᴀɴɴᴇʟ", "help": "ɪᴅ ᴏғ ᴄʜᴀɴɴᴇʟ ғᴏʀ ғsᴜʙ ɪɴ ᴛʜɪs ғᴏʀᴍᴀᴛ. \n\nʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 1 : ɪᴅ1 , ʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 2 : ɪᴅ2 , ʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 3 : ɪᴅ3"},
-    "PREMIUM_HOURS_VERIFICATION": {"name": "ʜᴏᴜʀs ᴜsᴇʀ ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ ᴀғᴛᴇʀ ᴠᴇʀɪғɪᴇᴅ.", "help": "ʜᴏᴜʀs ᴜsᴇʀ sᴛᴀʏs ᴠᴇʀɪғɪᴇᴅ."},
-    "SHORTENER_DOMAIN": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴅᴏᴍᴀɪɴ", "help": "ᴏɴʟʏ ᴅᴏᴍᴀɪɴ ғᴏʀ ʟɪɴᴋ sʜᴏʀᴛᴇɴᴇʀ. ʟɪᴋᴇ ᴛʜɪs ᴅᴏᴍᴀɪɴ.ᴄᴏᴍ"},
-    "SHORTENER_API_KEY": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴀᴘɪ ᴋᴇʏ", "help": "ᴀᴘɪ ᴋᴇʏ ғᴏʀ ʏᴏᴜʀ sʜᴏʀᴛᴇɴᴇʀ."},
-    "CAPTION": {"name": "ғɪʟᴇ ᴄᴀᴘᴛɪᴏɴ", "help": "ʏᴏᴜ ᴄᴀɴ ᴜsᴇ ᴛʜɪs ғᴏʀᴍᴀᴛs ᴀs ᴄᴀᴘᴛɪᴏɴ\n`{filename}`\n`{filesize}`\n`{caption}`"},
-    "AUTO_DELETE_TIME": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇ", "help": "ᴛɪᴍᴇ ɪɴ (sᴇᴄᴏɴᴅs) ғᴏʀ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ."},
-    "ENABLE_FSUB": {"name": "ᴇɴᴀʙʟᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴄʜᴀɴɢᴇ ғᴏʀᴄᴇ-sᴜʙ ᴍᴏᴅᴇ"},
-    "VERIFICATION_MODE": {"name": "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ", "help": "ᴄʜᴀɴɢᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ."},
-    "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴄʜᴀɴɢᴇ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ ᴍᴏᴅᴇ."},
-    "LOG_CHANNEL": {"name": "ʟᴏɢ ᴄʜᴀɴɴᴇʟ", "help": "ꜱᴇᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɴᴅ ᴍᴀᴋᴇ ꜱᴜʀᴇ ʙᴏᴛ ɪꜱ ᴀᴅᴍɪɴ ᴏɴ ᴄʜᴀɴɴᴇʟ."},
-    "PROTECT_CONTENT": {"name": "ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ", "help": "ʀᴇꜱᴛʀɪᴄᴛ ᴜꜱᴇʀ ꜰʀᴏᴍ ꜱᴀᴠɪɴɢ ᴄᴏɴᴛᴇɴᴛ."},
-    "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."},
-    "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
-    
-    
-    
-    
-}
+def generate_slug(length: int = 16) -> str:
+    """Generate a unique random slug."""
+    return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
-# ---------------- GROUPS ----------------
-GROUP_KEYS = {
-    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": "required",
-    "⍟ ᴀᴅᴍɪɴs": "admins",
-    "⊛ ғᴏʀᴄᴇ sᴜʙ": "fsub",
-    "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": "verification",
-    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": "autodelete",
-    "○ ᴄᴀᴘᴛɪᴏɴ": "caption",
-    "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ": "other"
-}
 
-GROUPS = {
-    "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN","DB_NAME"],
-    "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
-    "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
-    "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
-    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
-    "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"],
-    "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ":["PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT", "LOG_CHANNEL"]
-    
-}
+@Client.on_message(filters.command("batch") & filters.private)
+async def batch_handler(client, message):
+    """Start batch creation (step 1)."""
+    user_id = message.from_user.id
+    ADMINS = get_admins()
+    PUBLIC_BOT = get_bool("PUBLIC_BOT")
 
-VERIFICATION_SUB = [
-    "VERIFICATION_MODE",
-    "PREMIUM_HOURS_VERIFICATION",
-    "SHORTENER_DOMAIN",
-    "SHORTENER_API_KEY"
-]
+    if not PUBLIC_BOT and user_id not in ADMINS:
+        return await message.reply_text("❌ This bot only stores files. You can’t use /batch directly.")
 
-# ---------------- KEYBOARDS ----------------
-def get_group_keyboard():
-    buttons = [
-        [InlineKeyboardButton(group, callback_data=f"group:{GROUP_KEYS[group]}")]
-        for group in GROUPS.keys()
-    ]
-    buttons.append([InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")])
-    return InlineKeyboardMarkup(buttons)
+    if user_id in batch_states:
+        return await message.reply_text("⚠️ You’re already creating a batch. Please finish or wait for timeout.")
 
-def get_variable_keyboard(group_key: str):
-    group_name = next(name for name, key in GROUP_KEYS.items() if key == group_key)
-    if group_name == "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ":
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •",
-                   callback_data=f"setting:{group_key}:{var}")] for var in VERIFICATION_SUB]
-    else:
-        buttons = [[InlineKeyboardButton(f"• {VARIABLE_INFO[var]['name']} •",
-                   callback_data=f"setting:{group_key}:{var}")] for var in GROUPS[group_name]]
-    buttons.append([
-        InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data="back_to_groups"),
-        InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")
-    ])
-    return InlineKeyboardMarkup(buttons)
-
-def get_setting_keyboard(group_key: str, var_name: str, is_boolean=False):
-    if is_boolean:
-        buttons = [[InlineKeyboardButton("✧ ᴏɴ/ᴏғғ", callback_data=f"toggle:{group_key}:{var_name}")]]
-    else:
-        buttons = [[InlineKeyboardButton("✎ ᴇᴅɪᴛ", callback_data=f"edit:{group_key}:{var_name}")]]
-    buttons.append([
-        InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_group:{group_key}"),
-        InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")
-    ])
-    return InlineKeyboardMarkup(buttons)
-
-def get_edit_keyboard(group_key: str, var_name: str):
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("⊖ ʙᴀᴄᴋ", callback_data=f"back_to_setting:{group_key}:{var_name}")]
-    ])
-
-# ---------------- ACTIVE LISTENERS ----------------
-active_edit_listeners = {}
-
-# ---------------- HANDLERS ----------------
-@Client.on_message(filters.command("settings") & filters.private)
-async def settings_handler(client, message):
+    # Step 1 prompt
     await message.reply_text(
-        "⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄᴀᴛᴇɢᴏʀʏ:",
-        reply_markup=get_group_keyboard(),
-        parse_mode=ParseMode.HTML
+        "📤 **Forward the first message** from your batch channel (with forward tag),\n"
+        "or send the **message link** here.\n\n⏱ You have 2 minutes."
     )
 
-@Client.on_callback_query(filters.regex(r"^group:(.+)"))
-async def open_group(client, cq):
-    group_key = cq.data.split(":", 1)[1]
-    group_name = next(name for name, key in GROUP_KEYS.items() if key == group_key)
-    await cq.message.edit_text(
-        f"📂 <b>{group_name}</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴠᴀʀɪᴀʙʟᴇ:",
-        reply_markup=get_variable_keyboard(group_key),
-        parse_mode=ParseMode.HTML
-    )
+    # Set state
+    batch_states[user_id] = {"step": "first", "first_msg": None}
+    await asyncio.sleep(120)
+    if user_id in batch_states and batch_states[user_id]["step"] == "first":
+        batch_states.pop(user_id, None)
+        await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
 
-@Client.on_callback_query(filters.regex(r"^setting:(.+?):(.+)"))
-async def open_setting(client, cq):
-    group_key, var_name = cq.data.split(":", 2)[1:]
-    user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
-    current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
-    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
-    text = f"<b>{var_info['name']}</b>\n\n<b>ᴄᴜʀʀᴇɴᴛ:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
-    await cq.message.edit_text(
-        text,
-        reply_markup=get_setting_keyboard(group_key, var_name, var_name in BOOLEAN_VARS),
-        parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True
-    )
 
-@Client.on_callback_query(filters.regex(r"^toggle:(.+?):(.+)"))
-async def toggle_setting(client, cq):
-    group_key, var_name = cq.data.split(":", 2)[1:]
-    user_id = cq.from_user.id
-    user = users_col.find_one({"USER_ID": user_id}) or {}
-    new_value = not bool(user.get(var_name, False))
-    users_col.update_one({"USER_ID": user_id}, {"$set": {var_name: new_value}})
-    await open_setting(client, cq)
-
-@Client.on_callback_query(filters.regex(r"^edit:(.+?):(.+)"))
-async def edit_setting(client, cq):
-    group_key, var_name = cq.data.split(":", 2)[1:]
-    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
-
-    await cq.message.edit_text(
-        f"✎ Send new value for <b>{var_info['name']}</b>.\n\n{var_info['help']}\n\n⏳ 120s timeout.",
-        reply_markup=get_edit_keyboard(group_key, var_name),
-        parse_mode=ParseMode.HTML
-    )
-
-    # Cancel previous listener if exists
-    if cq.message.chat.id in active_edit_listeners:
-        active_edit_listeners[cq.message.chat.id].cancel()
-
-    # Start new listener
-    task = asyncio.create_task(client.listen(cq.message.chat.id, timeout=120))
-    active_edit_listeners[cq.message.chat.id] = task
+@Client.on_message(filters.private & ~filters.command("batch"))
+async def batch_message_listener(client, message):
+    """Handles replies for batch steps."""
+    user_id = message.from_user.id
+    if user_id not in batch_states:
+        return  # Not in batch creation flow
 
     try:
-        response = await task
-        new_value = int(response.text.strip()) if var_name in INT_VARS else response.text.strip()
-        users_col.update_one({"USER_ID": cq.from_user.id}, {"$set": {var_name: new_value}})
-        await cq.message.reply_text(
-            f"✅ {var_info['name']} updated: <code>{new_value}</code>",
-            parse_mode=ParseMode.HTML
-        )
-    except asyncio.TimeoutError:
-        await cq.message.reply_text("⏳ Edit timed out.", parse_mode=ParseMode.HTML)
-    except asyncio.CancelledError:
-        pass  # cancelled by back/close
-    finally:
-        active_edit_listeners.pop(cq.message.chat.id, None)
+        state = batch_states[user_id]
 
-    await open_setting(client, cq)
+        # Step 1: Capture first message
+        if state["step"] == "first":
+            if message.forward_from_chat:
+                chat_id = message.forward_from_chat.id
+                first_msg_id = message.forward_from_message_id
+            elif message.text and "/c/" in message.text:
+                try:
+                    chat_id = int("-100" + message.text.split("/c/")[1].split("/")[0])
+                    first_msg_id = int(message.text.split("/")[-1])
+                except Exception:
+                    return await message.reply_text("❌ Invalid first message link provided.")
+            else:
+                return await message.reply_text("❌ Please forward a valid message or send a proper link.")
 
-# ---------------- BACK & CLOSE ----------------
-@Client.on_callback_query(filters.regex(r"^back_to_groups$"))
-async def back_to_groups(client, cq):
-    # cancel active listener
-    listener = active_edit_listeners.pop(cq.message.chat.id, None)
-    if listener:
-        listener.cancel()
-    await cq.message.edit_text(
-        "⚙️ <b>ʙᴏᴛ sᴇᴛᴛɪɴɢs</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴄᴀᴛᴇɢᴏʀʏ:",
-        reply_markup=get_group_keyboard(),
-        parse_mode=ParseMode.HTML
-    )
+            state.update({"step": "last", "chat_id": chat_id, "first_msg_id": first_msg_id})
+            await message.reply_text(
+                "📥 Great! Now forward the **last message** from your batch channel (with forward tag),\n"
+                "or send its **message link**.\n\n⏱ You have 2 minutes."
+            )
 
-@Client.on_callback_query(filters.regex(r"^back_to_group:(.+)"))
-async def back_to_group(client, cq):
-    listener = active_edit_listeners.pop(cq.message.chat.id, None)
-    if listener:
-        listener.cancel()
-    group_key = cq.data.split(":", 1)[1]
-    group_name = next(k for k, v in GROUP_KEYS.items() if v == group_key)
-    await cq.message.edit_text(
-        f"📂 <b>{group_name}</b>\n\nsᴇʟᴇᴄᴛ ᴀ ᴠᴀʀɪᴀʙʟᴇ:",
-        reply_markup=get_variable_keyboard(group_key),
-        parse_mode=ParseMode.HTML
-    )
+            await asyncio.sleep(120)
+            if user_id in batch_states and batch_states[user_id]["step"] == "last":
+                batch_states.pop(user_id, None)
+                await client.send_message(user_id, "⏰ Timeout! Please start again with /batch.")
+            return
 
-@Client.on_callback_query(filters.regex(r"^back_to_setting:(.+?):(.+)"))
-async def back_to_setting(client, cq):
-    listener = active_edit_listeners.pop(cq.message.chat.id, None)
-    if listener:
-        listener.cancel()
-    group_key, var_name = cq.data.split(":", 2)[1:]
-    user = users_col.find_one({"USER_ID": cq.from_user.id}) or {}
-    current_value = user.get(var_name, "ɴᴏᴛ sᴇᴛ")
-    var_info = VARIABLE_INFO.get(var_name, {"name": var_name, "help": ""})
-    text = f"<b>{var_info['name']}</b>\n\n<b>ᴄᴜʀʀᴇɴᴛ:</b>\n<code>{current_value}</code>\n\n{var_info['help']}"
-    await cq.message.edit_text(
-        text,
-        reply_markup=get_setting_keyboard(group_key, var_name, var_name in BOOLEAN_VARS),
-        parse_mode=ParseMode.HTML,
-        disable_web_page_preview=True
-    )
+        # Step 2: Capture last message
+        elif state["step"] == "last":
+            if message.forward_from_chat:
+                last_chat_id = message.forward_from_chat.id
+                last_msg_id = message.forward_from_message_id
+            elif message.text and "/c/" in message.text:
+                try:
+                    last_chat_id = int("-100" + message.text.split("/c/")[1].split("/")[0])
+                    last_msg_id = int(message.text.split("/")[-1])
+                except Exception:
+                    return await message.reply_text("❌ Invalid last message link provided.")
+            else:
+                return await message.reply_text("❌ Please forward a valid message or send a proper link.")
 
-@Client.on_callback_query(filters.regex(r"^close$"))
-async def close_menu(client, cq):
-    listener = active_edit_listeners.pop(cq.message.chat.id, None)
-    if listener:
-        listener.cancel()
-    await cq.message.delete()
+            chat_id = state["chat_id"]
+            first_msg_id = state["first_msg_id"]
+
+            # Validation
+            if chat_id != last_chat_id:
+                batch_states.pop(user_id, None)
+                return await message.reply_text("❌ Both messages must be from the same channel.")
+            if last_msg_id < first_msg_id:
+                batch_states.pop(user_id, None)
+                return await message.reply_text("❌ Last message ID must be greater than first.")
+
+            # Fetch messages
+            messages = []
+            for msg_id in range(first_msg_id, last_msg_id + 1):
+                try:
+                    msg = await client.get_messages(chat_id, msg_id)
+                    if msg:
+                        messages.append({"chat_id": chat_id, "message_id": msg.id})
+                except Exception as e:
+                    log.warning(f"Failed to fetch message {msg_id}: {e}")
+
+            if not messages:
+                batch_states.pop(user_id, None)
+                return await message.reply_text("❌ No valid messages found in that range.")
+
+            slug = generate_slug()
+            if save_batch(slug, messages):
+                await message.reply_text(
+                    f"✅ **Batch created successfully!**\n\n"
+                    f"🔗 Link: https://t.me/{client.me.username}?start={slug}"
+                )
+            else:
+                await message.reply_text("⚠️ Failed to save batch. Please try again.")
+
+            batch_states.pop(user_id, None)
+
+    except Exception as e:
+        batch_states.pop(user_id, None)
+        log.exception(f"Batch creation error for user {user_id}: {e}")
+        await message.reply_text(f"⚠️ Error: {e}")
