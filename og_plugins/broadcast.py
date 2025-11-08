@@ -4,7 +4,7 @@ import asyncio
 from collections import defaultdict
 import traceback
 from db_config import users_col
-from config import ADMINS  # must be a list of admin user IDs
+from config import CODE2_ADMINS as ADMINS  # must be a list of admin user IDs
 
 @Client.on_message(filters.command("broadcast") & filters.private)
 async def broadcast_handler(client, message):
