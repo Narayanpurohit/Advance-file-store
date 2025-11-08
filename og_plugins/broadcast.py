@@ -3,9 +3,8 @@ from pyrogram.errors import FloodWait, PeerIdInvalid, UserIsBlocked, ChatWriteFo
 import asyncio
 from collections import defaultdict
 import traceback
-from db_config import users_col  # Your DB user collection
-from config import CODE2_ADMINS as ADMINS  # Should contain list of admin user IDs
-
+from db_config import users_col
+from config import ADMINS  # must be a list of admin user IDs
 
 @Client.on_message(filters.command("broadcast") & filters.private)
 async def broadcast_handler(client, message):
@@ -13,20 +12,24 @@ async def broadcast_handler(client, message):
     if message.from_user.id not in ADMINS:
         return await message.reply_text("❌ You are not authorized to use this command.")
 
-    # Require reply to a message
+    # Must reply to a message
     if not message.reply_to_message:
         return await message.reply_text("⚠️ Reply to a message to broadcast.")
 
-    users = users_col.find()  # Fetch all users from DB
-    total_users = users_col.count_documents({})
+    users = list(users_col.find({}, {"USER_ID": 1}))  # Fetch only USER_ID field
+    total_users = len(users)
     sent = 0
     failed = 0
     reasons = defaultdict(int)
 
-    status = await message.reply_text(f"📢 **Broadcast Started**\n\nSending to `{total_users}` users...")
+    status = await message.reply_text(
+        f"📢 **Broadcast Started**\n\nSending to `{total_users}` users..."
+    )
+
+    last_edit_time = 0
 
     for user in users:
-        user_id = user.get("user_id") or user.get("_id")  # adjust based on your DB structure
+        user_id = user.get("USER_ID")
         if not user_id:
             continue
 
@@ -60,6 +63,20 @@ async def broadcast_handler(client, message):
             failed += 1
             reasons[type(e).__name__] += 1
             traceback.print_exc()
+
+        # ⏳ Update progress every 2 seconds
+        if (asyncio.get_event_loop().time() - last_edit_time) >= 2:
+            last_edit_time = asyncio.get_event_loop().time()
+            try:
+                await status.edit_text(
+                    f"📢 **Broadcast Running...**\n\n"
+                    f"👥 Total: `{total_users}`\n"
+                    f"✅ Sent: `{sent}`\n"
+                    f"❌ Failed: `{failed}`\n\n"
+                    f"⏳ Updating..."
+                )
+            except:
+                pass
 
     breakdown = "\n".join([f"• {error}: {count}" for error, count in reasons.items()]) or "No errors ✅"
 
