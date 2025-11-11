@@ -3,22 +3,26 @@ from pyrogram.types import Message
 
 @Client.on_message(filters.private & filters.command("test2"))
 async def test_handler(client: Client, message: Message):
-    await message.reply_text("✅ batch.py is working fine!")
+    ADMINS = get_admins()
+    PUBLIC_BOT = get_bool("PUBLIC_BOT")
 
-@Client.on_message(filters.private & filters.command("test"))
-async def test_handler(client: Client, message: Message):
-    try:
-        ADMINS = get_admins()
-        PUBLIC_BOT = get_bool("PUBLIC_BOT")
-
-        text = (
+    text = (
             "🧪 **Batch Test Status**\n\n"
             f"👤 Your ID: `{message.from_user.id}`\n"
             f"🛂 Admin: {'✅ Yes' if message.from_user.id in ADMINS else '❌ No'}\n"
             f"🌍 Public Bot: {'✅ Enabled' if PUBLIC_BOT else '❌ Disabled'}\n\n"
             "📍 batch.py is loaded and responding."
         )
-        await message.reply_text(text)
+    await message.reply_text(text)
+
+    
+    
+@Client.on_message(filters.private & filters.command("test"))
+async def test_handler(client: Client, message: Message):
+    try:
+        await message.reply_text("✅ batch.py is working fine!")
+
+            
     except Exception as e:
         await message.reply_text(f"⚠️ Error in test: `{e}`")
 
