@@ -111,7 +111,7 @@ START_MSG = (
 
 # ================= Start Command Handler =================
 @Client.on_message(filters.command("start") & filters.private)
-async def start_handler(client, message):
+async def start_handler2(client, message):
     log.info(f"🚀 /start triggered by {message.from_user.id} | text={message.text}")
 
     user_id = message.from_user.id
