@@ -8,6 +8,8 @@ from database import save_batch
 from bot import get_admins, get_bool
 
 log = logging.getLogger(__name__)
+log.info("📍 start.py loaded successfully")
+
 
 # -------------------- Helpers --------------------
 def generate_slug(length: int = 16):
