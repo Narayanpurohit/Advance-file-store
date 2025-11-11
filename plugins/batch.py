@@ -1,11 +1,11 @@
 from pyrogram import Client, filters
 from pyrogram.types import Message
 
-@Client.on_message(filters.private & filters.command("test"))
+@Client.on_message(filters.private & filters.command("test2"))
 async def test_handler(client: Client, message: Message):
     await message.reply_text("✅ batch.py is working fine!")
 
-@Client.on_message(filters.private & filters.command("test2"))
+@Client.on_message(filters.private & filters.command("test"))
 async def test_handler(client: Client, message: Message):
     try:
         ADMINS = get_admins()
