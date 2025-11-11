@@ -16,6 +16,7 @@ from utils import human_readable_size
 from bot import get_str as get_str_var, get_int as get_int_var, get_bool as get_bool_var
 
 log = logging.getLogger(__name__)
+log.info("📍 start.py loaded successfully")
 
 
 # ================= AUTO DELETE HELPERS =================
