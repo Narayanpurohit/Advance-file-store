@@ -2,7 +2,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 @Client.on_message(filters.private & filters.command("test2"))
-async def test_handler(client: Client, message: Message):
+async def test_handler2(client: Client, message: Message):
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT")
 
