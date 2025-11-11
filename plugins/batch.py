@@ -8,7 +8,7 @@ from database import save_batch
 from bot import get_admins, get_bool
 
 log = logging.getLogger(__name__)
-log.info("📍 start.py loaded successfully")
+log.info("📍 batch.py loaded successfully")
 
 
 # -------------------- Helpers --------------------
