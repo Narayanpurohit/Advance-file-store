@@ -1,23 +1,42 @@
 # ask.py
 import asyncio
+from pyrogram import Client
 from pyrogram.types import Message
-from pyrogram import Client, filters
+
+# Global dictionary to track pending replies
+PENDING_ASKS = {}  # key = user_id, value = asyncio.Future
 
 
-async def ask(client: Client, user_id: int, question: str, timeout: int = 120) -> Message:
+async def ask(client: Client, user_id: int, question: str, timeout: int = 120):
     """
-    Ask a specific user a question and wait for their next message.
-    Only triggers for that user in that moment.
+    Ask a question to the user and wait for their reply.
+    Returns the reply Message object.
+    Raises asyncio.TimeoutError if user doesn't reply in time.
     """
-
     await client.send_message(user_id, question)
 
-    # Local filter — only accept next message from the same user in private chat
-    user_filter = filters.private & filters.user(user_id)
+    loop = asyncio.get_event_loop()
+    future = loop.create_future()
+    PENDING_ASKS[user_id] = future
 
     try:
-        # Wait for a single message from the same user
-        response: Message = await client.listen(filters=user_filter, timeout=timeout)
-        return response
-    except asyncio.TimeoutError:
-        raise asyncio.TimeoutError("User did not reply in time.")
+        message = await asyncio.wait_for(future, timeout=timeout)
+        return message
+    finally:
+        if user_id in PENDING_ASKS:
+            del PENDING_ASKS[user_id]
+
+
+@Client.on_message()
+async def _capture_reply(client: Client, message: Message):
+    """
+    Captures private user replies and resolves pending asks.
+    """
+    if not message.from_user:
+        return
+    user_id = message.from_user.id
+
+    if user_id in PENDING_ASKS:
+        future = PENDING_ASKS.pop(user_id)
+        if not future.done():
+            future.set_result(message)
