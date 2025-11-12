@@ -27,7 +27,7 @@ async def ask(client: Client, user_id: int, question: str, timeout: int = 120):
             del PENDING_ASKS[user_id]
 
 
-@Client.on_message()
+@Client.on_message(filters.private & ~filters.command(""))
 async def _capture_reply(client: Client, message: Message):
     """
     Captures private user replies and resolves pending asks.
