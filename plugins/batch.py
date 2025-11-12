@@ -8,7 +8,7 @@ from pyrogram.types import Message
 
 from database import save_batch
 from bot import get_admins, get_bool
-from .ask import ask  # import the helper from ask.py
+from ask import ask  # import the helper from ask.py
 
 log = logging.getLogger(__name__)
 log.info("📍 batch.py loaded successfully")
