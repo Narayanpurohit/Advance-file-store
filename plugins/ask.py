@@ -1,6 +1,6 @@
 # ask.py
 import asyncio
-from pyrogram import Client
+from pyrogram import Client,filters
 from pyrogram.types import Message
 
 # Global dictionary to track pending replies
