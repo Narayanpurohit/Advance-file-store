@@ -2,7 +2,7 @@
 import asyncio
 from pyrogram import Client,filters
 from pyrogram.types import Message
-
+import re
 # Global dictionary to track pending replies
 PENDING_ASKS = {}  # key = user_id, value = asyncio.Future
 
@@ -27,7 +27,20 @@ async def ask(client: Client, user_id: int, question: str, timeout: int = 120):
             del PENDING_ASKS[user_id]
 
 
-@Client.on_message(filters.private & filters.text & ~filters.command([]))
+#@Client.on_message(filters.private & filters.text & ~filters.command([]))
+
+
+url_pattern = re.compile(r'(https?://[^\s]+|t\.me/[^\s]+)')
+
+def link_filter(_, __, message):
+    return bool(message.text and url_pattern.search(message.text))
+
+link_filter = filters.create(link_filter)
+
+@Client.on_message(
+    filters.private &
+    (filters.document | filters.video | filters.audio | filters.photo | link_filter)
+)
 async def _capture_reply(client: Client, message: Message):
     """
     Captures private user replies and resolves pending asks.
