@@ -1,5 +1,6 @@
 import random
 import string
+import traceback
 from pyrogram import Client, filters
 from bot import get_str, get_bool, get_admins
 from pymongo import MongoClient
@@ -14,10 +15,12 @@ stats_col = db["stats"]
 
 
 def random_slug(prefix):
+    """Generate unique slug with given prefix"""
     return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
 
 def human_readable_size(size_bytes):
+    """Convert bytes to readable size"""
     for unit in ['B', 'KB', 'MB', 'GB']:
         if size_bytes < 1024:
             return f"{size_bytes:.2f} {unit}"
@@ -30,70 +33,100 @@ async def generate_link(client, message):
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT", True)
 
-    if not PUBLIC_BOT and message.from_user.id not in ADMINS:
-        return await message.reply_text("❌ Only admins can use this bot.")
+    try:
+        # Access control
+        if not PUBLIC_BOT and message.from_user.id not in ADMINS:
+            return await message.reply_text("❌ Only admins can use this bot.")
 
-    if not message.reply_to_message:
-        return await message.reply_text("⚠️ Please reply to a message (file or text) with /link.")
+        if not message.reply_to_message:
+            return await message.reply_text("⚠️ Please reply to a message (any type) with /link.")
 
-    replied = message.reply_to_message
+        replied = message.reply_to_message
 
-    # Detect content type
-    if replied.document:
-        file_id = replied.document.file_id
-        file_name = replied.document.file_name
-        file_size = replied.document.file_size
-        file_type = "doc"
-        caption = replied.caption or ""
-    elif replied.video:
-        file_id = replied.video.file_id
-        file_name = replied.video.file_name
-        file_size = replied.video.file_size
-        file_type = "vid"
-        caption = replied.caption or ""
-    elif replied.audio:
-        file_id = replied.audio.file_id
-        file_name = replied.audio.file_name
-        file_size = replied.audio.file_size
-        file_type = "aud"
-        caption = replied.caption or ""
-    elif replied.text or replied.caption:
+        # Initialize defaults
         file_id = None
-        file_name = "Text message"
+        file_name = None
         file_size = 0
-        file_type = "txt"
-        caption = replied.text or replied.caption
-    else:
-        return await message.reply_text("❌ Please reply to a valid file or text message.")
+        caption = replied.caption or ""
 
-    # Generate unique slug
-    slug = random_slug(file_type)
-    while files_col.find_one({"slug": slug}):
+        # Detect message type
+        if replied.document:
+            file_id = replied.document.file_id
+            file_name = replied.document.file_name
+            file_size = replied.document.file_size
+            file_type = "doc"
+        elif replied.video:
+            file_id = replied.video.file_id
+            file_name = replied.video.file_name
+            file_size = replied.video.file_size
+            file_type = "vid"
+        elif replied.audio:
+            file_id = replied.audio.file_id
+            file_name = replied.audio.file_name
+            file_size = replied.audio.file_size
+            file_type = "aud"
+        elif replied.photo:
+            file_id = replied.photo.file_id
+            file_name = "Photo"
+            file_type = "one"
+        elif replied.sticker:
+            file_id = replied.sticker.file_id
+            file_name = "Sticker"
+            file_type = "one"
+        elif replied.animation:
+            file_id = replied.animation.file_id
+            file_name = "Animation"
+            file_type = "one"
+        elif replied.text:
+            file_name = "Text message"
+            caption = replied.text
+            file_type = "one"
+        else:
+            return await message.reply_text("❌ Unsupported message type.")
+
+        # Generate unique slug
         slug = random_slug(file_type)
+        while files_col.find_one({"slug": slug}):
+            slug = random_slug(file_type)
 
-    files_col.insert_one({
-        "slug": slug,
-        "file_id": file_id,
-        "file_type": file_type,
-        "file_name": file_name,
-        "file_size": file_size,
-        "caption": caption
-    })
+        # Save file info to DB
+        try:
+            files_col.insert_one({
+                "slug": slug,
+                "file_id": file_id,
+                "file_type": file_type,
+                "file_name": file_name,
+                "file_size": file_size,
+                "caption": caption,
+            })
+        except Exception as db_err:
+            return await message.reply_text(f"⚠️ Database Error:\n`{db_err}`")
 
-    stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
+        # Update stats
+        try:
+            stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
+        except Exception as db_err:
+            # Don't break functionality if stats fail
+            print("Stats update failed:", db_err)
 
-    bot_info = await client.get_me()
-    file_link = f"https://t.me/{bot_info.username}?start={slug}"
+        # Build link
+        bot_info = await client.get_me()
+        file_link = f"https://t.me/{bot_info.username}?start={slug}"
 
-    reply_text = f"✅ **Link generated successfully!**\n\n"
-    if file_type != "txt":
-        reply_text += (
-            f"📁 **File:** `{file_name}`\n"
-            f"📦 **Size:** {human_readable_size(file_size)}\n\n"
-        )
-    else:
-        reply_text += "📝 **Text message saved**\n\n"
+        # Build response
+        reply_text = f"✅ **Link generated successfully!**\n\n"
+        if file_name:
+            reply_text += f"📁 **Type:** {file_type.upper()}\n"
+            reply_text += f"📄 **Name:** `{file_name}`\n"
+        if file_size > 0:
+            reply_text += f"📦 **Size:** {human_readable_size(file_size)}\n\n"
+        reply_text += f"🔗 **Link:** {file_link}"
 
-    reply_text += f"🔗 **Link:** {file_link}"
+        await message.reply_text(reply_text)
 
-    await message.reply_text(reply_text)
+    except Exception as e:
+        # Catch any unexpected error
+        error_text = f"⚠️ **An unexpected error occurred.**\n\n`{e}`"
+        await message.reply_text(error_text)
+        # Also print full traceback to console/logs for debugging
+        print("Error in /link handler:\n", traceback.format_exc())
