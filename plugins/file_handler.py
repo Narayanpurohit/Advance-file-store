@@ -1,7 +1,7 @@
 import random
 import string
 from pyrogram import Client, filters
-from bot import get_str , get_bool , get_admins
+from bot import get_str, get_bool, get_admins
 from pymongo import MongoClient
 
 
@@ -12,8 +12,10 @@ db = mongo_client[DB_NAME]
 files_col = db["files"]
 stats_col = db["stats"]
 
+
 def random_slug(prefix):
     return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
+
 
 def human_readable_size(size_bytes):
     for unit in ['B', 'KB', 'MB', 'GB']:
@@ -22,36 +24,52 @@ def human_readable_size(size_bytes):
         size_bytes /= 1024
     return f"{size_bytes:.2f} TB"
 
-@Client.on_message(filters.private & (filters.document | filters.video | filters.audio))
-async def save_file(client, message):
-    user_id = message.from_user.id
+
+@Client.on_message(filters.private & filters.command("link"))
+async def generate_link(client, message):
     ADMINS = get_admins()
-    CAPTION = get_str("CAPTION")
     PUBLIC_BOT = get_bool("PUBLIC_BOT", True)
 
-    # Access control based on PUBLIC_BOT
-    if not PUBLIC_BOT and user_id not in ADMINS:
-        return await message.reply_text("❌don't send message directly this is only file store bot")
+    if not PUBLIC_BOT and message.from_user.id not in ADMINS:
+        return await message.reply_text("❌ Only admins can use this bot.")
 
-    if message.document:
-        file_id = message.document.file_id
-        file_name = message.document.file_name
-        file_size = message.document.file_size
+    if not message.reply_to_message:
+        return await message.reply_text("⚠️ Please reply to a message (file or text) with /link.")
+
+    replied = message.reply_to_message
+
+    # Detect content type
+    if replied.document:
+        file_id = replied.document.file_id
+        file_name = replied.document.file_name
+        file_size = replied.document.file_size
         file_type = "doc"
-    elif message.video:
-        file_id = message.video.file_id
-        file_name = message.video.file_name
-        file_size = message.video.file_size
+        caption = replied.caption or ""
+    elif replied.video:
+        file_id = replied.video.file_id
+        file_name = replied.video.file_name
+        file_size = replied.video.file_size
         file_type = "vid"
-    elif message.audio:
-        file_id = message.audio.file_id
-        file_name = message.audio.file_name
-        file_size = message.audio.file_size
+        caption = replied.caption or ""
+    elif replied.audio:
+        file_id = replied.audio.file_id
+        file_name = replied.audio.file_name
+        file_size = replied.audio.file_size
         file_type = "aud"
+        caption = replied.caption or ""
+    elif replied.text or replied.caption:
+        file_id = None
+        file_name = "Text message"
+        file_size = 0
+        file_type = "txt"
+        caption = replied.text or replied.caption
     else:
-        return
+        return await message.reply_text("❌ Please reply to a valid file or text message.")
 
+    # Generate unique slug
     slug = random_slug(file_type)
+    while files_col.find_one({"slug": slug}):
+        slug = random_slug(file_type)
 
     files_col.insert_one({
         "slug": slug,
@@ -59,7 +77,7 @@ async def save_file(client, message):
         "file_type": file_type,
         "file_name": file_name,
         "file_size": file_size,
-        "caption": message.caption or ""
+        "caption": caption
     })
 
     stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
@@ -67,6 +85,15 @@ async def save_file(client, message):
     bot_info = await client.get_me()
     file_link = f"https://t.me/{bot_info.username}?start={slug}"
 
-    await message.reply_text(
-        f"✅ File saved!\n\n📎 Link: {file_link}"
-    )
+    reply_text = f"✅ **Link generated successfully!**\n\n"
+    if file_type != "txt":
+        reply_text += (
+            f"📁 **File:** `{file_name}`\n"
+            f"📦 **Size:** {human_readable_size(file_size)}\n\n"
+        )
+    else:
+        reply_text += "📝 **Text message saved**\n\n"
+
+    reply_text += f"🔗 **Link:** {file_link}"
+
+    await message.reply_text(reply_text)
