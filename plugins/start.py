@@ -299,3 +299,5 @@ async def start_handler(client, message):
 
     except Exception as e:
         log.error(f"❌ Error in /start: {e}", exc_info=True)
+        await message.reply_text(f"❌ Error: {e}")
+            
