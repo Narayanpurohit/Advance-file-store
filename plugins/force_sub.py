@@ -1,19 +1,29 @@
+			
+			
+
+
+
 import logging
 from pyrogram import Client, filters
 from pyrogram.errors import UserNotParticipant, ChatAdminRequired, PeerIdInvalid, FloodWait
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
 from pyrogram.raw import functions
 import asyncio
-from bot import get_bool, get_list
+from config import ENABLE_FSUB,FSUB
+from bot import Bot
 
 log = logging.getLogger(__name__)
 
 
+
+
+
+
+
 # ===================== DYNAMIC FSUB LOADING =====================
 def load_fsub():
-    ENABLE_FSUB = get_bool("ENABLE_FSUB")
-    raw_fsub = get_list("FSUB")
-
+    
+    raw_fsub = FSUB
     FSUB = {}
     if ENABLE_FSUB and raw_fsub:
         try:
@@ -130,7 +140,7 @@ async def check_force_sub(client: Client, user_id: int, message) -> bool:
 
 
 # ===================== CALLBACK =====================
-@Client.on_callback_query(filters.regex("fsub_check"))
+@Bot.on_callback_query(filters.regex("fsub_check"))
 async def recheck_force_sub(client, callback_query: CallbackQuery):
     user_id = callback_query.from_user.id
     ok = await check_force_sub(client, user_id, callback_query.message)
@@ -138,3 +148,4 @@ async def recheck_force_sub(client, callback_query: CallbackQuery):
         await callback_query.message.edit_text(
             "✅ Thanks! You’ve unlocked the bot features.\n\nSend /start again."
         )
+
