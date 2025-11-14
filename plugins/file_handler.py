@@ -14,8 +14,8 @@ files_col = db["files"]
 stats_col = db["stats"]
 
 
-def random_slug(prefix):
-    return f"{prefix}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
+def random_slug(prefix,db):
+    return f"{prefix}_{db}{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
 
 def human_readable_size(size_bytes):
@@ -83,9 +83,9 @@ async def generate_link(client, message):
             return await message.reply_text("❌ Unsupported message type.")
 
         # Generate unique slug
-        slug = random_slug(file_type)
+        slug = random_slug(file_type,DB_NAME)
         while files_col.find_one({"slug": slug}):
-            slug = random_slug(file_type)
+            slug = random_slug(file_type,DB_NAME)
 
         # Save file entry
         try:
