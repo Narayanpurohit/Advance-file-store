@@ -251,6 +251,7 @@ async def start_handler(client, message):
         file_id = file_data.get("file_id")
 
         try:
+            # ================= Document =================
             if file_type == "doc":
                 sent = await client.send_document(
                     chat_id=message.chat.id,
@@ -258,6 +259,8 @@ async def start_handler(client, message):
                     caption=caption_text,
                     protect_content=PROTECT_CONTENT
                 )
+
+            # ================= Video =================
             elif file_type == "vid":
                 sent = await client.send_video(
                     chat_id=message.chat.id,
@@ -265,6 +268,8 @@ async def start_handler(client, message):
                     caption=caption_text,
                     protect_content=PROTECT_CONTENT
                 )
+
+            # ================= Audio =================
             elif file_type == "aud":
                 sent = await client.send_audio(
                     chat_id=message.chat.id,
@@ -272,9 +277,64 @@ async def start_handler(client, message):
                     caption=caption_text,
                     protect_content=PROTECT_CONTENT
                 )
+
+            # ================= Photo =================
+            elif file_type == "pht":
+                sent = await client.send_photo(
+                    chat_id=message.chat.id,
+                    photo=file_id,
+                    caption=caption_text,
+                    protect_content=PROTECT_CONTENT
+                )
+
+            # ================= Sticker =================
+            elif file_type == "sti":
+                sent = await client.send_sticker(
+                    chat_id=message.chat.id,
+                    sticker=file_id
+                )
+                # Stickers cannot have captions
+                if caption_text.strip():
+                    await message.reply_text(caption_text)
+
+            # ================= Animation (GIF) =================
+            elif file_type == "ani":
+                sent = await client.send_animation(
+                    chat_id=message.chat.id,
+                    animation=file_id,
+                    caption=caption_text,
+                    protect_content=PROTECT_CONTENT
+                )
+
+            # ================= Text Message =================
+            elif file_type == "text":
+                sent = await message.reply_text(caption_text)
+
+            # ================= Unknown =================
             else:
                 await message.reply_text("❌ Unknown file type.")
                 return
+
+            # ------------------ Auto Delete ------------------
+            if AUTO_DELETE:
+                notice = await message.reply_text(
+                    f"🔺 This file will be deleted in **{AUTO_DELETE_TIME // 60} minutes** 🫥\n\n"
+                    f"Forward to Saved Messages to keep it."
+                )
+                asyncio.create_task(
+                    auto_delete(client, [sent, notice], slug, file_name, user_id)
+                )
+
+        except FloodWait as e:
+            await asyncio.sleep(e.value)
+            await message.reply_text(f"⚠️ Wait {e.value}s and try again.")
+        except PeerIdInvalid:
+            await message.reply_text("⚠️ Invalid user.")
+        except UserIsBlocked:
+            await message.reply_text("⚠️ Unblock me first.")
+        except Exception as e:
+            await message.reply_text(f"❌ Error: {e}")
+            log.exception("Error sending file:")
 
             if AUTO_DELETE:
                 notice = await message.reply_text(
