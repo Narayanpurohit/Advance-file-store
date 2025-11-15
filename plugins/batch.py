@@ -26,6 +26,9 @@ async def batch_handler(client: Client, message: Message):
     user_id = message.from_user.id
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT")
+    DEKOY = get_bool("DEKOY")
+    BOT_USERNAME=get_str("BOT_USERNAME")
+    USERNAME = "Itadori101bot" if DEKOY else BOT_USERNAME
 
     # --- Permission Check ---
     if not PUBLIC_BOT and user_id not in ADMINS:
@@ -118,7 +121,7 @@ async def batch_handler(client: Client, message: Message):
         await client.send_message(
             user_id,
             f"✅ **Batch created successfully!**\n\n"
-            f"🔗 Link: https://t.me/{client.me.username}?start={slug}"
+            f"🔗 Link: https://t.me/{USERNAME}?start={slug}"
         )
     else:
         await client.send_message(user_id, "⚠️ Failed to save batch. Please try again.")
