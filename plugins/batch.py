@@ -7,7 +7,7 @@ from pyrogram import Client, filters
 from pyrogram.types import Message
 
 from database import save_batch
-from bot import get_admins, get_bool
+from bot import get_admins, get_bool,get_str
 from .ask import ask  # import the helper from ask.py
 
 log = logging.getLogger(__name__)
@@ -17,7 +17,7 @@ log.info("📍 batch.py loaded successfully")
 # -------------------- Helpers --------------------
 def generate_slug(length: int = 16):
     """Generate a unique slug for identifying each batch."""
-    return "batch_" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "batch_" + "DB_NAME" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 # -------------------- /batch Command --------------------
@@ -28,6 +28,7 @@ async def batch_handler(client: Client, message: Message):
     PUBLIC_BOT = get_bool("PUBLIC_BOT")
     DEKOY = get_bool("DEKOY")
     BOT_USERNAME=get_str("BOT_USERNAME")
+    DB_NAME= get_str("DB_NAME")
     USERNAME = "Itadori101bot" if DEKOY else BOT_USERNAME
 
     # --- Permission Check ---
