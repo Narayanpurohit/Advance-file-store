@@ -103,6 +103,8 @@ if __name__ == "__main__":
     app.start()
     me = app.get_me()
     BOT_USERNAME = me.username
+    users_col.update_one({"USER_ID": USER_ID},{"$set": {"BOT_USERNAME": BOT_USERNAME}},upsert=True)
+    logger.info(f"🤖 Bot username saved: @{BOT_USERNAME}")
     logger.info(f"✅ Bot started as @{BOT_USERNAME}")
     logger.info("📡 Bot is now running and ready.")
     idle()
