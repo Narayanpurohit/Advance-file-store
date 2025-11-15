@@ -34,6 +34,8 @@ VARIABLE_INFO = {
     "PROTECT_CONTENT": {"name": "ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ", "help": "ʀᴇꜱᴛʀɪᴄᴛ ᴜꜱᴇʀ ꜰʀᴏᴍ ꜱᴀᴠɪɴɢ ᴄᴏɴᴛᴇɴᴛ."},
     "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."},
     "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
+    "DEKOY": {"name": "DEKOY", "help": "ENABLE ʙᴏᴛ."}
+
     
     
     
@@ -56,7 +58,7 @@ GROUPS = {
     "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
     "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],  # submenu handled separately
-    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
+    "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["DEKOY","AUTO_DELETE", "AUTO_DELETE_TIME"],
     "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"],
     "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ":["PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT", "LOG_CHANNEL"]
     
