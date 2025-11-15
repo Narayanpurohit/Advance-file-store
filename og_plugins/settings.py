@@ -16,7 +16,7 @@ log = logging.getLogger("Settings")
 
 # ---------------- VARIABLES ----------------
 BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE",
-                "PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT"]
+                "PROTECT_CONTENT", "CLONE_BUTTON", "PUBLIC_BOT","DEKOY"]
 
 INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME",
             "LOG_CHANNEL"]
@@ -66,7 +66,7 @@ GROUPS = {
     "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"],
     "• ᴏᴛʜᴇʀ ꜱᴇᴛᴛɪɴɢꜱ": [
         "PROTECT_CONTENT", "CLONE_BUTTON",
-        "PUBLIC_BOT", "LOG_CHANNEL"
+        "PUBLIC_BOT", "LOG_CHANNEL","DEKOY"
     ]
 }
 
