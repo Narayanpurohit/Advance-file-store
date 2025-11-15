@@ -70,6 +70,7 @@ def add_user(user_id: int):
         "PUBLIC_BOT":True,
         "AUTO_DELETE":True,
         "AUTO_DELETE_TIME":1200,
+        "DEKOY":True,
     }
 
     users_col.insert_one(default_user)
