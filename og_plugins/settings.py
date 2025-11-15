@@ -21,35 +21,30 @@ BOOLEAN_VARS = ["ENABLE_FSUB", "VERIFICATION_MODE", "AUTO_DELETE",
 INT_VARS = ["PREMIUM_HOURS_VERIFICATION", "AUTO_DELETE_TIME",
             "LOG_CHANNEL"]
 
+
 VARIABLE_INFO = {
     "BOT_TOKEN": {"name": "ʙᴏᴛ ᴛᴏᴋᴇɴ", "help": "ᴛʜᴇ ᴛᴏᴋᴇɴ ʏᴏᴜ ɢᴇᴛ ғʀᴏᴍ @ʙᴏᴛғᴀᴛʜᴇʀ."},
-    "DB_NAME": {"name": "Data code", "help": "ᴜɴɪǫᴜᴇ ᴄᴏᴅᴇ ᴛʜᴀᴛ sᴛᴏʀᴇs ʟɪɴᴋs ᴀɴᴅ ᴜsᴇʀ ᴅᴀᴛᴀ."},
-    "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ғᴏʀ ᴀᴅᴍɪɴs separated by ,"},
-    "FSUB": {"name": "ғᴏʀᴄᴇ sᴜʙ ᴄʜᴀɴɴᴇʟ",
-             "help": "format:\nbutton1 : id1 , button2 : id2"},
-    "PREMIUM_HOURS_VERIFICATION": {"name": "premium hours",
-                                   "help": "How long users remain verified."},
-    "SHORTENER_DOMAIN": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴅᴏᴍᴀɪɴ",
-                         "help": "Only domain (example.com)"},
-    "SHORTENER_API_KEY": {"name": "API key", "help": "Shortener API key"},
-    "CAPTION": {"name": "Caption",
-                "help": "Use:\n{filename}\n{filesize}\n{caption}"},
-    "AUTO_DELETE_TIME": {"name": "Auto Delete Time",
-                         "help": "Seconds before file auto deletion"},
-    "ENABLE_FSUB": {"name": "Force Sub", "help": "Enable/Disable force sub"},
-    "VERIFICATION_MODE": {"name": "Verification Mode",
-                          "help": "Turn verification ON/OFF"},
-    "AUTO_DELETE": {"name": "Auto Delete", "help": "Toggle auto delete"},
-    "LOG_CHANNEL": {"name": "Log Channel",
-                    "help": "Set channel ID and ensure bot is admin"},
-    "PROTECT_CONTENT": {"name": "Protect Content",
-                        "help": "Restrict saving content"},
-    "CLONE_BUTTON": {"name": "Clone Button",
-                     "help": "Show clone button"},
-    "PUBLIC_BOT": {"name": "Public Bot",
-                   "help": "Anyone can use bot"},
-}
+    "DB_NAME": {"name": "Data code", "help": "ᴛʜɪs ɪs ᴜɴɪǫᴜᴇ ᴄᴏᴅᴇ ᴛʜᴀᴛ sᴛᴏʀᴇs ʏᴏᴜʀ ʟɪɴᴋs ᴀɴᴅ ᴜsᴇʀ ᴅᴀᴛᴀ ɪꜰ ʏᴏᴜ ᴄʜᴀɴɢᴇ ᴀᴄᴏᴜɴᴛ sᴇᴛ ᴛʜɪs ᴄᴏᴅᴇ."},
+    "ADMINS": {"name": "ᴀᴅᴍɪɴ ᴜsᴇʀs", "help": "ᴜsᴇʀ ɪᴅs ᴏғ ᴀᴅᴍɪɴs sᴇᴘᴀʀᴀᴛᴇ ᴛʜᴇᴍ ᴡɪᴛʜ ,"},
+    "FSUB": {"name": "ғᴏʀᴄᴇ sᴜʙ ᴄʜᴀɴɴᴇʟ", "help": "ɪᴅ ᴏғ ᴄʜᴀɴɴᴇʟ ғᴏʀ ғsᴜʙ ɪɴ ᴛʜɪs ғᴏʀᴍᴀᴛ. \n\nʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 1 : ɪᴅ1 , ʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 2 : ɪᴅ2 , ʙᴜᴛᴛᴏɴ ɴᴀᴍᴇ 3 : ɪᴅ3"},
+    "PREMIUM_HOURS_VERIFICATION": {"name": "ʜᴏᴜʀs ᴜsᴇʀ ɢᴇᴛ ᴘʀᴇᴍɪᴜᴍ ᴀғᴛᴇʀ ᴠᴇʀɪғɪᴇᴅ.", "help": "ʜᴏᴜʀs ᴜsᴇʀ sᴛᴀʏs ᴠᴇʀɪғɪᴇᴅ."},
+    "SHORTENER_DOMAIN": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴅᴏᴍᴀɪɴ", "help": "ᴏɴʟʏ ᴅᴏᴍᴀɪɴ ғᴏʀ ʟɪɴᴋ sʜᴏʀᴛᴇɴᴇʀ. ʟɪᴋᴇ ᴛʜɪs ᴅᴏᴍᴀɪɴ.ᴄᴏᴍ"},
+    "SHORTENER_API_KEY": {"name": "sʜᴏʀᴛᴇɴᴇʀ ᴀᴘɪ ᴋᴇʏ", "help": "ᴀᴘɪ ᴋᴇʏ ғᴏʀ ʏᴏᴜʀ sʜᴏʀᴛᴇɴᴇʀ."},
+    "CAPTION": {"name": "ғɪʟᴇ ᴄᴀᴘᴛɪᴏɴ", "help": "ʏᴏᴜ ᴄᴀɴ ᴜsᴇ ᴛʜɪs ғᴏʀᴍᴀᴛs ᴀs ᴄᴀᴘᴛɪᴏɴ\n`{filename}`\n`{filesize}`\n`{caption}`"},
+    "AUTO_DELETE_TIME": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ ᴛɪᴍᴇ", "help": "ᴛɪᴍᴇ ɪɴ (sᴇᴄᴏɴᴅs) ғᴏʀ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ."},
+    "ENABLE_FSUB": {"name": "ᴇɴᴀʙʟᴇ ғᴏʀᴄᴇ sᴜʙ", "help": "ᴄʜᴀɴɢᴇ ғᴏʀᴄᴇ-sᴜʙ ᴍᴏᴅᴇ"},
+    "VERIFICATION_MODE": {"name": "ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ", "help": "ᴄʜᴀɴɢᴇ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ ᴍᴏᴅᴇ."},
+    "AUTO_DELETE": {"name": "ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ", "help": "ᴄʜᴀɴɢᴇ ᴀᴜᴛᴏ-ᴅᴇʟᴇᴛᴇ ᴍᴏᴅᴇ."},
+    "LOG_CHANNEL": {"name": "ʟᴏɢ ᴄʜᴀɴɴᴇʟ", "help": "ꜱᴇᴛ ʟᴏɢ ᴄʜᴀɴɴᴇʟ ɪᴅ ᴀɴᴅ ᴍᴀᴋᴇ ꜱᴜʀᴇ ʙᴏᴛ ɪꜱ ᴀᴅᴍɪɴ ᴏɴ ᴄʜᴀɴɴᴇʟ."},
+    "PROTECT_CONTENT": {"name": "ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ", "help": "ʀᴇꜱᴛʀɪᴄᴛ ᴜꜱᴇʀ ꜰʀᴏᴍ ꜱᴀᴠɪɴɢ ᴄᴏɴᴛᴇɴᴛ."},
+    "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."},
+    "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
+    "DEKOY": {"name": "DEKOY ʙᴏᴛ", "help": "DEKOY ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
 
+    
+    
+    
+}
 
 # ---------------- GROUPS ----------------
 GROUP_KEYS = {
