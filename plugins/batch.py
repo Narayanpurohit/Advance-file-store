@@ -17,7 +17,7 @@ log.info("📍 batch.py loaded successfully")
 # -------------------- Helpers --------------------
 def generate_slug(length: int = 16):
     """Generate a unique slug for identifying each batch."""
-    return "batch_" + "DB_NAME" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return "batch_" + "{DB_NAME}" + ''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 # -------------------- /batch Command --------------------
