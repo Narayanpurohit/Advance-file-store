@@ -110,20 +110,35 @@ def get_file_by_slug(slug: str):
 
 
 # ---------------- BATCH ----------------
-def save_batch(slug: str, messages: list):
-    """Save a batch of messages in the database."""
+def save_batch(
+    slug: str,
+    messages: list,
+    owner_id: int,
+    channel_id: int,
+    batch_type: str,
+    is_premium: bool
+):
+    """
+    Save a batch of messages into the database with extended metadata.
+    """
     try:
         batch_doc = {
             "slug": slug,
-            "messages": messages,
+            "owner_id": owner_id,
+            "channel_id": channel_id,
+            "type": batch_type,          # file / vid / aud / mix
+            "msg_count": len(messages),
+            "is_premium": is_premium,
+            "messages": messages,        # full list of message dicts
             "created_at": datetime.utcnow()
         }
+
         db.batches.insert_one(batch_doc)
         return True
+
     except Exception as e:
         log.error(f"⚠️ DB Error (save_batch): {e}")
         return False
-
 
 def get_batch_by_slug(slug: str):
     """Fetch a batch document by slug from the database."""
