@@ -15,7 +15,7 @@ stats_col = db["stats"]
 
 
 def random_slug(prefix,db):
-    return f"{prefix}_{db}{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
+    return f"{prefix}_{db}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
 
 def human_readable_size(size_bytes):
@@ -32,6 +32,8 @@ async def generate_link(client, message):
     PUBLIC_BOT = get_bool("PUBLIC_BOT", True)
     DEKOY = get_bool("DEKOY")
     BOT_USERNAME = get_str("BOT_USERNAME")
+    USERNAME = "Itadori101bot" if DEKOY else BOT_USERNAME
+
 
     try:
         if not PUBLIC_BOT and message.from_user.id not in ADMINS:
@@ -109,8 +111,8 @@ async def generate_link(client, message):
             pass
 
         # Generate file link
-        bot_info = await client.get_me()
-        file_link = f"https://t.me/{bot_info.username}?start={slug}"
+        #bot_info = await client.get_me()
+        file_link = f"https://t.me/{USERNAME}?start={slug}"
 
         # Build response
         text_resp = (
