@@ -30,6 +30,8 @@ def human_readable_size(size_bytes):
 async def generate_link(client, message):
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT", True)
+    DEKOY = get_bool("DEKOY")
+    BOT_USERNAME = get_str("BOT_USERNAME")
 
     try:
         if not PUBLIC_BOT and message.from_user.id not in ADMINS:
