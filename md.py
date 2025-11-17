@@ -22,8 +22,12 @@ API_ID = 12345
 API_HASH = "your_api_hash"
 BOT_TOKEN = "your_bot_token"
 
-MONGO_URL = "your_mongo_url"
-DB_NAME = "mediator_database"
+
+MONGO_URL = os.getenv("MONGO_URL", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
+DB_NAME = os.getenv("DB_NAME", "clone_maker")
+
+
+
 
 app = Client(
     "MediatorBot",
