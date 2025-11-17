@@ -79,7 +79,8 @@ async def start_handler(client, message):
     # ------------------------------
     try:
         payload = message.command[1]  # link-type_db-code_slug
-        link_type, DB_NAME, slug = payload.split("_", 2)
+        link_type, DB_NAME, slug2 = payload.split("_", 2)
+        slug= link_type+"_"+DB_NAME+"_"+slug2
 
     except:
         return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug`")
