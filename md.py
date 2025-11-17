@@ -23,8 +23,8 @@ API_HASH = "3037d39233c6fad9b80d83bb8a339a07"
 BOT_TOKEN = "6723725173:AAGjp4K-YY3L9eQIjHHBSWBjN586FA4Trtk"
 
 
-MONGO_URL = os.getenv("MONGO_URL", "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0")
-DB_NAME = os.getenv("DB_NAME", "clone_maker")
+MONGO_URL =  "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+DB_NAME = "clone_maker"
 
 
 
