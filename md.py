@@ -45,18 +45,18 @@ db = mongo[DB_NAME]
 
 files_col = db.files        # file details
 batches_col = db.batches    # batch details
-bots_col = db.bots          # store bot username per db-code
+bots_col = db.users          # store bot username per db-code
 
 
 # ---------------------------------------------------------
 # Function: Get bot username from db-code
 # ---------------------------------------------------------
-def get_bot_username_by_code(db_code: str):
+def get_BOT_USERNAME_by_code(DB-NAME: str):
     """
     Fetch bot username using db-code.
     """
-    bot = bots_col.find_one({"db_code": db_code})
-    return bot["bot_username"] if bot else None
+    bot = bots_col.find_one({"DB-NAME": DB-NAME})
+    return bot["BOT_USERNAME"] if bot else None
 
 
 # ---------------------------------------------------------
@@ -79,22 +79,22 @@ async def start_handler(client, message):
     # ------------------------------
     try:
         payload = message.command[1]  # link-type_db-code_slug
-        link_type, db_code, slug = payload.split("_", 2)
+        link_type, DB-NAME, slug = payload.split("_", 2)
 
     except:
         return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug`")
 
-    log.info(f"Received start link: type={link_type}, db={db_code}, slug={slug}")
+    log.info(f"Received start link: type={link_type}, db={DB-NAME}, slug={slug}")
 
     # ------------------------------
     # Fetch bot username via db-code
     # ------------------------------
-    bot_username = get_bot_username_by_code(db_code)
+    BOT_USERNAME = get_BOT_USERNAME_by_code(DB-NAME)
 
-    if not bot_username:
+    if not BOT_USERNAME:
         return await message.reply("❌ db-code not found. Bot username missing!")
 
-    deep_link = f"https://t.me/{bot_username}?start={slug}"
+    deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
 
     btn = InlineKeyboardMarkup(
         [[InlineKeyboardButton("🔗 Open in main bot", url=deep_link)]]
