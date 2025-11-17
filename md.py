@@ -53,9 +53,9 @@ log.info("🗄 Connected to MongoDB.")
 
 files_col = db.files
 batches_col = db.batches
-bots_col = db.users   # YOU USED THIS COLLECTION → unchanged
+bots_col = db.bots   # FIXED — Correct collection
 
-log.info("📦 Collections mapped: files, batches, users")
+log.info("📦 Collections mapped: files, batches, bots")
 
 
 # ---------------------------------------------------------
@@ -96,11 +96,13 @@ async def start_handler(client, message):
     # Start with payload
     # ------------------------------
     try:
-        payload = message.command[1]
+        payload = message.command[1].strip()
         log.info(f"📦 Received payload: {payload}")
+        #slug=payload
 
-        link_type, dbcode, slug2 = payload.split("_", 2)
-        slug = link_type + "_" + dbcode + "_" + slug2
+        # No splitting rules changed — FULL slug from your uploader
+        link_type, dbcode, slug_rest = payload.split("_", 2)
+        slug = f"{link_type}_{dbcode}_{slug_rest}"
 
         log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
 
@@ -165,10 +167,13 @@ async def start_handler(client, message):
 
         log.info(f"✔ File found: {file}")
 
+        # Safe file size
+        size = file.get("file_size", 0)
+
         text = (
             f"📁 **File Details**\n"
-            f"• Name: `{file['file_name']}`\n"
-            f"• Size: `{file['file_size']}`\n"
+            f"• Name: `{file.get('file_name', 'Unknown')}`\n"
+            f"• Size: `{size}`\n"
             f"• Type: `{file['file_type']}`\n"
             f"• Slug: `{slug}`"
         )
