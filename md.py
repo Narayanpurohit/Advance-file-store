@@ -1,3 +1,4 @@
+import os
 import logging
 from datetime import datetime
 from pyrogram import Client, filters
@@ -14,6 +15,8 @@ logging.basicConfig(
 )
 log = logging.getLogger("MediatorBot")
 
+log.info("🔥 Starting Mediator Bot initialization...")
+
 
 # ---------------------------------------------------------
 # Bot Config
@@ -22,19 +25,22 @@ API_ID = 15191874
 API_HASH = "3037d39233c6fad9b80d83bb8a339a07"
 BOT_TOKEN = "6723725173:AAGjp4K-YY3L9eQIjHHBSWBjN586FA4Trtk"
 
-
-MONGO_URL =  "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+MONGO_URL = "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
 DB_NAME = "clone_maker"
 
+log.info(f"🔧 Loaded API config. DB={DB_NAME}")
 
 
-
+# ---------------------------------------------------------
+# Pyrogram Client
+# ---------------------------------------------------------
 app = Client(
     "MediatorBot",
     api_id=API_ID,
     api_hash=API_HASH,
     bot_token=BOT_TOKEN
 )
+log.info("🤖 Pyrogram Client created.")
 
 
 # ---------------------------------------------------------
@@ -43,19 +49,28 @@ app = Client(
 mongo = MongoClient(MONGO_URL)
 db = mongo[DB_NAME]
 
-files_col = db.files        # file details
-batches_col = db.batches    # batch details
-bots_col = db.users          # store bot username per db-code
+log.info("🗄 Connected to MongoDB.")
+
+files_col = db.files
+batches_col = db.batches
+bots_col = db.users   # YOU USED THIS COLLECTION → unchanged
+
+log.info("📦 Collections mapped: files, batches, users")
 
 
 # ---------------------------------------------------------
 # Function: Get bot username from db-code
 # ---------------------------------------------------------
-def get_BOT_USERNAME_by_code(DB_NAME: str):
-    """
-    Fetch bot username using db-code.
-    """
-    bot = bots_col.find_one({"DB_NAME": DB_NAME})
+def get_BOT_USERNAME_by_code(db_code: str):
+    log.info(f"🔍 Looking up bot username for db_code={db_code}")
+
+    bot = bots_col.find_one({"DB_NAME": db_code})
+
+    if bot:
+        log.info(f"✔ Bot username found: {bot.get('BOT_USERNAME')}")
+    else:
+        log.error("❌ Bot username NOT FOUND in DB!")
+
     return bot["BOT_USERNAME"] if bot else None
 
 
@@ -65,10 +80,13 @@ def get_BOT_USERNAME_by_code(DB_NAME: str):
 @app.on_message(filters.command("start"))
 async def start_handler(client, message):
 
+    log.info("📩 Received /start command")
+
     # ------------------------------
     # Normal /start (no payload)
     # ------------------------------
     if len(message.command) == 1:
+        log.info("➡ Sending normal start message (no payload)")
         return await message.reply(
             "👋 **Welcome to Mediator Bot**\n"
             "Send a valid mediated link to continue."
@@ -78,38 +96,49 @@ async def start_handler(client, message):
     # Start with payload
     # ------------------------------
     try:
-        payload = message.command[1]  # link-type_db-code_slug
-        link_type, DB_NAME, slug2 = payload.split("_", 2)
-        slug= link_type+"_"+DB_NAME+"_"+slug2
+        payload = message.command[1]
+        log.info(f"📦 Received payload: {payload}")
 
-    except:
+        link_type, dbcode, slug2 = payload.split("_", 2)
+        slug = link_type + "_" + dbcode + "_" + slug2
+
+        log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
+
+    except Exception as e:
+        log.error(f"❌ Payload parsing failed: {e}")
         return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug`")
 
-    log.info(f"Received start link: type={link_type}, db={DB_NAME}, slug={slug}")
-
     # ------------------------------
-    # Fetch bot username via db-code
+    # Fetch bot username
     # ------------------------------
-    BOT_USERNAME = get_BOT_USERNAME_by_code(DB_NAME)
+    BOT_USERNAME = get_BOT_USERNAME_by_code(dbcode)
 
     if not BOT_USERNAME:
+        log.error("❌ No bot username found. Rejecting request.")
         return await message.reply("❌ db-code not found. Bot username missing!")
+
+    log.info(f"🔗 Generating deep link for bot: {BOT_USERNAME}")
 
     deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
 
     btn = InlineKeyboardMarkup(
         [[InlineKeyboardButton("🔗 Open in main bot", url=deep_link)]]
     )
+    log.info("🧩 Inline button created.")
 
     # ------------------------------
     # Batch Type
     # ------------------------------
     if link_type.lower() == "batch":
+        log.info("📁 Link detected as BATCH. Fetching batch from DB...")
 
         batch = batches_col.find_one({"slug": slug})
 
         if not batch:
+            log.error("❌ Batch not found in DB")
             return await message.reply("❌ Batch not found!")
+
+        log.info(f"✔ Batch found: {batch}")
 
         text = (
             f"📦 **Batch Details**\n"
@@ -119,16 +148,22 @@ async def start_handler(client, message):
             f"• Slug: `{slug}`"
         )
 
+        log.info("➡ Sending batch details to user")
         return await message.reply(text, reply_markup=btn)
 
     # ------------------------------
     # File Type
     # ------------------------------
     else:
+        log.info("📄 Link detected as FILE. Fetching file from DB...")
+
         file = files_col.find_one({"slug": slug})
 
         if not file:
+            log.error("❌ File not found in DB")
             return await message.reply("❌ File not found!")
+
+        log.info(f"✔ File found: {file}")
 
         text = (
             f"📁 **File Details**\n"
@@ -138,11 +173,12 @@ async def start_handler(client, message):
             f"• Slug: `{slug}`"
         )
 
+        log.info("➡ Sending file details to user")
         return await message.reply(text, reply_markup=btn)
 
 
 # ---------------------------------------------------------
 # Run Bot
 # ---------------------------------------------------------
-log.info("🤖 Mediator Bot started!")
+log.info("🚀 Mediator Bot started and running!")
 app.run()
