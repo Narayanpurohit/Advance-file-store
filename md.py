@@ -98,9 +98,9 @@ async def start_handler(client, message):
     try:
         payload = message.command[1]
         log.info(f"📦 Received payload: {payload}")
+        slug=payload
 
         link_type, dbcode, slug2 = payload.split("_", 2)
-        slug = link_type + "_" + dbcode + "_" + slug2
 
         log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
 
