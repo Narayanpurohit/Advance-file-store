@@ -1,189 +1,186 @@
-import os
 import logging
-from datetime import datetime
 from pyrogram import Client, filters
 from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from pymongo import MongoClient
+import os
 
-
-# ---------------------------------------------------------
-# Logging Setup
-# ---------------------------------------------------------
+# ================== LOGGING ================== #
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - [%(levelname)s] - %(message)s"
 )
-log = logging.getLogger("MediatorBot")
+logger = logging.getLogger(__name__)
 
-log.info("🔥 Starting Mediator Bot initialization...")
+# ================== CONFIG ================== #
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 
+MONGO_URI = os.getenv("MONGO_URI", "YOUR_MONGO_URI")
+mongo = MongoClient(MONGO_URI)
+db = mongo["file_store"]
 
-# ---------------------------------------------------------
-# Bot Config
-# ---------------------------------------------------------
-API_ID = 15191874
-API_HASH = "3037d39233c6fad9b80d83bb8a339a07"
-BOT_TOKEN = "6723725173:AAGjp4K-YY3L9eQIjHHBSWBjN586FA4Trtk"
+users_col = db["users"]     # db_code + bot username stored here
+files_col = db["files"]     # file storage
+stats_col = db["stats"]
+batch_col = db["batches"]
 
-MONGO_URL = "mongodb+srv://hp108044:zWy9AuflXmsrAfSY@cluster0.zlecn7m.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
-DB_NAME = "clone_maker"
-
-log.info(f"🔧 Loaded API config. DB={DB_NAME}")
-
-
-# ---------------------------------------------------------
-# Pyrogram Client
-# ---------------------------------------------------------
-app = Client(
-    "MediatorBot",
-    api_id=API_ID,
-    api_hash=API_HASH,
-    bot_token=BOT_TOKEN
-)
-log.info("🤖 Pyrogram Client created.")
+# ================== BOT ================== #
+app = Client("file_store_bot", bot_token=BOT_TOKEN)
 
 
-# ---------------------------------------------------------
-# MongoDB Setup
-# ---------------------------------------------------------
-mongo = MongoClient(MONGO_URL)
-db = mongo[DB_NAME]
+# =======================================================
+# 1️⃣  FUNCTION — Extract Bot Username using db_code
+# =======================================================
+def get_bot_username_by_dbcode(db_code: str):
+    """
+    Fetches bot username stored inside the 'users' DB collection.
+    """
+    logger.info(f"🔍 Looking up bot username for db_code={db_code}")
 
-log.info("🗄 Connected to MongoDB.")
+    data = users_col.find_one({"db_code": db_code})
+    if not data:
+        logger.error("❌ No bot found for this db_code!")
+        return None
 
-files_col = db.files
-batches_col = db.batches
-bots_col = db.bots   # FIXED — Correct collection
-
-log.info("📦 Collections mapped: files, batches, bots")
-
-
-# ---------------------------------------------------------
-# Function: Get bot username from db-code
-# ---------------------------------------------------------
-def get_BOT_USERNAME_by_code(db_code: str):
-    log.info(f"🔍 Looking up bot username for db_code={db_code}")
-
-    bot = bots_col.find_one({"DB_NAME": db_code})
-
-    if bot:
-        log.info(f"✔ Bot username found: {bot.get('BOT_USERNAME')}")
-    else:
-        log.error("❌ Bot username NOT FOUND in DB!")
-
-    return bot["BOT_USERNAME"] if bot else None
+    bot_username = data.get("bot_username")
+    logger.info(f"✔ Bot username found: {bot_username}")
+    return bot_username
 
 
-# ---------------------------------------------------------
-# START Handler
-# ---------------------------------------------------------
-@app.on_message(filters.command("start"))
-async def start_handler(client, message):
-
-    log.info("📩 Received /start command")
-
-    # ------------------------------
-    # Normal /start (no payload)
-    # ------------------------------
-    if len(message.command) == 1:
-        log.info("➡ Sending normal start message (no payload)")
-        return await message.reply(
-            "👋 **Welcome to Mediator Bot**\n"
-            "Send a valid mediated link to continue."
-        )
-
-    # ------------------------------
-    # Start with payload
-    # ------------------------------
+# =======================================================
+# 2️⃣ SLUG EXTRACTOR FUNCTIONS
+# =======================================================
+def extract_file_type(full_slug: str):
     try:
-        payload = message.command[1].strip()
-        log.info(f"📦 Received payload: {payload}")
-        #slug=payload
+        return full_slug.split("_")[0]  # vid, img, file
+    except:
+        return None
 
-        # No splitting rules changed — FULL slug from your uploader
-        link_type, dbcode, slug_rest = payload.split("_", 2)
-        slug = f"{link_type}_{dbcode}_{slug_rest}"
+def extract_db_code(full_slug: str):
+    try:
+        return full_slug.split("_")[1]  # example: fzbot
+    except:
+        return None
 
-        log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
+def extract_core_slug(full_slug: str):
+    """
+    From: vid_fzbot_5q3szi5rp71w
+    Returns: 5q3szi5rp71w
+    """
+    try:
+        return full_slug.split("_", 2)[2]
+    except:
+        return None
 
-    except Exception as e:
-        log.error(f"❌ Payload parsing failed: {e}")
-        return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug`")
 
-    # ------------------------------
-    # Fetch bot username
-    # ------------------------------
-    BOT_USERNAME = get_BOT_USERNAME_by_code(dbcode)
+# =======================================================
+# 3️⃣ START HANDLER
+# =======================================================
+@app.on_message(filters.command("start"))
+async def start_cmd(client, message):
+    user_id = message.from_user.id
 
-    if not BOT_USERNAME:
-        log.error("❌ No bot username found. Rejecting request.")
-        return await message.reply("❌ db-code not found. Bot username missing!")
+    # Check for deep link payload
+    if len(message.command) > 1:
+        payload = message.command[1]
+        logger.info(f"📩 Received /start command with payload")
+        logger.info(f"📦 Received payload: {payload}")
 
-    log.info(f"🔗 Generating deep link for bot: {BOT_USERNAME}")
+        file_type = extract_file_type(payload)
+        db_code = extract_db_code(payload)
+        core_slug = extract_core_slug(payload)
 
-    deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
+        logger.info(f"Parsed → type={file_type}, db_code={db_code}, slug={core_slug}")
 
-    btn = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔗 Open in main bot", url=deep_link)]]
+        if not file_type or not db_code or not core_slug:
+            return await message.reply("Invalid link format!")
+
+        # Fetch bot username
+        bot_username = get_bot_username_by_dbcode(db_code)
+        if not bot_username:
+            return await message.reply("Bot not found for this link.")
+
+        logger.info(f"🔗 Generating deep link for bot: {bot_username}")
+
+        # Lookup file from files_col
+        logger.info("📄 Checking if file exists in DB...")
+        file_data = files_col.find_one({"slug": core_slug})
+
+        if not file_data:
+            logger.error("❌ File not found in DB")
+            return await message.reply("❌ File has expired or not found.")
+
+        logger.info("✔ File found in DB.")
+
+        file_name = file_data.get("file_name", "File")
+        file_id = file_data.get("file_id")
+
+        # Send file with button
+        await message.reply(
+            f"📁 **{file_name}**\nYour file is ready to download.",
+            reply_markup=InlineKeyboardMarkup(
+                [
+                    [
+                        InlineKeyboardButton(
+                            "📥 Download File",
+                            url=f"https://t.me/{bot_username}?start=get_{core_slug}"
+                        )
+                    ]
+                ]
+            )
+        )
+        return
+
+    # Normal /start (without payload)
+    await message.reply(
+        "👋 Welcome!\nSend me any file and I will generate a shareable link."
     )
-    log.info("🧩 Inline button created.")
-
-    # ------------------------------
-    # Batch Type
-    # ------------------------------
-    if link_type.lower() == "batch":
-        log.info("📁 Link detected as BATCH. Fetching batch from DB...")
-
-        batch = batches_col.find_one({"slug": slug})
-
-        if not batch:
-            log.error("❌ Batch not found in DB")
-            return await message.reply("❌ Batch not found!")
-
-        log.info(f"✔ Batch found: {batch}")
-
-        text = (
-            f"📦 **Batch Details**\n"
-            f"• Messages: `{batch['msg_count']}`\n"
-            f"• Type: `{batch['type']}`\n"
-            f"• Premium: `{batch['is_premium']}`\n"
-            f"• Slug: `{slug}`"
-        )
-
-        log.info("➡ Sending batch details to user")
-        return await message.reply(text, reply_markup=btn)
-
-    # ------------------------------
-    # File Type
-    # ------------------------------
-    else:
-        log.info("📄 Link detected as FILE. Fetching file from DB...")
-
-        file = files_col.find_one({"slug": slug})
-
-        if not file:
-            log.error("❌ File not found in DB")
-            return await message.reply("❌ File not found!")
-
-        log.info(f"✔ File found: {file}")
-
-        # Safe file size
-        size = file.get("file_size", 0)
-
-        text = (
-            f"📁 **File Details**\n"
-            f"• Name: `{file.get('file_name', 'Unknown')}`\n"
-            f"• Size: `{size}`\n"
-            f"• Type: `{file['file_type']}`\n"
-            f"• Slug: `{slug}`"
-        )
-
-        log.info("➡ Sending file details to user")
-        return await message.reply(text, reply_markup=btn)
 
 
-# ---------------------------------------------------------
-# Run Bot
-# ---------------------------------------------------------
-log.info("🚀 Mediator Bot started and running!")
+# =======================================================
+# 4️⃣ DEFAULT FILE HANDLER — STORE FILE & GENERATE SLUG
+# =======================================================
+import random
+import string
+
+def generate_slug():
+    return ''.join(random.choices(string.ascii_lowercase + string.digits, k=12))
+
+
+@app.on_message(filters.document | filters.video | filters.audio)
+async def save_file(client, message):
+    file = message.document or message.video or message.audio
+
+    slug = generate_slug()
+    file_type = "vid" if message.video else "file"
+
+    # Create slug format: type_dbcode_slug
+    # IMPORTANT: You MUST store db_code for this bot in users_col
+
+    data = users_col.find_one({"bot_username": (await app.get_me()).username})
+
+    if not data:
+        return await message.reply("❌ Bot is not registered in DB.")
+
+    db_code = data.get("db_code")
+
+    final_slug = f"{file_type}_{db_code}_{slug}"
+
+    files_col.insert_one({
+        "slug": slug,
+        "full_slug": final_slug,
+        "file_id": file.file_id,
+        "file_name": file.file_name or "File",
+        "user_id": message.from_user.id
+    })
+
+    await message.reply(
+        "✅ File saved!\n"
+        f"📎 Your link:\n\n"
+        f"https://t.me/{(await app.get_me()).username}?start={final_slug}"
+    )
+
+
+# =======================================================
+# RUN BOT
+# =======================================================
 app.run()
