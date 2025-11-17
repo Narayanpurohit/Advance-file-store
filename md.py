@@ -101,6 +101,10 @@ async def start_handler(client, message):
         slug=payload
 
         link_type, dbcode, slug2 = payload.split("_", 2)
+        db = mongo[dbcode]
+        
+        files_col = db2.files
+        batches_col = db2.batches
 
         log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
 
