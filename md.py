@@ -51,11 +51,11 @@ bots_col = db.users          # store bot username per db-code
 # ---------------------------------------------------------
 # Function: Get bot username from db-code
 # ---------------------------------------------------------
-def get_BOT_USERNAME_by_code(DB-NAME: str):
+def get_BOT_USERNAME_by_code(DB_NAME: str):
     """
     Fetch bot username using db-code.
     """
-    bot = bots_col.find_one({"DB-NAME": DB-NAME})
+    bot = bots_col.find_one({"DB_NAME": DB_NAME})
     return bot["BOT_USERNAME"] if bot else None
 
 
@@ -79,17 +79,17 @@ async def start_handler(client, message):
     # ------------------------------
     try:
         payload = message.command[1]  # link-type_db-code_slug
-        link_type, DB-NAME, slug = payload.split("_", 2)
+        link_type, DB_NAME, slug = payload.split("_", 2)
 
     except:
         return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug`")
 
-    log.info(f"Received start link: type={link_type}, db={DB-NAME}, slug={slug}")
+    log.info(f"Received start link: type={link_type}, db={DB_NAME}, slug={slug}")
 
     # ------------------------------
     # Fetch bot username via db-code
     # ------------------------------
-    BOT_USERNAME = get_BOT_USERNAME_by_code(DB-NAME)
+    BOT_USERNAME = get_BOT_USERNAME_by_code(DB_NAME)
 
     if not BOT_USERNAME:
         return await message.reply("❌ db-code not found. Bot username missing!")
