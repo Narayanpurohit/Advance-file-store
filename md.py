@@ -126,7 +126,7 @@ async def start_handler(client, message):
     deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
 
     btn = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔗 Open in main bot", url=deep_link)]]
+        [[InlineKeyboardButton("• ɢᴇᴛ ғɪʟᴇ •", url=deep_link)]]
     )
     log.info("🧩 Inline button created.")
 
@@ -146,10 +146,8 @@ async def start_handler(client, message):
 
         text = (
             f"📦 **Batch Details**\n"
-            f"• Messages: `{batch['msg_count']}`\n"
-            f"• Type: `{batch['type']}`\n"
-            f"• Premium: `{batch['is_premium']}`\n"
-            f"• Slug: `{slug}`"
+            f"**• Messages**: `{batch['msg_count']}`\n"
+            f"**• Type**: `{batch['type']}`"
         )
 
         log.info("➡ Sending batch details to user")
@@ -171,10 +169,9 @@ async def start_handler(client, message):
 
         text = (
             f"📁 **File Details**\n"
-            f"• Name: `{file['file_name']}`\n"
-            f"• Size: `{file['file_size']}`\n"
-            f"• Type: `{file['file_type']}`\n"
-            f"• Slug: `{slug}`"
+            f"**• Name**: `{file['file_name']}`\n"
+            f"**• Size**: `{file['file_size']}`\n"
+            f"**• Type**: `{file['file_type']}`\n"
         )
 
         log.info("➡ Sending file details to user")
