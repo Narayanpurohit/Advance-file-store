@@ -189,8 +189,8 @@ async def start_handler(client, message):
                             protect_content=PROTECT_CONTENT
                         )
                     else:
-                        # Rebuild InlineKeyboardMarkup
-                        from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+                        
+                        
 
                         keyboard = []
                         for row in buttons:
