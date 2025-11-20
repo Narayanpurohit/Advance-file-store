@@ -365,7 +365,8 @@ async def start_handler(client, message):
                     chat_id=message.chat.id,
                     document=file_id,
                     caption=caption_text,
-                    protect_content=PROTECT_CONTENT
+                    protect_content=PROTECT_CONTENT,
+                    reply_markup=markup
                 )
 
             # ================= Video =================
@@ -374,7 +375,8 @@ async def start_handler(client, message):
                     chat_id=message.chat.id,
                     video=file_id,
                     caption=caption_text,
-                    protect_content=PROTECT_CONTENT
+                    protect_content=PROTECT_CONTENT,
+                    reply_markup=markup
                 )
 
             # ================= Audio =================
@@ -383,7 +385,8 @@ async def start_handler(client, message):
                     chat_id=message.chat.id,
                     audio=file_id,
                     caption=caption_text,
-                    protect_content=PROTECT_CONTENT
+                    protect_content=PROTECT_CONTENT,
+                    reply_markup=markup
                 )
 
             # ================= Photo =================
@@ -392,7 +395,8 @@ async def start_handler(client, message):
                     chat_id=message.chat.id,
                     photo=file_id,
                     caption=caption_text,
-                    protect_content=PROTECT_CONTENT
+                    protect_content=PROTECT_CONTENT,
+                    reply_markup=markup
                 )
 
             # ================= Sticker =================
@@ -403,7 +407,8 @@ async def start_handler(client, message):
                 )
                 # Stickers cannot have captions
                 if caption_text.strip():
-                    await message.reply_text(caption_text)
+                    await message.reply_text(caption_text,
+                    reply_markup=markup)
 
             # ================= Animation (GIF) =================
             elif file_type == "ani":
