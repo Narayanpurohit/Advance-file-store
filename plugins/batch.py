@@ -209,10 +209,28 @@ async def batch_handler(client: Client, message: Message):
     )
 
     if success:
-        await client.send_message(
+        # Save the sent message object
+        sent_msg = await client.send_message(
             user_id,
             f"✅ **Batch created successfully!**\n\n"
             f"🔗 Link: https://t.me/{USERNAME}?start={slug}"
         )
+
+        try:
+            # Include the /batch command message itself
+            messages_to_delete = await client.get_messages(
+                chat_id=user_id,
+                message_ids=list(range(message.message_id, sent_msg.message_id + 1))
+            )
+
+            for msg in messages_to_delete:
+                try:
+                    await msg.delete()
+                except Exception:
+                    pass  # Ignore failures
+
+        except Exception as e:
+            log.warning(f"Failed to delete messages in private chat: {e}")
+
     else:
         await client.send_message(user_id, "⚠️ Failed to save batch. Try again.")
