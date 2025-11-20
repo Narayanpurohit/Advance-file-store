@@ -158,6 +158,7 @@ async def generate_link(client, message):
         text_resp += f"🔗 **Link:** {file_link}"
 
         await message.reply_text(text_resp)
+        await replied.delete()
 
     except Exception as e:
         await message.reply_text(f"⚠️ Unexpected Error:\n`{e}`")
