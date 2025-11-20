@@ -330,8 +330,33 @@ async def start_handler(client, message):
             caption=orig_caption
         )
 
+        #file_type = file_data.get("file_type")
+        #file_id = file_data.get("file_id")
+        
+        
+        
         file_type = file_data.get("file_type")
         file_id = file_data.get("file_id")
+        buttons = file_data.get("buttons")   # ← GET SAVED BUTTON DATA
+
+        # ---------- Build Keyboard If Exists ----------
+        markup = None
+        if buttons:
+            keyboard = []
+            for row in buttons:
+                row_btns = []
+                for btn in row:
+                    row_btns.append(
+                        InlineKeyboardButton(
+                            text=btn.get("text"),
+                            url=btn.get("url"),
+                            callback_data=btn.get("callback_data"),
+                            switch_inline_query=btn.get("switch_inline_query"),
+                            switch_inline_query_current_chat=btn.get("switch_inline_query_current_chat")
+                        )
+                    )
+                keyboard.append(row_btns)
+            markup = InlineKeyboardMarkup(keyboard)
 
         try:
             # ================= Document =================
