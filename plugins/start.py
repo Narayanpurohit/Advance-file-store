@@ -178,12 +178,95 @@ async def start_handler(client, message):
 
             for item in batch_data["messages"]:
                 try:
-                    sent = await client.copy_message(
-                        chat_id=message.chat.id,
-                        from_chat_id=int(item["chat_id"]),
-                        message_id=int(item["message_id"]),
-                        protect_content=PROTECT_CONTENT
-                    )
+                    buttons = item.get("buttons")
+
+                    # If no buttons → simple copy_message (fastest & best)
+                    if not buttons:
+                        sent = await client.copy_message(
+                            chat_id=message.chat.id,
+                            from_chat_id=int(item["chat_id"]),
+                            message_id=int(item["message_id"]),
+                            protect_content=PROTECT_CONTENT
+                        )
+                    else:
+                        # Rebuild InlineKeyboardMarkup
+                        from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
+                        keyboard = []
+                        for row in buttons:
+                            keyboard_row = []
+                            for btn in row:
+                                keyboard_row.append(
+                                    InlineKeyboardButton(
+                                        text=btn.get("text"),
+                                        url=btn.get("url"),
+                                        callback_data=btn.get("callback_data"),
+                                        switch_inline_query=btn.get("switch_inline_query"),
+                                        switch_inline_query_current_chat=btn.get("switch_inline_query_current_chat")
+                                    )
+                                )
+                            keyboard.append(keyboard_row)
+
+                        markup = InlineKeyboardMarkup(keyboard)
+
+                        # We must resend manually when using buttons (copy_message can't apply markup)
+                        file_type = item.get("file_type")
+                        file_id = item.get("file_id")
+                        caption = item.get("caption")
+
+                        if file_type == "pht":
+                            sent = await client.send_photo(
+                                message.chat.id, file_id,
+                                caption=caption,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        elif file_type == "vid":
+                            sent = await client.send_video(
+                                message.chat.id, file_id,
+                                caption=caption,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        elif file_type == "doc":
+                            sent = await client.send_document(
+                                message.chat.id, file_id,
+                                caption=caption,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        elif file_type == "aud":
+                            sent = await client.send_audio(
+                                message.chat.id, file_id,
+                                caption=caption,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        elif file_type == "ani":
+                            sent = await client.send_animation(
+                                message.chat.id, file_id,
+                                caption=caption,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        elif file_type == "sti":
+                            sent = await client.send_sticker(
+                                message.chat.id, file_id,
+                                protect_content=PROTECT_CONTENT,
+                                reply_markup=markup
+                            )
+                        else:
+                            sent = await message.reply_text(
+                                caption or "",
+                                reply_markup=markup
+                            )
+                    
+                    #sent = await client.copy_message(
+                        #chat_id=message.chat.id,
+                        #from_chat_id=int(item["chat_id"]),
+                        #message_id=int(item["message_id"]),
+                        #protect_content=PROTECT_CONTENT
+                    #)
                     sent_count += 1
                     batch_sent_messages.append(sent)
                 except FloodWait as e:
