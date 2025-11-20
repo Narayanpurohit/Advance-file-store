@@ -110,7 +110,7 @@ async def generate_link(client, message):
         else:
             return await message.reply_text("❌ Unsupported message type.")
 
-        buttons = extract_buttons(replied
+        buttons = extract_buttons(replied)
         
         # Generate unique slug
         slug = random_slug(file_type,DB_NAME)
