@@ -13,7 +13,31 @@ db = mongo_client[DB_NAME]
 files_col = db["files"]
 stats_col = db["stats"]
 
+def extract_buttons(message):
+    if not message.reply_markup:
+        return None
 
+    buttons = []
+    for row in message.reply_markup.inline_keyboard:
+        btn_row = []
+        for btn in row:
+            btn_data = {"text": btn.text}
+
+            if btn.url:
+                btn_data["url"] = btn.url
+            if btn.callback_data:
+                btn_data["callback_data"] = btn.callback_data
+            if btn.switch_inline_query:
+                btn_data["switch_inline_query"] = btn.switch_inline_query
+            if btn.switch_inline_query_current_chat:
+                btn_data["switch_inline_query_current_chat"] = btn.switch_inline_query_current_chat
+
+            btn_row.append(btn_data)
+
+        buttons.append(btn_row)
+
+    return buttons
+    
 def random_slug(prefix,db):
     return f"{prefix}_{db}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
 
@@ -86,11 +110,25 @@ async def generate_link(client, message):
         else:
             return await message.reply_text("❌ Unsupported message type.")
 
+        buttons = extract_buttons(replied
+        
         # Generate unique slug
         slug = random_slug(file_type,DB_NAME)
         while files_col.find_one({"slug": slug}):
             slug = random_slug(file_type,DB_NAME)
 
+        save_data = {
+            "slug": slug,
+            "file_id": file_id,
+            "file_type": file_type,
+            "file_name": file_name,
+            "file_size": file_size,
+            "caption": caption
+        }
+
+        if buttons:
+            save_data["buttons"] = buttons
+        
         # Save file entry
         try:
             files_col.insert_one({
@@ -101,6 +139,7 @@ async def generate_link(client, message):
                 "file_size": file_size,
                 "caption": caption
             })
+            
         except Exception as db_err:
             return await message.reply_text(f"⚠️ Database Error:\n`{db_err}`")
 
