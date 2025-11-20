@@ -37,10 +37,9 @@ def extract_file_info(msg: Message):
         return msg.audio.file_id, "aud", msg.audio.file_name, msg.audio.file_size
 
     # Photo
+    # Photo
     if msg.photo:
-        photo = msg.photo[-1]
-        return photo.file_id, "pht", None, photo.file_size
-
+        return msg.photo.file_id, "pht", None, msg.photo.file_size
     # Animation
     if msg.animation:
         return msg.animation.file_id, "ani", msg.animation.file_name, msg.animation.file_size
