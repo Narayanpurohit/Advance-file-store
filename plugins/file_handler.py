@@ -35,8 +35,10 @@ def extract_buttons(message):
             btn_row.append(btn_data)
 
         buttons.append(btn_row)
+        print(buttons)
 
     return buttons
+    
     
 def random_slug(prefix,db):
     return f"{prefix}_{db}_{''.join(random.choices(string.ascii_lowercase + string.digits, k=12))}"
@@ -58,7 +60,6 @@ async def generate_link(client, message):
     BOT_USERNAME = get_str("BOT_USERNAME")
     USERNAME = "Itadori101bot" if DEKOY else BOT_USERNAME
 
-
     try:
         if not PUBLIC_BOT and message.from_user.id not in ADMINS:
             return await message.reply_text("❌ Only admins can use this bot.")
@@ -74,7 +75,7 @@ async def generate_link(client, message):
         file_size = 0
         caption = replied.caption or ""
 
-        # Detect the message type and assign your custom file types
+        # Detect the message type
         if replied.document:
             file_id = replied.document.file_id
             file_name = replied.document.file_name
@@ -110,13 +111,15 @@ async def generate_link(client, message):
         else:
             return await message.reply_text("❌ Unsupported message type.")
 
+        # Extract inline buttons
         buttons = extract_buttons(replied)
-        
-        # Generate unique slug
-        slug = random_slug(file_type,DB_NAME)
-        while files_col.find_one({"slug": slug}):
-            slug = random_slug(file_type,DB_NAME)
 
+        # Generate unique slug
+        slug = random_slug(file_type, DB_NAME)
+        while files_col.find_one({"slug": slug}):
+            slug = random_slug(file_type, DB_NAME)
+
+        # Save file entry
         save_data = {
             "slug": slug,
             "file_id": file_id,
@@ -127,33 +130,22 @@ async def generate_link(client, message):
         }
 
         if buttons:
-            save_data["buttons"] = buttons
-        
-        # Save file entry
+            save_data["buttons"] = buttons   # ⭐ Save inline button data
+
         try:
-            files_col.insert_one({
-                "slug": slug,
-                "file_id": file_id,
-                "file_type": file_type,
-                "file_name": file_name,
-                "file_size": file_size,
-                "caption": caption
-            })
-            
+            files_col.insert_one(save_data)
         except Exception as db_err:
             return await message.reply_text(f"⚠️ Database Error:\n`{db_err}`")
 
-        # Update stats (safe)
+        # Update stats
         try:
             stats_col.update_one({"key": "total_sent"}, {"$inc": {"count": 1}}, upsert=True)
         except:
             pass
 
-        # Generate file link
-        #bot_info = await client.get_me()
+        # Generate link
         file_link = f"https://t.me/{USERNAME}?start={slug}"
 
-        # Build response
         text_resp = (
             f"✅ **Link generated!**\n\n"
             f"📁 **Type:** `{file_type}`\n"
