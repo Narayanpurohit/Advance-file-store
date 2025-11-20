@@ -10,9 +10,33 @@ from database import save_batch
 from bot import get_admins, get_bool, get_str
 from .ask import ask
 
+
+
+
 log = logging.getLogger(__name__)
 log.info("📍 batch.py loaded successfully")
 
+def extract_buttons(msg: Message):
+    if not msg.reply_markup or not msg.reply_markup.inline_keyboard:
+        return None
+
+    buttons = []
+
+    for row in msg.reply_markup.inline_keyboard:
+        row_buttons = []
+        for btn in row:
+            row_buttons.append({
+                "text": btn.text,
+                "url": btn.url,
+                "callback_data": btn.callback_data,
+                "switch_inline_query": btn.switch_inline_query,
+                "switch_inline_query_current_chat": btn.switch_inline_query_current_chat
+            })
+        buttons.append(row_buttons)
+
+    return buttons
+    
+    
 
 # -------------------- Helpers --------------------
 def generate_slug(length: int = 16):
@@ -153,15 +177,15 @@ async def batch_handler(client: Client, message: Message):
             types_detected.add(file_type)
 
             messages.append({
-                "chat_id": chat_id,
-                "message_id": msg.id,
-                "file_id": file_id,
-                "file_type": file_type,
-                "file_name": file_name,
-                "file_size": file_size,
-                "caption": caption
+            "chat_id": chat_id,
+            "message_id": msg.id,
+            "file_id": file_id,
+            "file_type": file_type,
+            "file_name": file_name,
+            "file_size": file_size,
+            "caption": caption,
+            "buttons": extract_buttons(msg)
             })
-
         except Exception as e:
             log.warning(f"Failed to fetch message {msg_id}: {e}")
 
