@@ -42,7 +42,7 @@ def extract_buttons(msg: Message):
 def generate_slug(length: int = 16):
     DB_NAME = get_str("DB_NAME")
 
-    return "batch_" + '{DB_NAME}_'+''.join(random.choices(string.ascii_letters + string.digits, k=length))
+    return  f"batch_{DB_NAME}"+''.join(random.choices(string.ascii_letters + string.digits, k=length))
 
 
 def extract_file_info(msg: Message):
