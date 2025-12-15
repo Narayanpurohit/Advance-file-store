@@ -39,7 +39,8 @@ VARIABLE_INFO = {
     "PROTECT_CONTENT": {"name": "ᴘʀᴏᴛᴇᴄᴛ ᴄᴏɴᴛᴇɴᴛ", "help": "ʀᴇꜱᴛʀɪᴄᴛ ᴜꜱᴇʀ ꜰʀᴏᴍ ꜱᴀᴠɪɴɢ ᴄᴏɴᴛᴇɴᴛ."},
     "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."},
     "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."},
-    "DEKOY": {"name": "DEKOY ʙᴏᴛ", "help": "DEKOY ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."}
+    "DEKOY": {"name": "DEKOY ʙᴏᴛ", "help": "DEKOY ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."},
+    "RFSUB": {"name": "rfsub ʙᴏᴛ", "help": "Rfsub ."}
 
     
     
@@ -60,7 +61,7 @@ GROUP_KEYS = {
 GROUPS = {
     "☉ ʀᴇQᴜɪʀᴇᴅ sᴇᴛᴛɪɴɢs": ["BOT_TOKEN", "DB_NAME"],
     "⍟ ᴀᴅᴍɪɴs": ["ADMINS"],
-    "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB"],
+    "⊛ ғᴏʀᴄᴇ sᴜʙ": ["ENABLE_FSUB", "FSUB","RFSUB"],
     "⊘ ᴠᴇʀɪғɪᴄᴀᴛɪᴏɴ": [],
     "⌬ ᴀᴜᴛᴏ ᴅᴇʟᴇᴛᴇ": ["AUTO_DELETE", "AUTO_DELETE_TIME"],
     "○ ᴄᴀᴘᴛɪᴏɴ": ["CAPTION"],
