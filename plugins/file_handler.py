@@ -120,7 +120,7 @@ async def generate_link(client, message):
             slug = random_slug(file_type, DB_NAME)
         slug2 = random_slug(file_type, DB_NAME)
         while files_col.find_one({"slug": slug}):
-            slug = random_slug(file_type, DB_NAME)
+            slug2 = random_slug(file_type, DB_NAME)
 
 
         # Save file entry
