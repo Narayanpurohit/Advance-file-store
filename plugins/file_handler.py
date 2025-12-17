@@ -5,6 +5,9 @@ from pyrogram import Client, filters
 from bot import get_str, get_bool, get_admins
 from pymongo import MongoClient
 
+log = logging.getLogger(__name__)
+log.info("📍 file_handler.py loaded successfully")
+
 
 MONGO_URI = get_str("MONGO_URI")
 DB_NAME = get_str("DB_NAME")
