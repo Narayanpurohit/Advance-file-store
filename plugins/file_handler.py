@@ -131,7 +131,7 @@ async def generate_link(client, message):
             "file_name": file_name,
             "file_size": file_size,
             "caption": caption,
-            "slug2":slug2
+            "slug2": slug2
         }
 
         if buttons:
