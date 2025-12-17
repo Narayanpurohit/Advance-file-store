@@ -161,7 +161,7 @@ async def generate_link(client, message):
             f"📁 **Type:** `{file_type}`\n"
             f"📄 **Name:** `{file_name}`\n"
         )
-        print(f"📄 **Slug:** `{slug}`\n📄 **Slug2:** `{slug2}`\n")
+        log.info(f"📄 **Slug:** `{slug}`\n📄 **Slug2:** `{slug2}`\n")
         
 
         if file_size > 0:
