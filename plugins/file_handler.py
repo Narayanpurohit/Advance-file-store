@@ -57,6 +57,7 @@ async def generate_link(client, message):
     ADMINS = get_admins()
     PUBLIC_BOT = get_bool("PUBLIC_BOT", True)
     DEKOY = get_bool("DEKOY")
+    PREMIUM_FILE = get_bool("PREMIUM_FILE", False)
     BOT_USERNAME = get_str("BOT_USERNAME")
     USERNAME = "Itadori101bot" if DEKOY else BOT_USERNAME
 
