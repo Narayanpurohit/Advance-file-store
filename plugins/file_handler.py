@@ -150,14 +150,16 @@ async def generate_link(client, message):
             pass
 
         # Generate link
-        file_link = f"https://t.me/{USERNAME}?start={slug2}"
+        SLUG = slug2 if DEKOY else slug
+        file_link = f"https://t.me/{USERNAME}?start={SLUG}"
 
         text_resp = (
             f"✅ **Link generated!**\n\n"
-            f"📁 **slug:** `{slug}`\n"
             f"📁 **Type:** `{file_type}`\n"
             f"📄 **Name:** `{file_name}`\n"
         )
+        print(f"📄 **Slug:** `{slug}`\n📄 **Slug2:** `{slug2}`\n")
+        
 
         if file_size > 0:
             text_resp += f"📦 **Size:** {human_readable_size(file_size)}\n\n"
