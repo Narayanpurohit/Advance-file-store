@@ -73,18 +73,6 @@ def get_BOT_USERNAME_by_code(db_code: str):
 
     return bot["BOT_USERNAME"] if bot else None
 
-def get_SLUG_by_code(db_code: str):
-    log.info(f"🔍 Looking up bot username for db_code={db_code}")
-
-    bot = bots_col.find_one({"DB_NAME": db_code})
-
-    if bot:
-        log.info(f"✔ Bot username found: {bot.get('SLUG')}")
-    else:
-        log.error("❌ Bot username NOT FOUND in DB!")
-
-    return bot["SLUG"] if bot else None
-
 
 
 
@@ -130,7 +118,7 @@ async def start_handler(client, message):
     # Fetch bot username
     # ------------------------------
     BOT_USERNAME = get_BOT_USERNAME_by_code(dbcode)
-    SLUG = get_SLUG_by_code(dbcode)
+
     
 
     if not BOT_USERNAME:
