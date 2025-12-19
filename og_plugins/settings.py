@@ -112,15 +112,23 @@ def get_variable_keyboard(group_key: str):
 
 def get_setting_keyboard(group_key: str, var_name: str, is_boolean=False):
     if is_boolean:
-        btns = [[InlineKeyboardButton(
-            "✧ ᴏɴ / ᴏғғ",
-            callback_data=f"toggle:{group_key}:{var_name}"
-        )]]
+        btns = [[
+            InlineKeyboardButton(
+                "✧ ᴏɴ / ᴏғғ",
+                callback_data=f"toggle:{group_key}:{var_name}"
+            )
+        ]]
     else:
-        btns = [[InlineKeyboardButton(
-            "✎ ᴇᴅɪᴛ",
-            callback_data=f"edit:{group_key}:{var_name}"
-        )]]
+        btns = [[
+            InlineKeyboardButton(
+                "✎ ᴇᴅɪᴛ",
+                callback_data=f"edit:{group_key}:{var_name}"
+            ),
+            InlineKeyboardButton(
+                "⊗ ᴅᴇʟᴇᴛᴇ ᴠᴀʟᴜᴇ",
+                callback_data=f"delete:{group_key}:{var_name}"
+            )
+        ]]
 
     btns.append([
         InlineKeyboardButton("⊖ ʙᴀᴄᴋ",
@@ -128,7 +136,6 @@ def get_setting_keyboard(group_key: str, var_name: str, is_boolean=False):
         InlineKeyboardButton("⊗ ᴄʟᴏsᴇ", callback_data="close")
     ])
     return InlineKeyboardMarkup(btns)
-
 
 # ---------------- HANDLERS ----------------
 @Client.on_message(filters.command("settings") & filters.private)
@@ -223,7 +230,27 @@ async def edit_setting(client, cq):
 
     await open_setting(client, cq)
 
+@Client.on_callback_query(filters.regex(r"^delete:(.+?):(.+)"))
+async def delete_setting(client, cq):
+    group_key, var_name = cq.data.split(":")[1:]
 
+    # Set variable to None (null in MongoDB)
+    users_col.update_one(
+        {"USER_ID": cq.from_user.id},
+        {"$set": {var_name: None}}
+    )
+
+    info = VARIABLE_INFO.get(var_name, {"name": var_name})
+
+    await cq.answer("Value deleted", show_alert=False)
+
+    await cq.message.reply_text(
+        f"🗑 <b>{info['name']}</b> value deleted.\n"
+        f"Current value set to <code>None</code>.",
+        parse_mode=ParseMode.HTML
+    )
+
+    await open_setting(client, cq)
 # ---------------- BACK BUTTONS ----------------
 @Client.on_callback_query(filters.regex(r"^back_to_groups$"))
 async def back_to_groups(client, cq):
