@@ -124,7 +124,7 @@ async def generate_link(client, message):
         while files_col.find_one({"slug": slug}):
             slug = random_slug(file_type, DB_NAME)
         slug2 = random_slug(file_type, DB_NAME)
-        while files_col.find_one({"slug": slug}):
+        while files_col.find_one({"slug2": slug2}):
             slug2 = random_slug(file_type, DB_NAME)
 
 
