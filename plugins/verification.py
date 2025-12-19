@@ -1,5 +1,5 @@
 import datetime
-from bot import get_int
+from bot import get_int,get_str
 from database import create_verification_slug, use_verification_slug, add_premium_hours
 from .shortener import shorten_url
 
