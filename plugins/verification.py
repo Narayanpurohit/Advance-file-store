@@ -1,14 +1,22 @@
 import datetime
-from bot import get_int
+from bot import get_int,get_str
 from database import create_verification_slug, use_verification_slug, add_premium_hours
 from .shortener import shorten_url
-
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 # ===================== VARIABLE GETTERS =====================
 PREMIUM_HOURS_VERIFICATION = get_int("PREMIUM_HOURS_VERIFICATION")
 VERIFY_SLUG_TTL_HOURS = get_int("VERIFY_SLUG_TTL_HOURS")
+HTW = get_str("HTW")
 
 
+def get_htw_keyboard():
+    if HTW:
+        return InlineKeyboardMarkup(
+            [[InlineKeyboardButton("📥 How to DL", url=HTW)]]
+        )
+    return None
+    
 # ===================== HANDLE VERIFICATION =====================
 async def start_verification_flow(client, message, slug):
     try:
@@ -57,9 +65,11 @@ async def send_verification_link(client, user_id):
             )
         else:
             await client.send_message(
-                user_id,
-                f"⚠️ ᴘʟᴇᴀꜱᴇ ᴠᴇʀɪꜰʏ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ:\n\n{short_link}"
-            )
+    user_id,
+    f"⚠️ ᴘʟᴇᴀꜱᴇ ᴠᴇʀɪꜰʏ ᴛᴏ ᴄᴏɴᴛɪɴᴜᴇ:\n\n{short_link}",
+    reply_markup=get_htw_keyboard()
+)
+
 
     except Exception as e:
         await client.send_message(user_id, f"❌ ᴄᴏᴜʟᴅ ɴᴏᴛ ɢᴇɴᴇʀᴀᴛᴇ ᴠᴇʀɪꜰɪᴄᴀᴛɪᴏɴ ʟɪɴᴋ:\n`{e}`")
