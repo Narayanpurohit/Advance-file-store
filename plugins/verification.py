@@ -7,7 +7,7 @@ from .shortener import shorten_url
 # ===================== VARIABLE GETTERS =====================
 PREMIUM_HOURS_VERIFICATION = get_int("PREMIUM_HOURS_VERIFICATION")
 VERIFY_SLUG_TTL_HOURS = get_int("VERIFY_SLUG_TTL_HOURS")
-
+HTW = get_str_var("HTW")
 
 # ===================== HANDLE VERIFICATION =====================
 async def start_verification_flow(client, message, slug):
