@@ -7,7 +7,7 @@ from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 # ===================== VARIABLE GETTERS =====================
 PREMIUM_HOURS_VERIFICATION = get_int("PREMIUM_HOURS_VERIFICATION")
 VERIFY_SLUG_TTL_HOURS = get_int("VERIFY_SLUG_TTL_HOURS")
-HTW = get_str_var("HTW")
+HTW = get_str("HTW")
 
 
 def get_htw_keyboard():
