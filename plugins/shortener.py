@@ -8,6 +8,7 @@ log = logging.getLogger(__name__)
 SHORTENER_MAP = {
     "shareus.io": lambda api, url: f"https://api.shareus.io/easy_api?key={api}&link={url}",
     "gplinks.com": lambda api, url: f"https://api.gplinks.com/api?api={api}&url={url}&format=json",
+    "linkshortify.com": lambda api, url: f"https://linkshortify.com/st?api={api}&url={url}",
 }
 
 
