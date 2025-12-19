@@ -53,7 +53,7 @@ log.info("🗄 Connected to MongoDB.")
 
 files_col = db.files
 batches_col = db.batches
-bots_col = db.users   # unchanged
+bots_col = db.users   # YOU USED THIS COLLECTION → unchanged
 
 log.info("📦 Collections mapped: files, batches, users")
 
@@ -83,9 +83,10 @@ async def start_handler(client, message):
     log.info("📩 Received /start command")
 
     # ------------------------------
-    # Normal /start
+    # Normal /start (no payload)
     # ------------------------------
     if len(message.command) == 1:
+        log.info("➡ Sending normal start message (no payload)")
         return await message.reply(
             "👋 **Welcome to Mediator Bot**\n"
             "Send a valid mediated link to continue."
@@ -97,20 +98,19 @@ async def start_handler(client, message):
     try:
         payload = message.command[1]
         log.info(f"📦 Received payload: {payload}")
+        slug2=payload
 
-        link_type, dbcode, slug = payload.split("_", 2)
-
+        link_type, dbcode, slug2 = payload.split("_", 2)
         db2 = mongo[dbcode]
+        
         files_col = db2.files
         batches_col = db2.batches
 
-        log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug={slug}")
+        log.info(f"Parsed → type={link_type}, db_code={dbcode}, slug2={slug2}")
 
     except Exception as e:
         log.error(f"❌ Payload parsing failed: {e}")
-        return await message.reply(
-            "❌ Invalid link format.\n\nExpected: `type_dbcode_slug`"
-        )
+        return await message.reply("❌ Invalid link format.\n\nExpected: `type_dbcode_slug2`")
 
     # ------------------------------
     # Fetch bot username
@@ -118,38 +118,42 @@ async def start_handler(client, message):
     BOT_USERNAME = get_BOT_USERNAME_by_code(dbcode)
 
     if not BOT_USERNAME:
+        log.error("❌ No bot username found. Rejecting request.")
         return await message.reply("❌ db-code not found. Bot username missing!")
 
+    log.info(f"🔗 Generating deep link for bot: {BOT_USERNAME}")
+
+    
+
+    
     # ------------------------------
     # Batch Type
     # ------------------------------
     if link_type.lower() == "batch":
         log.info("📁 Link detected as BATCH. Fetching batch from DB...")
 
-        batch = batches_col.find_one({
-            "$or": [
-                {"slug": slug},
-                {"slug2": slug}
-            ]
-        })
+        batch = batches_col.find_one({"slug2": slug2})
+        slug=batch['slug']
 
         if not batch:
+            log.error("❌ Batch not found in DB")
             return await message.reply("❌ Batch not found!")
 
-        real_slug = batch["slug"]
-
-        deep_link = f"https://t.me/{BOT_USERNAME}?start={real_slug}"
-
-        btn = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("• ɢᴇᴛ ʙᴀᴛᴄʜ •", url=deep_link)]]
-        )
+        log.info(f"✔ Batch found: {batch}")
 
         text = (
             f"📦 **Batch Details**\n"
             f"**• Messages**: `{batch['msg_count']}`\n"
             f"**• Type**: `{batch['type']}`"
         )
+        deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
+        btn = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("• ɢᴇᴛ ғɪʟᴇ •", url=deep_link)]]
+    )
+    log.info("🧩 Inline button created.")
 
+
+        log.info("➡ Sending batch details to user")
         return await message.reply(text, reply_markup=btn)
 
     # ------------------------------
@@ -158,31 +162,30 @@ async def start_handler(client, message):
     else:
         log.info("📄 Link detected as FILE. Fetching file from DB...")
 
-        file = files_col.find_one({
-            "$or": [
-                {"slug": slug},
-                {"slug2": slug}
-            ]
-        })
+        file = files_col.find_one({"slug2": slug2})
+        slug=file['slug']
+        
 
         if not file:
+            log.error("❌ File not found in DB")
             return await message.reply("❌ File not found!")
 
-        real_slug = file["slug"]
-
-        deep_link = f"https://t.me/{BOT_USERNAME}?start={real_slug}"
-
-        btn = InlineKeyboardMarkup(
-            [[InlineKeyboardButton("• ɢᴇᴛ ғɪʟᴇ •", url=deep_link)]]
-        )
+        log.info(f"✔ File found: {file}")
 
         text = (
             f"📁 **File Details**\n"
             f"**• Name**: `{file['file_name']}`\n"
             f"**• Size**: `{file['file_size']}`\n"
-            f"**• Type**: `{file['file_type']}`"
+            f"**• Type**: `{file['file_type']}`\n"
         )
+        deep_link = f"https://t.me/{BOT_USERNAME}?start={slug}"
+        btn = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("• ɢᴇᴛ ғɪʟᴇ •", url=deep_link)]]
+    )
+    log.info("🧩 Inline button created.")
 
+
+        log.info("➡ Sending file details to user")
         return await message.reply(text, reply_markup=btn)
 
 
