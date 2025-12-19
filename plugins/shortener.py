@@ -12,50 +12,77 @@ SHORTENER_MAP = {
 }
 
 
-def shorten_url(url: str):
-    """
-    Dynamically shorten a URL using configured shortener.
-    Fetches SHORTENER_DOMAIN and SHORTENER_API_KEY from DB each time.
-    Returns: (short_link or None, error_message or None)
-    """
-    domain = get_str("SHORTENER_DOMAIN").lower().strip()
-    api_key = get_str("SHORTENER_API_KEY").strip()
-
-    if not domain or not api_key:
-        log.warning("⚠️ Shortener not configured.")
-        return None, "Shortener not configured"
-
-    builder = SHORTENER_MAP.get(domain)
-    if not builder:
-        log.error(f"❌ Unsupported shortener domain: {domain}")
-        return None, f"No mapping for shortener domain '{domain}'"
-
-    api_url = builder(api_key, url)
-    log.info(f"🔗 Requesting shortener: {api_url}")
-
+def _call_shortener(api_url: str):
+    """Internal helper to call shortener API safely"""
     try:
         resp = requests.get(api_url, timeout=10)
         resp.raise_for_status()
 
-        # Try to parse JSON response
+        # Try JSON response
         try:
             data = resp.json()
-            if "shortenedUrl" in data:
-                short_url = data["shortenedUrl"]
-                log.info(f"✅ Shortened URL (JSON): {short_url}")
-                return short_url, None
+            if isinstance(data, dict):
+                for key in ("shortenedUrl", "short_url", "short"):
+                    if key in data and str(data[key]).startswith("http"):
+                        return data[key]
         except ValueError:
-            pass  # Not JSON
+            pass
 
-        # Fallback to plain text response
+        # Plain text fallback
         text = resp.text.strip()
         if text.startswith("http"):
-            log.info(f"✅ Shortened URL (Text): {text}")
-            return text, None
+            return text
 
-        log.error(f"⚠️ Unexpected shortener response: {resp.text[:100]}")
-        return None, f"Unexpected response: {resp.text[:100]}"
+        return None
 
     except Exception as e:
-        log.error(f"❌ Shortener failed: {e}")
-        return None, str(e)
+        log.warning(f"⚠️ Shortener request failed: {e}")
+        return None
+
+
+def shorten_url(url: str):
+    """
+    Shorten URL with smart fallback:
+    1️⃣ Try configured SHORTENER_DOMAIN first
+    2️⃣ If not mapped or fails → try all supported shorteners
+    """
+
+    domain = get_str("SHORTENER_DOMAIN").lower().strip()
+    api_key = get_str("SHORTENER_API_KEY").strip()
+
+    if not api_key:
+        log.warning("⚠️ Shortener API key not configured.")
+        return None, "Shortener not configured"
+
+    tried = []
+
+    # -------- 1️⃣ Try configured domain first --------
+    if domain and domain in SHORTENER_MAP:
+        builder = SHORTENER_MAP[domain]
+        api_url = builder(api_key, url)
+
+        log.info(f"🔍 Trying mapped shortener [{domain}]")
+        short = _call_shortener(api_url)
+
+        if short:
+            log.info(f"✅ Shortened via {domain}: {short}")
+            return short, None
+
+        tried.append(domain)
+
+    # -------- 2️⃣ Fallback: try all shorteners --------
+    for name, builder in SHORTENER_MAP.items():
+        if name in tried:
+            continue
+
+        api_url = builder(api_key, url)
+        log.info(f"🔁 Trying fallback shortener [{name}]")
+
+        short = _call_shortener(api_url)
+        if short:
+            log.info(f"✅ Shortened via {name}: {short}")
+            return short, None
+
+    # -------- 3️⃣ Total failure --------
+    log.error("❌ All shorteners failed")
+    return None, "Unable to shorten URL with any provider"
