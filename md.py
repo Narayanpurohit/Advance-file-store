@@ -133,12 +133,12 @@ async def start_handler(client, message):
         log.info("📁 Link detected as BATCH. Fetching batch from DB...")
 
         batch = batches_col.find_one({"slug2": slug2})
-        slug=batch['slug']
 
         if not batch:
             log.error("❌ Batch not found in DB")
             return await message.reply("❌ Batch not found!")
 
+        slug = batch["slug"]
         log.info(f"✔ Batch found: {batch}")
 
         text = (
@@ -163,13 +163,12 @@ async def start_handler(client, message):
         log.info("📄 Link detected as FILE. Fetching file from DB...")
 
         file = files_col.find_one({"slug2": slug2})
-        slug=file['slug']
-        
 
         if not file:
             log.error("❌ File not found in DB")
             return await message.reply("❌ File not found!")
 
+        slug = file["slug"]
         log.info(f"✔ File found: {file}")
 
         text = (
