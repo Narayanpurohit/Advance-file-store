@@ -40,7 +40,9 @@ VARIABLE_INFO = {
     "CLONE_BUTTON": {"name": "ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ", "help": "ꜱʜᴏᴡ ᴄʀᴇᴀᴛᴇ ᴄʟᴏɴᴇ ʙᴜᴛᴛᴏɴ ᴏɴ ʏᴏᴜʀ ʙᴏᴛ."},
     "PUBLIC_BOT": {"name": "ᴘᴜʙʟɪᴄ ʙᴏᴛ", "help": "ᴇᴠᴇʀʏᴏɴᴇ ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."},
     "DEKOY": {"name": "DEKOY ʙᴏᴛ", "help": "DEKOY ᴄᴀɴ ᴜꜱᴇ ʙᴏᴛ."},
-    "RFSUB": {"name": "rfsub ʙᴏᴛ", "help": "Rfsub ."}
+    "RFSUB": {"name": "rfsub ʙᴏᴛ", "help": "Rfsub ."},
+    "HTW": {"name": "ʜᴏᴡ ᴛᴏ ᴠᴇʀɪꜰʏ", "help": "ʜᴏᴡ ᴛᴏ ᴠᴇʀɪꜰʏ ᴠɪᴅᴇᴏ ʟɪɴᴋ"}
+
 
     
     
@@ -75,7 +77,8 @@ VERIFICATION_SUB = [
     "VERIFICATION_MODE",
     "PREMIUM_HOURS_VERIFICATION",
     "SHORTENER_DOMAIN",
-    "SHORTENER_API_KEY"
+    "SHORTENER_API_KEY",
+    "HTW"
 ]
 
 
