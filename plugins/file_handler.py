@@ -123,9 +123,9 @@ async def generate_link(client, message):
         slug = random_slug(file_type, DB_NAME)
         while files_col.find_one({"slug": slug}):
             slug = random_slug(file_type, DB_NAME)
-        slug2 = random_slug(file_type, DB_NAME)
-        while files_col.find_one({"slug2": slug2}):
-            slug2 = random_slug(file_type, DB_NAME)
+        #slug2 = random_slug(file_type, DB_NAME)
+        #while files_col.find_one({"slug2": slug2}):
+            #slug2 = random_slug(file_type, DB_NAME)
 
 
         # Save file entry
@@ -135,8 +135,7 @@ async def generate_link(client, message):
             "file_type": file_type,
             "file_name": file_name,
             "file_size": file_size,
-            "caption": caption,
-            "slug2": slug2
+            "caption": caption
         }
 
         if buttons:
@@ -154,7 +153,7 @@ async def generate_link(client, message):
             pass
 
         # Generate link
-        SLUG = slug2 if DEKOY else slug
+        #SLUG = slug2 if DEKOY else slug
         file_link = f"https://t.me/{USERNAME}?start={slug}"
 
         text_resp = (
