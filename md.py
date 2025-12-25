@@ -100,7 +100,7 @@ async def start_handler(client, message):
         log.info(f"📦 Received payload: {payload}")
         slug=payload
 
-        link_type, dbcode, slug2 = payload.split("_", 2)
+        link_type, dbcode, slug = payload.split("_", 2)
         db2 = mongo[dbcode]
         
         files_col = db2.files
